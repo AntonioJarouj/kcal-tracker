@@ -1,0 +1,1613 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Kcal Tracker</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; }
+    :root {
+      --bg: #0d0e12;
+      --bg-soft: #12141b;
+      --surface: rgba(255,255,255,.055);
+      --surface-2: rgba(255,255,255,.085);
+      --surface-3: rgba(255,255,255,.12);
+      --border: rgba(255,255,255,.10);
+      --border-strong: rgba(255,255,255,.18);
+      --text: #f6f0e8;
+      --muted: rgba(246,240,232,.62);
+      --muted-2: rgba(246,240,232,.42);
+      --danger: #ff7c7c;
+      --danger-bg: rgba(255,124,124,.12);
+      --success: #7ce8b3;
+      --accent: #efcc7a;
+      --accent-2: #b790ff;
+      --protein: #7ce8b3;
+      --carbs: #78b8ff;
+      --fat: #ff8aa5;
+      --fiber: #b790ff;
+      --shadow: 0 22px 80px rgba(0,0,0,.35);
+      --radius: 18px;
+      --radius-sm: 12px;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      color: var(--text);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background:
+        radial-gradient(circle at 20% 0%, rgba(239,204,122,.16), transparent 34%),
+        radial-gradient(circle at 88% 14%, rgba(183,144,255,.13), transparent 33%),
+        linear-gradient(180deg, #0d0e12 0%, #101116 100%);
+      padding-bottom: 72px;
+    }
+
+    button, input, select { font: inherit; }
+    button { cursor: pointer; }
+
+    .topbar {
+      position: sticky;
+      top: 0;
+      z-index: 20;
+      height: 68px;
+      border-bottom: 1px solid var(--border);
+      background: rgba(13,14,18,.82);
+      backdrop-filter: blur(18px);
+    }
+
+    .topbar-inner {
+      max-width: 1180px;
+      height: 100%;
+      margin: 0 auto;
+      padding: 0 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+    }
+
+    .brand { display: flex; align-items: center; gap: 12px; min-width: 0; }
+    .brand-mark {
+      width: 38px; height: 38px; border-radius: 13px;
+      display: grid; place-items: center;
+      background: linear-gradient(135deg, var(--accent), #ffedbd);
+      color: #111218; font-weight: 900;
+      box-shadow: 0 10px 30px rgba(239,204,122,.18);
+    }
+    .brand-title { font-weight: 800; letter-spacing: -.03em; line-height: 1; }
+    .brand-sub { font-size: 12px; color: var(--muted-2); margin-top: 3px; }
+
+    .date-nav { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+    .date-btn, .ghost-btn, .icon-btn {
+      border: 1px solid var(--border);
+      background: rgba(255,255,255,.04);
+      color: var(--text);
+      border-radius: 999px;
+      min-height: 38px;
+      transition: .16s ease;
+    }
+    .date-btn { width: 38px; }
+    .ghost-btn { padding: 0 14px; font-size: 13px; }
+    .icon-btn { width: 36px; height: 36px; display: grid; place-items: center; }
+    .date-btn:hover, .ghost-btn:hover, .icon-btn:hover { background: var(--surface-2); border-color: var(--border-strong); }
+    .date-display { min-width: 125px; text-align: center; font-size: 13px; color: var(--muted); }
+
+    .app {
+      max-width: 1180px;
+      margin: 0 auto;
+      padding: 26px 20px 0;
+      display: grid;
+      grid-template-columns: minmax(0, 1.35fr) minmax(320px, .85fr);
+      gap: 18px;
+      align-items: start;
+    }
+
+    .stack { display: grid; gap: 18px; }
+    .card {
+      border: 1px solid var(--border);
+      background: linear-gradient(180deg, rgba(255,255,255,.075), rgba(255,255,255,.045));
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+    .card-pad { padding: 20px; }
+    .card-head {
+      padding: 18px 20px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+    .eyebrow { color: var(--muted-2); text-transform: uppercase; letter-spacing: .12em; font-size: 11px; font-weight: 700; }
+    h1, h2, h3, p { margin: 0; }
+    h1 { font-size: clamp(28px, 5vw, 54px); letter-spacing: -.06em; line-height: .96; }
+    h2 { font-size: 17px; letter-spacing: -.02em; }
+    h3 { font-size: 14px; }
+    .muted { color: var(--muted); }
+    .tiny { font-size: 12px; color: var(--muted-2); }
+
+    .hero {
+      padding: 28px;
+      display: grid;
+      grid-template-columns: 210px minmax(0, 1fr);
+      gap: 28px;
+      align-items: center;
+      min-height: 286px;
+    }
+    .ring {
+      width: 190px; height: 190px;
+      position: relative;
+      display: grid;
+      place-items: center;
+    }
+    .ring svg { transform: rotate(-90deg); overflow: visible; }
+    .ring-center { position: absolute; text-align: center; }
+    .ring-kcal { font-size: 42px; line-height: 1; font-weight: 900; letter-spacing: -.05em; color: var(--accent); }
+    .ring-caption { margin-top: 6px; font-size: 12px; color: var(--muted-2); }
+
+    .summary { display: grid; gap: 18px; }
+    .remaining { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
+    .remaining strong { font-size: 32px; letter-spacing: -.04em; }
+    .progress-track { height: 9px; border-radius: 999px; background: rgba(255,255,255,.08); overflow: hidden; }
+    .progress-fill { height: 100%; width: 0%; border-radius: inherit; background: var(--accent); transition: width .35s ease, background .2s ease; }
+    .progress-fill.danger { background: var(--danger); }
+
+    .macro-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+    .macro-card {
+      background: rgba(255,255,255,.05);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 14px;
+      min-width: 0;
+    }
+    .macro-top { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 10px; }
+    .dot { width: 9px; height: 9px; border-radius: 999px; background: var(--accent); flex: 0 0 auto; }
+    .dot.protein { background: var(--protein); }
+    .dot.carbs { background: var(--carbs); }
+    .dot.fat { background: var(--fat); }
+    .dot.fiber { background: var(--fiber); }
+    .macro-value { font-size: 21px; font-weight: 800; letter-spacing: -.03em; }
+    .macro-target { font-size: 12px; color: var(--muted-2); margin-top: 2px; }
+    .mini-track { height: 6px; border-radius: 99px; background: rgba(255,255,255,.08); margin-top: 12px; overflow: hidden; }
+    .mini-fill { height: 100%; border-radius: inherit; background: var(--accent); width: 0; transition: width .3s ease; }
+    .mini-fill.protein { background: var(--protein); }
+    .mini-fill.carbs { background: var(--carbs); }
+    .mini-fill.fat { background: var(--fat); }
+    .mini-fill.fiber { background: var(--fiber); }
+
+    .actions-row { display: flex; gap: 10px; flex-wrap: wrap; }
+    .primary-btn, .secondary-btn, .danger-btn {
+      border: 0;
+      border-radius: 13px;
+      min-height: 42px;
+      padding: 0 15px;
+      font-size: 14px;
+      font-weight: 750;
+      transition: transform .12s ease, opacity .12s ease, background .12s ease;
+    }
+    .primary-btn { background: var(--accent); color: #111218; }
+    .secondary-btn { background: var(--surface-2); color: var(--text); border: 1px solid var(--border); }
+    .danger-btn { background: var(--danger-bg); color: var(--danger); border: 1px solid rgba(255,124,124,.24); }
+    .primary-btn:hover, .secondary-btn:hover, .danger-btn:hover { opacity: .92; }
+    .primary-btn:active, .secondary-btn:active, .danger-btn:active { transform: scale(.99); }
+
+    .form-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+    .form-full { grid-column: 1 / -1; }
+    .field label { display: flex; justify-content: space-between; gap: 8px; font-size: 12px; color: var(--muted); margin-bottom: 7px; font-weight: 700; }
+    .field input, .field select {
+      width: 100%;
+      border: 1px solid var(--border);
+      background: rgba(0,0,0,.22);
+      color: var(--text);
+      border-radius: 13px;
+      min-height: 44px;
+      padding: 0 12px;
+      outline: none;
+      transition: border-color .14s ease, background .14s ease;
+    }
+    .field input:focus, .field select:focus { border-color: rgba(239,204,122,.55); background: rgba(0,0,0,.28); }
+    .field input::placeholder { color: rgba(246,240,232,.25); }
+    .field select option { background: #15161d; color: var(--text); }
+    .field.has-error input, .field.has-error select { border-color: rgba(255,124,124,.72); background: rgba(255,124,124,.055); }
+    .error { min-height: 16px; margin-top: 5px; color: var(--danger); font-size: 12px; }
+
+    input[type="number"] { -moz-appearance: textfield; }
+    input[type="number"]::-webkit-outer-spin-button,
+    input[type="number"]::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+
+    .log-list, .product-list { display: grid; gap: 10px; }
+    .empty {
+      padding: 28px 20px;
+      text-align: center;
+      color: var(--muted-2);
+      border: 1px dashed var(--border-strong);
+      border-radius: 16px;
+      background: rgba(255,255,255,.025);
+    }
+    .log-item, .product-item {
+      border: 1px solid var(--border);
+      background: rgba(255,255,255,.045);
+      border-radius: 16px;
+      padding: 14px;
+      display: flex;
+      justify-content: space-between;
+      gap: 14px;
+      align-items: center;
+      animation: fadeUp .2s ease both;
+    }
+    @keyframes fadeUp { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+    .item-main { min-width: 0; }
+    .item-title { font-weight: 800; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .item-meta { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 6px; color: var(--muted-2); font-size: 12px; }
+    .pill { padding: 4px 8px; border-radius: 999px; background: rgba(255,255,255,.06); border: 1px solid var(--border); }
+    .item-kcal { text-align: right; font-size: 22px; font-weight: 900; color: var(--accent); letter-spacing: -.04em; }
+    .item-kcal span { display: block; font-size: 11px; font-weight: 600; color: var(--muted-2); letter-spacing: 0; }
+
+    .meal-group {
+      border: 1px solid var(--border);
+      background: rgba(255,255,255,.035);
+      border-radius: 18px;
+      overflow: hidden;
+      animation: fadeUp .2s ease both;
+    }
+    .meal-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 16px 16px 12px;
+      border-bottom: 1px solid var(--border);
+    }
+    .meal-title { font-size: 18px; font-weight: 850; letter-spacing: -.03em; }
+    .meal-sub { margin-top: 4px; font-size: 12px; color: var(--muted-2); }
+    .meal-items { display: grid; gap: 10px; padding: 10px; }
+    .meal-empty {
+      padding: 14px 16px 16px;
+      font-size: 13px;
+      color: var(--muted-2);
+    }
+    .quick-meal-btn {
+      min-height: 36px;
+      padding: 0 12px;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      background: rgba(255,255,255,.05);
+      color: var(--text);
+      font-size: 13px;
+      font-weight: 700;
+    }
+    .quick-meal-btn:hover { background: var(--surface-2); border-color: var(--border-strong); }
+    .log-item.meal-entry {
+      background: rgba(255,255,255,.045);
+      border-radius: 14px;
+      padding: 12px 14px;
+    }
+
+    .product-toolbar { display: flex; gap: 10px; align-items: center; }
+    .search-input {
+      min-height: 40px;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      background: rgba(0,0,0,.22);
+      color: var(--text);
+      outline: none;
+      padding: 0 13px;
+      width: min(260px, 100%);
+    }
+
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      z-index: 50;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      background: rgba(0,0,0,.62);
+      padding: 20px;
+    }
+    .modal-backdrop.open { display: flex; }
+    .modal {
+      width: min(760px, 100%);
+      max-height: min(88vh, 820px);
+      overflow: auto;
+      border: 1px solid var(--border-strong);
+      border-radius: 24px;
+      background: #15161d;
+      box-shadow: 0 30px 120px rgba(0,0,0,.62);
+    }
+    .modal-head {
+      position: sticky;
+      top: 0;
+      background: rgba(21,22,29,.94);
+      backdrop-filter: blur(14px);
+      z-index: 1;
+      padding: 18px 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 14px;
+      border-bottom: 1px solid var(--border);
+    }
+    .modal-body { padding: 20px; }
+    .modal.log-modal { width: min(720px, 100%); }
+    .modal.scanner-modal { width: min(560px, 100%); }
+    .modal-actions-top { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+    .field-action-row { display: flex; gap: 10px; align-items: stretch; }
+    .field-action-row select,
+    .field-action-row input { flex: 1; min-width: 0; }
+    .scan-btn {
+      min-height: 44px;
+      border: 1px solid rgba(239,204,122,.35);
+      background: rgba(239,204,122,.10);
+      color: var(--accent);
+      border-radius: 13px;
+      padding: 0 13px;
+      font-weight: 800;
+      white-space: nowrap;
+    }
+    .scan-btn:hover { background: rgba(239,204,122,.16); }
+    .scanner-wrap {
+      position: relative;
+      overflow: hidden;
+      border-radius: 18px;
+      border: 1px solid var(--border-strong);
+      background: #050608;
+      aspect-ratio: 4 / 3;
+      display: grid;
+      place-items: center;
+    }
+    .scanner-wrap video {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+    .scanner-frame {
+      position: absolute;
+      inset: 18%;
+      border: 3px solid var(--accent);
+      border-radius: 18px;
+      box-shadow: 0 0 0 999px rgba(0,0,0,.30);
+      pointer-events: none;
+    }
+    .scanner-line {
+      position: absolute;
+      left: 12%;
+      right: 12%;
+      top: 50%;
+      height: 2px;
+      background: var(--accent);
+      box-shadow: 0 0 18px rgba(239,204,122,.7);
+      pointer-events: none;
+    }
+    .scanner-status {
+      margin-top: 12px;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.45;
+    }
+    @media (max-width: 640px) {
+      .field-action-row { flex-direction: column; }
+      .scan-btn { width: 100%; }
+    }
+    .selected-meal-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      margin-top: 6px;
+      padding: 7px 11px;
+      border: 1px solid rgba(239,204,122,.25);
+      border-radius: 999px;
+      background: rgba(239,204,122,.08);
+      color: var(--accent);
+      font-size: 13px;
+      font-weight: 800;
+    }
+
+    .toast {
+      position: fixed;
+      bottom: 22px;
+      left: 50%;
+      transform: translateX(-50%) translateY(18px);
+      opacity: 0;
+      pointer-events: none;
+      z-index: 60;
+      border: 1px solid var(--border-strong);
+      background: #22242c;
+      border-radius: 999px;
+      padding: 11px 16px;
+      color: var(--text);
+      font-size: 13px;
+      transition: .22s ease;
+      box-shadow: var(--shadow);
+    }
+    .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+    .split-note {
+      border: 1px solid rgba(239,204,122,.18);
+      background: rgba(239,204,122,.07);
+      color: rgba(246,240,232,.78);
+      padding: 12px 14px;
+      border-radius: 14px;
+      font-size: 13px;
+      line-height: 1.45;
+    }
+
+    @media (max-width: 920px) {
+      .app { grid-template-columns: 1fr; }
+      .hero { grid-template-columns: 1fr; }
+      .ring { margin: 0 auto; }
+    }
+    @media (max-width: 640px) {
+      .topbar { height: auto; }
+      .topbar-inner { padding: 12px 14px; align-items: flex-start; flex-direction: column; }
+      .date-nav { width: 100%; justify-content: space-between; }
+      .app { padding: 16px 14px 0; }
+      .hero { padding: 20px; }
+      .macro-grid { grid-template-columns: repeat(2, 1fr); }
+      .form-grid { grid-template-columns: 1fr; }
+      .product-toolbar { width: 100%; flex-direction: column; align-items: stretch; }
+      .search-input { width: 100%; }
+      .card-head { align-items: flex-start; flex-direction: column; }
+    }
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <div class="topbar-inner">
+      <div class="brand">
+        <div class="brand-mark">K</div>
+        <div>
+          <div class="brand-title">Kcal Tracker</div>
+          <div class="brand-sub">Local-first voedingslog</div>
+        </div>
+      </div>
+      <div class="date-nav" aria-label="Datum navigatie">
+        <button class="date-btn" id="prev-day" type="button" aria-label="Vorige dag">‹</button>
+        <div class="date-display" id="date-display"></div>
+        <button class="date-btn" id="next-day" type="button" aria-label="Volgende dag">›</button>
+        <button class="ghost-btn" id="today-btn" type="button">Vandaag</button>
+      </div>
+    </div>
+  </header>
+
+  <main class="app">
+    <section class="stack">
+      <article class="card hero">
+        <div class="ring" aria-label="Calorie voortgang">
+          <svg width="190" height="190" viewBox="0 0 190 190" aria-hidden="true">
+            <circle cx="95" cy="95" r="78" fill="none" stroke="rgba(255,255,255,.08)" stroke-width="14" />
+            <circle id="kcal-ring" cx="95" cy="95" r="78" fill="none" stroke="#efcc7a" stroke-width="14" stroke-linecap="round" stroke-dasharray="490.09" stroke-dashoffset="490.09" />
+          </svg>
+          <div class="ring-center">
+            <div class="ring-kcal" id="kcal-eaten">0</div>
+            <div class="ring-caption">kcal gegeten</div>
+          </div>
+        </div>
+
+        <div class="summary">
+          <div>
+            <div class="eyebrow">Dashboard</div>
+            <h1>Dagelijkse voortgang</h1>
+          </div>
+          <div>
+            <div class="remaining">
+              <strong id="kcal-remaining">0</strong>
+              <span class="muted" id="kcal-remaining-label">kcal resterend</span>
+            </div>
+            <div class="progress-track" style="margin-top: 12px;">
+              <div class="progress-fill" id="kcal-progress"></div>
+            </div>
+          </div>
+          <div class="macro-grid">
+            <div class="macro-card">
+              <div class="macro-top"><span class="tiny">Eiwit</span><span class="dot protein"></span></div>
+              <div class="macro-value" id="protein-value">0g</div>
+              <div class="macro-target" id="protein-target">van 0g</div>
+              <div class="mini-track"><div class="mini-fill protein" id="protein-fill"></div></div>
+            </div>
+            <div class="macro-card">
+              <div class="macro-top"><span class="tiny">Koolhydraten</span><span class="dot carbs"></span></div>
+              <div class="macro-value" id="carbs-value">0g</div>
+              <div class="macro-target" id="carbs-target">van 0g</div>
+              <div class="mini-track"><div class="mini-fill carbs" id="carbs-fill"></div></div>
+            </div>
+            <div class="macro-card">
+              <div class="macro-top"><span class="tiny">Vetten</span><span class="dot fat"></span></div>
+              <div class="macro-value" id="fat-value">0g</div>
+              <div class="macro-target" id="fat-target">van 0g</div>
+              <div class="mini-track"><div class="mini-fill fat" id="fat-fill"></div></div>
+            </div>
+            <div class="macro-card">
+              <div class="macro-top"><span class="tiny">Vezels</span><span class="dot fiber"></span></div>
+              <div class="macro-value" id="fiber-value">0g</div>
+              <div class="macro-target" id="fiber-target">van 0g</div>
+              <div class="mini-track"><div class="mini-fill fiber" id="fiber-fill"></div></div>
+            </div>
+          </div>
+        </div>
+      </article>
+
+      <article class="card">
+        <div class="card-head">
+          <div>
+            <div class="eyebrow">Loggen</div>
+            <h2>Voeg eten toe via je maaltijdblokken</h2>
+          </div>
+          <button class="secondary-btn" id="open-product-modal-2" type="button">Voeg product toe</button>
+        </div>
+        <div class="card-pad">
+          <div class="split-note">Klik bij Ontbijt, Lunch, Diner of Tussendoortjes op “Product loggen”. Dan opent er een popup waarin je een product kiest en het aantal gram invult.</div>
+        </div>
+      </article>
+
+      <article class="card">
+        <div class="card-head">
+          <div>
+            <div class="eyebrow">Maaltijden</div>
+            <h2>Ontbijt, lunch, diner en tussendoortjes</h2>
+          </div>
+          <button class="danger-btn" type="button" id="clear-day">Dag leegmaken</button>
+        </div>
+        <div class="card-pad">
+          <div class="log-list" id="log-list"></div>
+        </div>
+      </article>
+    </section>
+
+    <aside class="stack">
+      <article class="card">
+        <div class="card-head">
+          <div>
+            <div class="eyebrow">Productdatabase</div>
+            <h2>Herbruikbare producten</h2>
+          </div>
+          <button class="primary-btn" id="open-product-modal" type="button">Voeg product toe</button>
+        </div>
+        <div class="card-pad">
+          <div class="product-toolbar" style="margin-bottom: 14px;">
+            <input class="search-input" id="product-search" type="search" placeholder="Zoek product of barcode..." />
+          </div>
+          <div class="product-list" id="product-list"></div>
+        </div>
+      </article>
+
+      <article class="card">
+        <div class="card-head">
+          <div>
+            <div class="eyebrow">Doelen</div>
+            <h2>Kcal en macroverdeling</h2>
+          </div>
+        </div>
+        <div class="card-pad">
+          <form id="goals-form" novalidate>
+            <div class="split-note" style="margin-bottom: 14px;">
+              Vul je kcal-doel en macroverdeling in. De app rekent de gramdoelen automatisch uit: koolhydraten en eiwit = 4 kcal per gram, vet = 9 kcal per gram.
+            </div>
+            <div class="form-grid">
+              <div class="field form-full" data-field="goalKcal">
+                <label for="goal-kcal">Kcal per dag</label>
+                <input id="goal-kcal" name="goalKcal" type="number" inputmode="decimal" min="0.01" step="1" placeholder="bijv. 2750" />
+                <div class="error" id="error-goalKcal"></div>
+              </div>
+              <div class="field" data-field="goalCarbsPct">
+                <label for="goal-carbs-pct">Koolhydraten %</label>
+                <input id="goal-carbs-pct" name="goalCarbsPct" type="number" inputmode="decimal" min="0" max="100" step="1" placeholder="40" />
+                <div class="error" id="error-goalCarbsPct"></div>
+              </div>
+              <div class="field" data-field="goalProteinPct">
+                <label for="goal-protein-pct">Eiwit %</label>
+                <input id="goal-protein-pct" name="goalProteinPct" type="number" inputmode="decimal" min="0" max="100" step="1" placeholder="33" />
+                <div class="error" id="error-goalProteinPct"></div>
+              </div>
+              <div class="field" data-field="goalFatPct">
+                <label for="goal-fat-pct">Vet %</label>
+                <input id="goal-fat-pct" name="goalFatPct" type="number" inputmode="decimal" min="0" max="100" step="1" placeholder="27" />
+                <div class="error" id="error-goalFatPct"></div>
+              </div>
+              <div class="field" data-field="goalFiber">
+                <label for="goal-fiber">Vezels doel gram</label>
+                <input id="goal-fiber" name="goalFiber" type="number" inputmode="decimal" min="0.01" step="0.1" placeholder="bijv. 30" />
+                <div class="error" id="error-goalFiber"></div>
+              </div>
+            </div>
+            <div class="split-note" id="macro-gram-preview" style="margin-top: 14px;">
+              Vul je kcal en percentages in om de gramdoelen te zien.
+            </div>
+            <button class="primary-btn" type="submit" style="margin-top: 14px; width: 100%;">Doelen opslaan</button>
+          </form>
+        </div>
+      </article>
+
+      <article class="card">
+        <div class="card-head">
+          <div>
+            <div class="eyebrow">Data</div>
+            <h2>Zelfhostbaar en lokaal</h2>
+          </div>
+        </div>
+        <div class="card-pad stack">
+          <div class="split-note">Alles wordt opgeslagen in localStorage van je browser. Geen database, geen betaalde diensten en geen externe JavaScript-libraries.</div>
+          <div class="actions-row">
+            <button class="secondary-btn" type="button" id="export-data">Export JSON</button>
+            <button class="secondary-btn" type="button" id="import-data">Import JSON</button>
+            <input id="import-file" type="file" accept="application/json" hidden />
+          </div>
+        </div>
+      </article>
+    </aside>
+  </main>
+
+  <div class="modal-backdrop" id="log-modal" role="dialog" aria-modal="true" aria-labelledby="log-modal-title">
+    <div class="modal log-modal">
+      <div class="modal-head">
+        <div>
+          <div class="eyebrow">Loggen op gram</div>
+          <h2 id="log-modal-title">Product toevoegen</h2>
+          <div class="selected-meal-pill" id="log-modal-meal-name">Ontbijt</div>
+        </div>
+        <div class="modal-actions-top">
+          <button class="secondary-btn" id="open-product-modal-from-log" type="button">Nieuw product</button>
+          <button class="icon-btn" id="close-log-modal" type="button" aria-label="Sluiten">×</button>
+        </div>
+      </div>
+      <div class="modal-body">
+        <form id="log-form" novalidate>
+          <div class="form-grid">
+            <div class="field form-full" data-field="logProductId">
+              <label for="log-product">Product</label>
+              <div class="field-action-row">
+                <select id="log-product" name="logProductId">
+                  <option value="">Kies een product...</option>
+                </select>
+                <button class="scan-btn" id="scan-log-barcode" type="button">Scan barcode</button>
+              </div>
+              <div class="error" id="error-logProductId"></div>
+            </div>
+            <div class="field" data-field="mealType">
+              <label for="log-meal">Maaltijd</label>
+              <select id="log-meal" name="mealType">
+                <option value="breakfast">Ontbijt</option>
+                <option value="lunch">Lunch</option>
+                <option value="dinner">Diner</option>
+                <option value="snacks">Tussendoortjes</option>
+              </select>
+              <div class="error" id="error-mealType"></div>
+            </div>
+            <div class="field" data-field="grams">
+              <label for="log-grams">Aantal gram</label>
+              <input id="log-grams" name="grams" type="number" inputmode="decimal" min="0.01" step="0.1" placeholder="bijv. 150" />
+              <div class="error" id="error-grams"></div>
+            </div>
+            <div class="field form-full">
+              <label>Preview</label>
+              <input id="log-preview" type="text" disabled value="Kies product + gram" />
+              <div class="error"></div>
+            </div>
+          </div>
+          <div class="actions-row" style="margin-top: 2px;">
+            <button class="primary-btn" type="submit">Toevoegen aan daglog</button>
+            <button class="secondary-btn" type="button" id="clear-log-form">Leegmaken</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-backdrop" id="product-modal" role="dialog" aria-modal="true" aria-labelledby="product-modal-title">
+    <div class="modal">
+      <div class="modal-head">
+        <div>
+          <div class="eyebrow">Productdatabase</div>
+          <h2 id="product-modal-title">Nieuw product toevoegen</h2>
+        </div>
+        <button class="icon-btn" id="close-product-modal" type="button" aria-label="Sluiten">×</button>
+      </div>
+      <div class="modal-body">
+        <form id="product-form" novalidate>
+          <div class="form-grid">
+            <div class="field" data-field="barcode">
+              <label for="barcode">Barcode <span class="tiny">optioneel</span></label>
+              <div class="field-action-row">
+                <input id="barcode" name="barcode" type="text" inputmode="text" placeholder="bijv. 8712345678901" />
+                <button class="scan-btn" id="scan-product-barcode" type="button">Scan</button>
+              </div>
+              <div class="error" id="error-barcode"></div>
+            </div>
+            <div class="field" data-field="productName">
+              <label for="product-name">Productnaam</label>
+              <input id="product-name" name="productName" type="text" placeholder="bijv. Havermout" />
+              <div class="error" id="error-productName"></div>
+            </div>
+            <div class="field" data-field="productKcal">
+              <label for="product-kcal">Calorieën per 100g</label>
+              <input id="product-kcal" name="productKcal" type="number" inputmode="decimal" min="0.01" step="0.1" placeholder="389" />
+              <div class="error" id="error-productKcal"></div>
+            </div>
+            <div class="field" data-field="productProtein">
+              <label for="product-protein">Eiwitten per 100g</label>
+              <input id="product-protein" name="productProtein" type="number" inputmode="decimal" min="0" step="0.1" placeholder="13.5" />
+              <div class="error" id="error-productProtein"></div>
+            </div>
+            <div class="field" data-field="productCarbs">
+              <label for="product-carbs">Koolhydraten per 100g</label>
+              <input id="product-carbs" name="productCarbs" type="number" inputmode="decimal" min="0" step="0.1" placeholder="60" />
+              <div class="error" id="error-productCarbs"></div>
+            </div>
+            <div class="field" data-field="productFat">
+              <label for="product-fat">Vetten per 100g</label>
+              <input id="product-fat" name="productFat" type="number" inputmode="decimal" min="0" step="0.1" placeholder="7" />
+              <div class="error" id="error-productFat"></div>
+            </div>
+            <div class="field" data-field="productFiber">
+              <label for="product-fiber">Vezels per 100g</label>
+              <input id="product-fiber" name="productFiber" type="number" inputmode="decimal" min="0" step="0.1" placeholder="10" />
+              <div class="error" id="error-productFiber"></div>
+            </div>
+          </div>
+          <div class="actions-row" style="margin-top: 6px;">
+            <button class="primary-btn" type="submit">Product opslaan</button>
+            <button class="secondary-btn" type="button" id="reset-product-form">Leegmaken</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-backdrop" id="scanner-modal" role="dialog" aria-modal="true" aria-labelledby="scanner-modal-title">
+    <div class="modal scanner-modal">
+      <div class="modal-head">
+        <div>
+          <div class="eyebrow">Camera</div>
+          <h2 id="scanner-modal-title">Barcode scannen</h2>
+        </div>
+        <button class="icon-btn" id="close-scanner-modal" type="button" aria-label="Sluiten">×</button>
+      </div>
+      <div class="modal-body">
+        <div class="scanner-wrap">
+          <video id="scanner-video" autoplay muted playsinline></video>
+          <div class="scanner-frame"></div>
+          <div class="scanner-line"></div>
+        </div>
+        <div class="scanner-status" id="scanner-status">Richt de camera op de streepjescode. Houd de barcode recht, dichtbij genoeg en goed belicht.</div>
+        <div class="actions-row" style="margin-top: 14px;">
+          <button class="secondary-btn" id="stop-scanner" type="button">Stop scanner</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <script>
+    'use strict';
+
+    const STORAGE_KEYS = {
+      products: 'kcal_tracker_products_v2',
+      logs: 'kcal_tracker_logs_v2',
+      goals: 'kcal_tracker_goals_v2'
+    };
+
+    const DEFAULT_GOALS = { kcal: 2750, protein: 227, carbs: 275, fat: 83, fiber: 30, proteinPct: 33, carbsPct: 40, fatPct: 27 };
+    const MEAL_TYPES = [
+      { key: 'breakfast', label: 'Ontbijt' },
+      { key: 'lunch', label: 'Lunch' },
+      { key: 'dinner', label: 'Diner' },
+      { key: 'snacks', label: 'Tussendoortjes' }
+    ];
+    const CIRCUMFERENCE = 2 * Math.PI * 78;
+
+    const state = {
+      currentDate: toDateKey(new Date()),
+      products: [],
+      logs: {},
+      goals: { ...DEFAULT_GOALS }
+    };
+
+    const scannerState = {
+      active: false,
+      target: null,
+      reader: null,
+      controls: null,
+      loadPromise: null
+    };
+
+    const $ = (selector) => document.querySelector(selector);
+    const $$ = (selector) => Array.from(document.querySelectorAll(selector));
+
+    const els = {
+      dateDisplay: $('#date-display'),
+      kcalRing: $('#kcal-ring'),
+      kcalEaten: $('#kcal-eaten'),
+      kcalRemaining: $('#kcal-remaining'),
+      kcalRemainingLabel: $('#kcal-remaining-label'),
+      kcalProgress: $('#kcal-progress'),
+      logList: $('#log-list'),
+      productList: $('#product-list'),
+      productSearch: $('#product-search'),
+      logProduct: $('#log-product'),
+      logMeal: $('#log-meal'),
+      logGrams: $('#log-grams'),
+      logPreview: $('#log-preview'),
+      logModal: $('#log-modal'),
+      logModalMealName: $('#log-modal-meal-name'),
+      productModal: $('#product-modal'),
+      scannerModal: $('#scanner-modal'),
+      scannerVideo: $('#scanner-video'),
+      scannerStatus: $('#scanner-status'),
+      toast: $('#toast'),
+      importFile: $('#import-file'),
+      macroGramPreview: $('#macro-gram-preview')
+    };
+
+    function toDateKey(date) {
+      const local = new Date(date.getTime() - date.getTimezoneOffset() * 60000);
+      return local.toISOString().slice(0, 10);
+    }
+
+    function formatDate(dateKey) {
+      return new Date(dateKey + 'T12:00:00').toLocaleDateString('nl-NL', {
+        weekday: 'short', day: 'numeric', month: 'short', year: 'numeric'
+      });
+    }
+
+    function uid() {
+      return 'id_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 9);
+    }
+
+    function round(value, decimals = 1) {
+      const n = Number(value || 0);
+      const p = Math.pow(10, decimals);
+      return Math.round((n + Number.EPSILON) * p) / p;
+    }
+
+    function pretty(value, decimals = 1) {
+      const n = round(value, decimals);
+      return Number.isInteger(n) ? String(n) : String(n).replace('.', ',');
+    }
+
+    function escapeHtml(value) {
+      return String(value ?? '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+    }
+
+    function normalizeBarcode(value) {
+      return String(value ?? '').trim().replace(/\s+/g, '');
+    }
+
+    function findProductByBarcode(barcode) {
+      const normalized = normalizeBarcode(barcode);
+      return state.products.find(product => normalizeBarcode(product.barcode) === normalized);
+    }
+
+    function getMealMeta(key) {
+      return MEAL_TYPES.find(meal => meal.key === key) || MEAL_TYPES[3];
+    }
+
+    function loadState() {
+      try {
+        state.products = JSON.parse(localStorage.getItem(STORAGE_KEYS.products)) || [];
+        state.logs = JSON.parse(localStorage.getItem(STORAGE_KEYS.logs)) || {};
+        state.goals = { ...DEFAULT_GOALS, ...(JSON.parse(localStorage.getItem(STORAGE_KEYS.goals)) || {}) };
+        if (state.goals.carbsPct == null || state.goals.proteinPct == null || state.goals.fatPct == null) {
+          state.goals.carbsPct = DEFAULT_GOALS.carbsPct;
+          state.goals.proteinPct = DEFAULT_GOALS.proteinPct;
+          state.goals.fatPct = DEFAULT_GOALS.fatPct;
+        }
+        state.goals = calculateMacroGoals(state.goals.kcal, state.goals.carbsPct, state.goals.proteinPct, state.goals.fatPct, state.goals.fiber);
+      } catch (error) {
+        showToast('Kon opgeslagen data niet laden.');
+      }
+    }
+
+    function saveProducts() { localStorage.setItem(STORAGE_KEYS.products, JSON.stringify(state.products)); }
+    function saveLogs() { localStorage.setItem(STORAGE_KEYS.logs, JSON.stringify(state.logs)); }
+    function saveGoals() { localStorage.setItem(STORAGE_KEYS.goals, JSON.stringify(state.goals)); }
+
+    function getDayLogs() {
+      return state.logs[state.currentDate] || [];
+    }
+
+    function calculateEntry(product, grams) {
+      const factor = grams / 100;
+      return {
+        kcal: round(product.kcal * factor, 1),
+        protein: round(product.protein * factor, 1),
+        carbs: round(product.carbs * factor, 1),
+        fat: round(product.fat * factor, 1),
+        fiber: round(product.fiber * factor, 1)
+      };
+    }
+
+    function calculateMacroGoals(kcal, carbsPct, proteinPct, fatPct, fiber) {
+      return {
+        kcal: round(kcal, 0),
+        carbsPct: round(carbsPct, 1),
+        proteinPct: round(proteinPct, 1),
+        fatPct: round(fatPct, 1),
+        carbs: round((kcal * (carbsPct / 100)) / 4, 1),
+        protein: round((kcal * (proteinPct / 100)) / 4, 1),
+        fat: round((kcal * (fatPct / 100)) / 9, 1),
+        fiber: round(fiber, 1)
+      };
+    }
+
+    function totalsForDay() {
+      return getDayLogs().reduce((acc, entry) => {
+        acc.kcal += Number(entry.kcal) || 0;
+        acc.protein += Number(entry.protein) || 0;
+        acc.carbs += Number(entry.carbs) || 0;
+        acc.fat += Number(entry.fat) || 0;
+        acc.fiber += Number(entry.fiber) || 0;
+        return acc;
+      }, { kcal: 0, protein: 0, carbs: 0, fat: 0, fiber: 0 });
+    }
+
+    function parsePositiveNumber(value, label, options = {}) {
+      const { allowZero = false } = options;
+      const raw = String(value ?? '').trim().replace(',', '.');
+      if (raw === '') return { ok: false, message: `${label} is verplicht.` };
+      if (!/^[0-9]+(\.[0-9]+)?$/.test(raw)) return { ok: false, message: `${label} mag alleen een positief getal zijn.` };
+      const number = Number(raw);
+      if (!Number.isFinite(number)) return { ok: false, message: `${label} is ongeldig.` };
+      if (allowZero ? number < 0 : number <= 0) return { ok: false, message: allowZero ? `${label} mag niet negatief zijn.` : `${label} moet groter zijn dan 0.` };
+      return { ok: true, value: number };
+    }
+
+    function setFieldError(fieldName, message) {
+      const errorEl = $(`#error-${fieldName}`);
+      const fieldEl = $(`[data-field="${fieldName}"]`);
+      if (errorEl) errorEl.textContent = message || '';
+      if (fieldEl) fieldEl.classList.toggle('has-error', Boolean(message));
+    }
+
+    function clearErrors(fieldNames) {
+      fieldNames.forEach(name => setFieldError(name, ''));
+    }
+
+    function validateProductForm() {
+      const fields = ['barcode', 'productName', 'productKcal', 'productProtein', 'productCarbs', 'productFat', 'productFiber'];
+      clearErrors(fields);
+
+      const barcode = $('#barcode').value.trim();
+      const name = $('#product-name').value.trim();
+      let valid = true;
+      const data = { barcode, name };
+
+      if (!name) {
+        setFieldError('productName', 'Productnaam is verplicht.');
+        valid = false;
+      }
+
+      const numbers = [
+        ['productKcal', 'Calorieën', $('#product-kcal').value, false, 'kcal'],
+        ['productProtein', 'Eiwitten', $('#product-protein').value, true, 'protein'],
+        ['productCarbs', 'Koolhydraten', $('#product-carbs').value, true, 'carbs'],
+        ['productFat', 'Vetten', $('#product-fat').value, true, 'fat'],
+        ['productFiber', 'Vezels', $('#product-fiber').value, true, 'fiber']
+      ];
+
+      numbers.forEach(([field, label, value, allowZero, key]) => {
+        const parsed = parsePositiveNumber(value, label, { allowZero });
+        if (!parsed.ok) {
+          setFieldError(field, parsed.message);
+          valid = false;
+        } else {
+          data[key] = round(parsed.value, 2);
+        }
+      });
+
+      return { valid, data };
+    }
+
+    function validateLogForm() {
+      clearErrors(['logProductId', 'mealType', 'grams']);
+      let valid = true;
+      const productId = els.logProduct.value;
+      const product = state.products.find(item => item.id === productId);
+      if (!product) {
+        setFieldError('logProductId', 'Kies eerst een product.');
+        valid = false;
+      }
+      const mealType = els.logMeal.value;
+      if (!MEAL_TYPES.some(meal => meal.key === mealType)) {
+        setFieldError('mealType', 'Kies een geldige maaltijd.');
+        valid = false;
+      }
+      const gramsParsed = parsePositiveNumber(els.logGrams.value, 'Aantal gram');
+      if (!gramsParsed.ok) {
+        setFieldError('grams', gramsParsed.message);
+        valid = false;
+      }
+      return { valid, product, mealType, grams: gramsParsed.value };
+    }
+
+    function validateGoalsForm() {
+      const fields = ['goalKcal', 'goalCarbsPct', 'goalProteinPct', 'goalFatPct', 'goalFiber'];
+      clearErrors(fields);
+      let valid = true;
+
+      const kcalParsed = parsePositiveNumber($('#goal-kcal').value, 'Kcal');
+      const carbsPctParsed = parsePositiveNumber($('#goal-carbs-pct').value, 'Koolhydraten percentage', { allowZero: true });
+      const proteinPctParsed = parsePositiveNumber($('#goal-protein-pct').value, 'Eiwit percentage', { allowZero: true });
+      const fatPctParsed = parsePositiveNumber($('#goal-fat-pct').value, 'Vet percentage', { allowZero: true });
+      const fiberParsed = parsePositiveNumber($('#goal-fiber').value, 'Vezels');
+
+      if (!kcalParsed.ok) { setFieldError('goalKcal', kcalParsed.message); valid = false; }
+      if (!carbsPctParsed.ok) { setFieldError('goalCarbsPct', carbsPctParsed.message); valid = false; }
+      if (!proteinPctParsed.ok) { setFieldError('goalProteinPct', proteinPctParsed.message); valid = false; }
+      if (!fatPctParsed.ok) { setFieldError('goalFatPct', fatPctParsed.message); valid = false; }
+      if (!fiberParsed.ok) { setFieldError('goalFiber', fiberParsed.message); valid = false; }
+
+      const carbsPct = carbsPctParsed.value || 0;
+      const proteinPct = proteinPctParsed.value || 0;
+      const fatPct = fatPctParsed.value || 0;
+      const totalPct = round(carbsPct + proteinPct + fatPct, 1);
+
+      if (valid && totalPct !== 100) {
+        setFieldError('goalFatPct', `De percentages moeten samen 100% zijn. Nu is het ${pretty(totalPct, 1)}%.`);
+        valid = false;
+      }
+
+      if (!valid) return { valid: false, data: null };
+
+      return {
+        valid: true,
+        data: calculateMacroGoals(kcalParsed.value, carbsPct, proteinPct, fatPct, fiberParsed.value)
+      };
+    }
+
+    function renderAll() {
+      renderDate();
+      renderDashboard();
+      renderProductSelect();
+      renderProductList();
+      renderLogs();
+      renderGoalInputs();
+      renderGoalPreview();
+      updateLogPreview();
+    }
+
+    function renderDate() {
+      els.dateDisplay.textContent = formatDate(state.currentDate);
+    }
+
+    function renderDashboard() {
+      const totals = totalsForDay();
+      const kcalPct = Math.min((totals.kcal / state.goals.kcal) * 100, 100);
+      const over = totals.kcal > state.goals.kcal;
+      const remaining = round(state.goals.kcal - totals.kcal, 0);
+
+      els.kcalEaten.textContent = pretty(totals.kcal, 0);
+      els.kcalRemaining.textContent = over ? `+${pretty(Math.abs(remaining), 0)}` : pretty(remaining, 0);
+      els.kcalRemaining.style.color = over ? 'var(--danger)' : 'var(--text)';
+      els.kcalRemainingLabel.textContent = over ? 'kcal boven doel' : 'kcal resterend';
+      els.kcalProgress.style.width = `${kcalPct}%`;
+      els.kcalProgress.classList.toggle('danger', over);
+      els.kcalRing.style.strokeDashoffset = String(CIRCUMFERENCE * (1 - kcalPct / 100));
+      els.kcalRing.style.stroke = over ? 'var(--danger)' : 'var(--accent)';
+
+      renderMacro('protein', totals.protein, state.goals.protein);
+      renderMacro('carbs', totals.carbs, state.goals.carbs);
+      renderMacro('fat', totals.fat, state.goals.fat);
+      renderMacro('fiber', totals.fiber, state.goals.fiber);
+    }
+
+    function renderMacro(key, value, goal) {
+      $(`#${key}-value`).textContent = `${pretty(value, 1)}g`;
+      $(`#${key}-target`).textContent = `van ${pretty(goal, 1)}g`;
+      $(`#${key}-fill`).style.width = `${Math.min((value / goal) * 100, 100)}%`;
+    }
+
+    function renderProductSelect() {
+      const selected = els.logProduct.value;
+      const options = ['<option value="">Kies een product...</option>'].concat(
+        state.products
+          .slice()
+          .sort((a, b) => a.name.localeCompare(b.name, 'nl'))
+          .map(product => `<option value="${escapeHtml(product.id)}">${escapeHtml(product.name)} - ${pretty(product.kcal, 0)} kcal/100g</option>`)
+      );
+      els.logProduct.innerHTML = options.join('');
+      if (state.products.some(product => product.id === selected)) els.logProduct.value = selected;
+    }
+
+    function renderProductList() {
+      const query = els.productSearch.value.trim().toLowerCase();
+      const products = state.products
+        .filter(product => {
+          const haystack = `${product.name} ${product.barcode || ''}`.toLowerCase();
+          return haystack.includes(query);
+        })
+        .sort((a, b) => a.name.localeCompare(b.name, 'nl'));
+
+      if (!products.length) {
+        els.productList.innerHTML = `<div class="empty">${state.products.length ? 'Geen producten gevonden.' : 'Nog geen producten. Voeg je eerste product toe.'}</div>`;
+        return;
+      }
+
+      els.productList.innerHTML = products.map(product => `
+        <div class="product-item">
+          <div class="item-main">
+            <div class="item-title">${escapeHtml(product.name)}</div>
+            <div class="item-meta">
+              ${product.barcode ? `<span class="pill">Barcode: ${escapeHtml(product.barcode)}</span>` : ''}
+              <span class="pill">P ${pretty(product.protein)}g</span>
+              <span class="pill">C ${pretty(product.carbs)}g</span>
+              <span class="pill">F ${pretty(product.fat)}g</span>
+              <span class="pill">Vezels ${pretty(product.fiber)}g</span>
+            </div>
+          </div>
+          <div style="display:grid; gap:8px; justify-items:end;">
+            <div class="item-kcal">${pretty(product.kcal, 0)}<span>kcal/100g</span></div>
+            <button class="icon-btn" type="button" title="Verwijder product" data-delete-product="${escapeHtml(product.id)}">×</button>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    function renderLogs() {
+      const entries = getDayLogs();
+      const groupedHtml = MEAL_TYPES.map(meal => {
+        const mealEntries = entries.filter(entry => (entry.mealType || 'snacks') === meal.key);
+        const subtitle = mealEntries.length
+          ? `${mealEntries.length} ${mealEntries.length === 1 ? 'item' : 'items'}`
+          : 'Nog niets toegevoegd';
+
+        const itemsHtml = mealEntries.length
+          ? `<div class="meal-items">${mealEntries.map(entry => `
+              <div class="log-item meal-entry">
+                <div class="item-main">
+                  <div class="item-title">${escapeHtml(entry.productName)}</div>
+                  <div class="item-meta">
+                    <span class="pill">${pretty(entry.grams, 1)}g</span>
+                    <span class="pill">P ${pretty(entry.protein)}g</span>
+                    <span class="pill">C ${pretty(entry.carbs)}g</span>
+                    <span class="pill">F ${pretty(entry.fat)}g</span>
+                    <span class="pill">Vezels ${pretty(entry.fiber)}g</span>
+                  </div>
+                </div>
+                <button class="icon-btn" type="button" title="Verwijder log" data-delete-log="${escapeHtml(entry.id)}">×</button>
+              </div>
+            `).join('')}</div>`
+          : `<div class="meal-empty">Nog geen producten in ${meal.label.toLowerCase()}.</div>`;
+
+        return `
+          <div class="meal-group">
+            <div class="meal-head">
+              <div>
+                <div class="meal-title">${meal.label}</div>
+                <div class="meal-sub">${subtitle}</div>
+              </div>
+              <button class="quick-meal-btn" type="button" data-quick-meal="${meal.key}">Product loggen</button>
+            </div>
+            ${itemsHtml}
+          </div>
+        `;
+      }).join('');
+
+      els.logList.innerHTML = groupedHtml;
+    }
+
+    function renderGoalInputs() {
+      $('#goal-kcal').value = state.goals.kcal;
+      $('#goal-carbs-pct').value = state.goals.carbsPct ?? 40;
+      $('#goal-protein-pct').value = state.goals.proteinPct ?? 33;
+      $('#goal-fat-pct').value = state.goals.fatPct ?? 27;
+      $('#goal-fiber').value = state.goals.fiber;
+    }
+
+    function renderGoalPreview() {
+      if (!els.macroGramPreview) return;
+      const kcal = parsePositiveNumber($('#goal-kcal').value, 'Kcal');
+      const carbsPct = parsePositiveNumber($('#goal-carbs-pct').value, 'Koolhydraten percentage', { allowZero: true });
+      const proteinPct = parsePositiveNumber($('#goal-protein-pct').value, 'Eiwit percentage', { allowZero: true });
+      const fatPct = parsePositiveNumber($('#goal-fat-pct').value, 'Vet percentage', { allowZero: true });
+      const fiber = parsePositiveNumber($('#goal-fiber').value, 'Vezels');
+
+      if (!kcal.ok || !carbsPct.ok || !proteinPct.ok || !fatPct.ok || !fiber.ok) {
+        els.macroGramPreview.textContent = 'Vul je kcal en percentages in om de gramdoelen te zien.';
+        return;
+      }
+
+      const totalPct = round(carbsPct.value + proteinPct.value + fatPct.value, 1);
+      const goals = calculateMacroGoals(kcal.value, carbsPct.value, proteinPct.value, fatPct.value, fiber.value);
+      els.macroGramPreview.textContent = `Preview: ${pretty(goals.carbs, 1)}g koolhydraten, ${pretty(goals.protein, 1)}g eiwit, ${pretty(goals.fat, 1)}g vet. Totaal percentages: ${pretty(totalPct, 1)}%.`;
+    }
+
+    function updateLogPreview() {
+      const product = state.products.find(item => item.id === els.logProduct.value);
+      const grams = parsePositiveNumber(els.logGrams.value, 'Aantal gram');
+      if (!product || !grams.ok) {
+        els.logPreview.value = 'Kies product + gram';
+        return;
+      }
+      const calc = calculateEntry(product, grams.value);
+      const mealLabel = getMealMeta(els.logMeal.value).label;
+      els.logPreview.value = `${mealLabel} • ${pretty(calc.kcal, 0)} kcal | P ${pretty(calc.protein)}g | C ${pretty(calc.carbs)}g | F ${pretty(calc.fat)}g`;
+    }
+
+    function addProduct(event) {
+      event.preventDefault();
+      const result = validateProductForm();
+      if (!result.valid) return;
+      const product = {
+        id: uid(),
+        barcode: result.data.barcode,
+        name: result.data.name,
+        kcal: result.data.kcal,
+        protein: result.data.protein,
+        carbs: result.data.carbs,
+        fat: result.data.fat,
+        fiber: result.data.fiber,
+        createdAt: new Date().toISOString()
+      };
+      state.products.push(product);
+      saveProducts();
+      $('#product-form').reset();
+      closeProductModal();
+      renderAll();
+      els.logProduct.value = product.id;
+      updateLogPreview();
+      showToast('Product opgeslagen.');
+    }
+
+    function addLogEntry(event) {
+      event.preventDefault();
+      const result = validateLogForm();
+      if (!result.valid) return;
+      const values = calculateEntry(result.product, result.grams);
+      const mealMeta = getMealMeta(result.mealType);
+      const entry = {
+        id: uid(),
+        productId: result.product.id,
+        productName: result.product.name,
+        mealType: result.mealType,
+        mealLabel: mealMeta.label,
+        grams: round(result.grams, 1),
+        ...values,
+        createdAt: new Date().toISOString()
+      };
+      if (!state.logs[state.currentDate]) state.logs[state.currentDate] = [];
+      state.logs[state.currentDate].push(entry);
+      saveLogs();
+      $('#log-form').reset();
+      els.logMeal.value = result.mealType;
+      clearErrors(['logProductId', 'mealType', 'grams']);
+      closeLogModal();
+      renderAll();
+      showToast(`Toegevoegd aan ${mealMeta.label.toLowerCase()}.`);
+    }
+
+    function updateGoals(event) {
+      event.preventDefault();
+      const result = validateGoalsForm();
+      if (!result.valid) return;
+      state.goals = result.data;
+      saveGoals();
+      renderAll();
+      showToast('Doelen opgeslagen.');
+    }
+
+    function deleteProduct(productId) {
+      const product = state.products.find(item => item.id === productId);
+      if (!product) return;
+      const ok = confirm(`Product "${product.name}" verwijderen? Bestaande daglogs blijven bewaard als snapshot.`);
+      if (!ok) return;
+      state.products = state.products.filter(item => item.id !== productId);
+      saveProducts();
+      renderAll();
+      showToast('Product verwijderd.');
+    }
+
+    function deleteLog(logId) {
+      const entries = getDayLogs();
+      state.logs[state.currentDate] = entries.filter(entry => entry.id !== logId);
+      saveLogs();
+      renderAll();
+      showToast('Log verwijderd.');
+    }
+
+    function clearDay() {
+      if (!getDayLogs().length) return;
+      if (!confirm('Alle logs van deze dag verwijderen?')) return;
+      state.logs[state.currentDate] = [];
+      saveLogs();
+      renderAll();
+      showToast('Daglog leeggemaakt.');
+    }
+
+    function changeDay(offset) {
+      const date = new Date(state.currentDate + 'T12:00:00');
+      date.setDate(date.getDate() + offset);
+      state.currentDate = toDateKey(date);
+      renderAll();
+    }
+
+    function openLogModal(mealType = 'breakfast') {
+      const meal = getMealMeta(mealType);
+      els.logMeal.value = meal.key;
+      els.logModalMealName.textContent = meal.label;
+      clearErrors(['logProductId', 'mealType', 'grams']);
+      updateLogPreview();
+      els.logModal.classList.add('open');
+      setTimeout(() => els.logProduct.focus(), 0);
+    }
+
+    function closeLogModal() {
+      els.logModal.classList.remove('open');
+      clearErrors(['logProductId', 'mealType', 'grams']);
+    }
+
+    function openProductModal() {
+      els.productModal.classList.add('open');
+      setTimeout(() => $('#product-name').focus(), 0);
+    }
+
+    function closeProductModal() {
+      els.productModal.classList.remove('open');
+      clearErrors(['barcode', 'productName', 'productKcal', 'productProtein', 'productCarbs', 'productFat', 'productFiber']);
+    }
+
+    async function loadZxingScanner() {
+      if (scannerState.reader) return scannerState.reader;
+      if (!scannerState.loadPromise) {
+        els.scannerStatus.textContent = 'Scanner wordt geladen...';
+        scannerState.loadPromise = import('https://cdn.jsdelivr.net/npm/@zxing/browser@0.1.5/+esm')
+          .then(module => {
+            scannerState.reader = new module.BrowserMultiFormatReader();
+            return scannerState.reader;
+          })
+          .catch(error => {
+            scannerState.loadPromise = null;
+            throw error;
+          });
+      }
+      return scannerState.loadPromise;
+    }
+
+    async function openBarcodeScanner(target) {
+      scannerState.target = target;
+      els.scannerStatus.textContent = 'Camera wordt gestart...';
+      els.scannerModal.classList.add('open');
+
+      if (!window.isSecureContext) {
+        els.scannerStatus.textContent = 'Camera werkt alleen via HTTPS of localhost. Host de app via een https-link. Via gewoon http op je telefoon blokkeert iOS/Android vaak de camera.';
+        return;
+      }
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        els.scannerStatus.textContent = 'Deze browser geeft geen cameratoegang via de webapp. Typ de barcode handmatig in.';
+        return;
+      }
+
+      try {
+        stopBarcodeScanner(false);
+        scannerState.target = target;
+        scannerState.active = true;
+        const reader = await loadZxingScanner();
+        els.scannerStatus.textContent = 'Geef cameratoegang en richt de streepjescode binnen het kader. Houd je telefoon stil en zorg voor goed licht.';
+
+        scannerState.controls = await reader.decodeFromConstraints(
+          {
+            video: {
+              facingMode: { ideal: 'environment' },
+              width: { ideal: 1280 },
+              height: { ideal: 720 }
+            },
+            audio: false
+          },
+          els.scannerVideo,
+          (result, error) => {
+            if (!scannerState.active) return;
+            if (!result) return;
+            const value = normalizeBarcode(result.getText ? result.getText() : result.text);
+            if (value) handleScannedBarcode(value);
+          }
+        );
+      } catch (error) {
+        stopBarcodeScanner(false);
+        const message = error && (error.name || error.message) ? `${error.name || ''} ${error.message || ''}`.trim() : '';
+        if (message.toLowerCase().includes('notallowed')) {
+          els.scannerStatus.textContent = 'Camera is geweigerd. Sta cameratoegang toe in je browserinstellingen en probeer opnieuw.';
+        } else if (message.toLowerCase().includes('notfound')) {
+          els.scannerStatus.textContent = 'Geen camera gevonden. Typ de barcode handmatig in.';
+        } else {
+          els.scannerStatus.textContent = 'Scanner starten is niet gelukt. Controleer of je de app via HTTPS opent en of de barcode-library geladen kan worden.';
+        }
+      }
+    }
+
+    function handleScannedBarcode(barcode) {
+      const target = scannerState.target;
+      stopBarcodeScanner();
+
+      if (target === 'product-form') {
+        $('#barcode').value = barcode;
+        setFieldError('barcode', '');
+        showToast(`Barcode gelezen: ${barcode}`);
+        setTimeout(() => $('#product-name').focus(), 0);
+        return;
+      }
+
+      if (target === 'log-form') {
+        const product = findProductByBarcode(barcode);
+        if (product) {
+          els.logProduct.value = product.id;
+          setFieldError('logProductId', '');
+          updateLogPreview();
+          showToast(`Product gevonden: ${product.name}`);
+          setTimeout(() => els.logGrams.focus(), 0);
+          return;
+        }
+        openProductModal();
+        $('#barcode').value = barcode;
+        showToast('Barcode niet gevonden. Voeg dit product eerst toe.');
+        setTimeout(() => $('#product-name').focus(), 0);
+      }
+    }
+
+    function stopBarcodeScanner(closeModal = true) {
+      scannerState.active = false;
+      if (scannerState.controls && typeof scannerState.controls.stop === 'function') {
+        scannerState.controls.stop();
+      }
+      scannerState.controls = null;
+      if (els.scannerVideo.srcObject) {
+        els.scannerVideo.srcObject.getTracks().forEach(track => track.stop());
+      }
+      els.scannerVideo.srcObject = null;
+      if (closeModal) els.scannerModal.classList.remove('open');
+    }
+
+    function showToast(message) {
+      els.toast.textContent = message;
+      els.toast.classList.add('show');
+      clearTimeout(showToast.timer);
+      showToast.timer = setTimeout(() => els.toast.classList.remove('show'), 2200);
+    }
+
+    function exportData() {
+      const payload = {
+        exportedAt: new Date().toISOString(),
+        version: 3,
+        products: state.products,
+        logs: state.logs,
+        goals: state.goals
+      };
+      const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `kcal-tracker-export-${toDateKey(new Date())}.json`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    }
+
+    function importDataFromFile(file) {
+      const reader = new FileReader();
+      reader.onload = () => {
+        try {
+          const payload = JSON.parse(String(reader.result));
+          if (!payload || !Array.isArray(payload.products) || typeof payload.logs !== 'object' || typeof payload.goals !== 'object') {
+            throw new Error('Ongeldig importbestand');
+          }
+          state.products = payload.products;
+          state.logs = payload.logs;
+          state.goals = { ...DEFAULT_GOALS, ...payload.goals };
+          state.goals = calculateMacroGoals(state.goals.kcal, state.goals.carbsPct ?? DEFAULT_GOALS.carbsPct, state.goals.proteinPct ?? DEFAULT_GOALS.proteinPct, state.goals.fatPct ?? DEFAULT_GOALS.fatPct, state.goals.fiber);
+          saveProducts();
+          saveLogs();
+          saveGoals();
+          renderAll();
+          showToast('Data geïmporteerd.');
+        } catch (error) {
+          showToast('Import mislukt: ongeldig JSON-bestand.');
+        } finally {
+          els.importFile.value = '';
+        }
+      };
+      reader.readAsText(file);
+    }
+
+    function seedExampleProductsIfEmpty() {
+      if (state.products.length) return;
+      state.products = [
+        { id: uid(), barcode: '', name: 'Havermout', kcal: 389, protein: 13.5, carbs: 60, fat: 7, fiber: 10, createdAt: new Date().toISOString() },
+        { id: uid(), barcode: '', name: 'Kipfilet bereid', kcal: 165, protein: 31, carbs: 0, fat: 3.6, fiber: 0, createdAt: new Date().toISOString() },
+        { id: uid(), barcode: '', name: 'Banaan', kcal: 89, protein: 1.1, carbs: 22.8, fat: 0.3, fiber: 2.6, createdAt: new Date().toISOString() }
+      ];
+      saveProducts();
+    }
+
+    function bindEvents() {
+      $('#prev-day').addEventListener('click', () => changeDay(-1));
+      $('#next-day').addEventListener('click', () => changeDay(1));
+      $('#today-btn').addEventListener('click', () => { state.currentDate = toDateKey(new Date()); renderAll(); });
+      $('#open-product-modal').addEventListener('click', openProductModal);
+      $('#open-product-modal-2').addEventListener('click', openProductModal);
+      $('#open-product-modal-from-log').addEventListener('click', openProductModal);
+      $('#close-log-modal').addEventListener('click', closeLogModal);
+      $('#close-product-modal').addEventListener('click', closeProductModal);
+      $('#close-scanner-modal').addEventListener('click', () => stopBarcodeScanner());
+      $('#stop-scanner').addEventListener('click', () => stopBarcodeScanner());
+      $('#scan-product-barcode').addEventListener('click', () => openBarcodeScanner('product-form'));
+      $('#scan-log-barcode').addEventListener('click', () => openBarcodeScanner('log-form'));
+      $('#reset-product-form').addEventListener('click', () => { $('#product-form').reset(); clearErrors(['barcode', 'productName', 'productKcal', 'productProtein', 'productCarbs', 'productFat', 'productFiber']); });
+      $('#product-form').addEventListener('submit', addProduct);
+      $('#log-form').addEventListener('submit', addLogEntry);
+      $('#goals-form').addEventListener('submit', updateGoals);
+      ['goal-kcal', 'goal-carbs-pct', 'goal-protein-pct', 'goal-fat-pct', 'goal-fiber'].forEach(id => {
+        document.getElementById(id).addEventListener('input', renderGoalPreview);
+      });
+      $('#clear-log-form').addEventListener('click', () => {
+        const currentMeal = els.logMeal.value || 'breakfast';
+        $('#log-form').reset();
+        els.logMeal.value = currentMeal;
+        els.logModalMealName.textContent = getMealMeta(currentMeal).label;
+        clearErrors(['logProductId', 'mealType', 'grams']);
+        updateLogPreview();
+      });
+      $('#clear-day').addEventListener('click', clearDay);
+      $('#export-data').addEventListener('click', exportData);
+      $('#import-data').addEventListener('click', () => els.importFile.click());
+      els.importFile.addEventListener('change', (event) => {
+        const file = event.target.files && event.target.files[0];
+        if (file) importDataFromFile(file);
+      });
+      els.productSearch.addEventListener('input', renderProductList);
+      els.logProduct.addEventListener('change', () => { setFieldError('logProductId', ''); updateLogPreview(); });
+      els.logMeal.addEventListener('change', () => {
+        setFieldError('mealType', '');
+        els.logModalMealName.textContent = getMealMeta(els.logMeal.value).label;
+        updateLogPreview();
+      });
+      els.logGrams.addEventListener('input', () => { setFieldError('grams', ''); updateLogPreview(); });
+      els.productList.addEventListener('click', (event) => {
+        const btn = event.target.closest('[data-delete-product]');
+        if (btn) deleteProduct(btn.dataset.deleteProduct);
+      });
+      els.logList.addEventListener('click', (event) => {
+        const quickMealBtn = event.target.closest('[data-quick-meal]');
+        if (quickMealBtn) {
+          openLogModal(quickMealBtn.dataset.quickMeal);
+          return;
+        }
+        const btn = event.target.closest('[data-delete-log]');
+        if (btn) deleteLog(btn.dataset.deleteLog);
+      });
+      els.logModal.addEventListener('click', (event) => {
+        if (event.target === els.logModal) closeLogModal();
+      });
+      els.productModal.addEventListener('click', (event) => {
+        if (event.target === els.productModal) closeProductModal();
+      });
+      els.scannerModal.addEventListener('click', (event) => {
+        if (event.target === els.scannerModal) stopBarcodeScanner();
+      });
+      document.addEventListener('keydown', (event) => {
+        if (event.key !== 'Escape') return;
+        if (els.scannerModal.classList.contains('open')) stopBarcodeScanner();
+        else if (els.productModal.classList.contains('open')) closeProductModal();
+        else if (els.logModal.classList.contains('open')) closeLogModal();
+      });
+      $$('input[type="number"]').forEach(input => {
+        input.addEventListener('keydown', event => {
+          if (['e', 'E', '+', '-'].includes(event.key)) event.preventDefault();
+        });
+      });
+    }
+
+    loadState();
+    seedExampleProductsIfEmpty();
+    bindEvents();
+    renderAll();
+  </script>
+</body>
+</html>
