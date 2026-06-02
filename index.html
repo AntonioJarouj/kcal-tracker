@@ -242,6 +242,17 @@
     .item-title { font-weight: 800; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .item-meta { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 6px; color: var(--muted-2); font-size: 12px; }
     .pill { padding: 4px 8px; border-radius: 999px; background: rgba(255,255,255,.06); border: 1px solid var(--border); }
+    .serving-note {
+      grid-column: 1 / -1;
+      border: 1px solid rgba(239,204,122,.18);
+      background: rgba(239,204,122,.06);
+      color: rgba(246,240,232,.72);
+      padding: 12px 14px;
+      border-radius: 14px;
+      font-size: 13px;
+      line-height: 1.45;
+    }
+    .log-unit-row { display: grid; grid-template-columns: .9fr 1.1fr; gap: 14px; }
     .item-kcal { text-align: right; font-size: 22px; font-weight: 900; color: var(--accent); letter-spacing: -.04em; }
     .item-kcal span { display: block; font-size: 11px; font-weight: 600; color: var(--muted-2); letter-spacing: 0; }
 
@@ -629,7 +640,7 @@
           </div>
         </div>
         <div class="card-pad stack">
-          <div class="split-note">Alles wordt opgeslagen in localStorage van je browser. Geen database, geen betaalde diensten en geen externe JavaScript-libraries.</div>
+          <div class="split-note">Alles wordt opgeslagen in localStorage van je browser. Geen database en geen betaalde diensten. De barcode scanner laadt ZXing via CDN.</div>
           <div class="actions-row">
             <button class="secondary-btn" type="button" id="export-data">Export JSON</button>
             <button class="secondary-btn" type="button" id="import-data">Import JSON</button>
@@ -677,13 +688,20 @@
               <div class="error" id="error-mealType"></div>
             </div>
             <div class="field" data-field="grams">
-              <label for="log-grams">Aantal gram</label>
-              <input id="log-grams" name="grams" type="number" inputmode="decimal" min="0.01" step="0.1" placeholder="bijv. 150" />
+              <label for="log-grams">Hoeveelheid</label>
+              <input id="log-grams" name="grams" type="number" inputmode="decimal" min="0.01" step="0.1" placeholder="bijv. 1 of 150" />
               <div class="error" id="error-grams"></div>
+            </div>
+            <div class="field" data-field="logUnit">
+              <label for="log-unit">Eenheid</label>
+              <select id="log-unit" name="logUnit">
+                <option value="gram">gram</option>
+              </select>
+              <div class="error" id="error-logUnit"></div>
             </div>
             <div class="field form-full">
               <label>Preview</label>
-              <input id="log-preview" type="text" disabled value="Kies product + gram" />
+              <input id="log-preview" type="text" disabled value="Kies product + hoeveelheid" />
               <div class="error"></div>
             </div>
           </div>
@@ -745,6 +763,29 @@
               <label for="product-fiber">Vezels per 100g</label>
               <input id="product-fiber" name="productFiber" type="number" inputmode="decimal" min="0" step="0.1" placeholder="10" />
               <div class="error" id="error-productFiber"></div>
+            </div>
+            <div class="serving-note">
+              Optioneel: voeg een makkelijke eenheid toe. Bijvoorbeeld: <strong>stuk = 65g</strong> of <strong>portie = 150g</strong>. De app blijft rekenen met de waarden per 100g.
+            </div>
+            <div class="field" data-field="servingName1">
+              <label for="serving-name-1">Eenheid 1 <span class="tiny">optioneel</span></label>
+              <input id="serving-name-1" name="servingName1" type="text" placeholder="bijv. stuk" />
+              <div class="error" id="error-servingName1"></div>
+            </div>
+            <div class="field" data-field="servingGrams1">
+              <label for="serving-grams-1">Gram per eenheid</label>
+              <input id="serving-grams-1" name="servingGrams1" type="number" inputmode="decimal" min="0.01" step="0.1" placeholder="bijv. 65" />
+              <div class="error" id="error-servingGrams1"></div>
+            </div>
+            <div class="field" data-field="servingName2">
+              <label for="serving-name-2">Eenheid 2 <span class="tiny">optioneel</span></label>
+              <input id="serving-name-2" name="servingName2" type="text" placeholder="bijv. portie" />
+              <div class="error" id="error-servingName2"></div>
+            </div>
+            <div class="field" data-field="servingGrams2">
+              <label for="serving-grams-2">Gram per eenheid</label>
+              <input id="serving-grams-2" name="servingGrams2" type="number" inputmode="decimal" min="0.01" step="0.1" placeholder="bijv. 150" />
+              <div class="error" id="error-servingGrams2"></div>
             </div>
           </div>
           <div class="actions-row" style="margin-top: 6px;">
@@ -830,6 +871,7 @@
       logProduct: $('#log-product'),
       logMeal: $('#log-meal'),
       logGrams: $('#log-grams'),
+      logUnit: $('#log-unit'),
       logPreview: $('#log-preview'),
       logModal: $('#log-modal'),
       logModalMealName: $('#log-modal-meal-name'),
@@ -925,6 +967,28 @@
       };
     }
 
+    function normalizeServings(product) {
+      return Array.isArray(product.servings)
+        ? product.servings
+            .filter(serving => serving && serving.name && Number(serving.grams) > 0)
+            .map(serving => ({ name: String(serving.name).trim(), grams: round(serving.grams, 1) }))
+        : [];
+    }
+
+    function getSelectedLogUnit(product) {
+      const value = els.logUnit ? els.logUnit.value : 'gram';
+      if (value === 'gram') return { type: 'gram', label: 'gram', grams: 1 };
+      const index = Number(value.replace('serving-', ''));
+      const serving = normalizeServings(product)[index];
+      if (!serving) return null;
+      return { type: 'serving', label: serving.name, grams: serving.grams };
+    }
+
+    function calculateLogGrams(product, amount, unit) {
+      if (!unit || unit.type === 'gram') return round(amount, 1);
+      return round(amount * unit.grams, 1);
+    }
+
     function calculateMacroGoals(kcal, carbsPct, proteinPct, fatPct, fiber) {
       return {
         kcal: round(kcal, 0),
@@ -972,13 +1036,13 @@
     }
 
     function validateProductForm() {
-      const fields = ['barcode', 'productName', 'productKcal', 'productProtein', 'productCarbs', 'productFat', 'productFiber'];
+      const fields = ['barcode', 'productName', 'productKcal', 'productProtein', 'productCarbs', 'productFat', 'productFiber', 'servingName1', 'servingGrams1', 'servingName2', 'servingGrams2'];
       clearErrors(fields);
 
       const barcode = $('#barcode').value.trim();
       const name = $('#product-name').value.trim();
       let valid = true;
-      const data = { barcode, name };
+      const data = { barcode, name, servings: [] };
 
       if (!name) {
         setFieldError('productName', 'Productnaam is verplicht.');
@@ -1003,11 +1067,28 @@
         }
       });
 
+      [1, 2].forEach(index => {
+        const servingName = $(`#serving-name-${index}`).value.trim();
+        const servingGramsRaw = $(`#serving-grams-${index}`).value.trim();
+        if (!servingName && !servingGramsRaw) return;
+        if (!servingName) {
+          setFieldError(`servingName${index}`, 'Geef deze eenheid een naam, bijvoorbeeld stuk of portie.');
+          valid = false;
+        }
+        const gramsParsed = parsePositiveNumber(servingGramsRaw, 'Gram per eenheid');
+        if (!gramsParsed.ok) {
+          setFieldError(`servingGrams${index}`, gramsParsed.message);
+          valid = false;
+        } else if (servingName) {
+          data.servings.push({ name: servingName, grams: round(gramsParsed.value, 1) });
+        }
+      });
+
       return { valid, data };
     }
 
     function validateLogForm() {
-      clearErrors(['logProductId', 'mealType', 'grams']);
+      clearErrors(['logProductId', 'mealType', 'grams', 'logUnit']);
       let valid = true;
       const productId = els.logProduct.value;
       const product = state.products.find(item => item.id === productId);
@@ -1020,12 +1101,25 @@
         setFieldError('mealType', 'Kies een geldige maaltijd.');
         valid = false;
       }
-      const gramsParsed = parsePositiveNumber(els.logGrams.value, 'Aantal gram');
-      if (!gramsParsed.ok) {
-        setFieldError('grams', gramsParsed.message);
+      const amountParsed = parsePositiveNumber(els.logGrams.value, 'Hoeveelheid');
+      if (!amountParsed.ok) {
+        setFieldError('grams', amountParsed.message);
         valid = false;
       }
-      return { valid, product, mealType, grams: gramsParsed.value };
+
+      let unit = null;
+      let grams = amountParsed.value;
+      if (product) {
+        unit = getSelectedLogUnit(product);
+        if (!unit) {
+          setFieldError('logUnit', 'Kies een geldige eenheid.');
+          valid = false;
+        } else if (amountParsed.ok) {
+          grams = calculateLogGrams(product, amountParsed.value, unit);
+        }
+      }
+
+      return { valid, product, mealType, amount: amountParsed.value, unit, grams };
     }
 
     function validateGoalsForm() {
@@ -1067,6 +1161,7 @@
       renderDate();
       renderDashboard();
       renderProductSelect();
+      renderUnitOptions();
       renderProductList();
       renderLogs();
       renderGoalInputs();
@@ -1137,6 +1232,7 @@
             <div class="item-title">${escapeHtml(product.name)}</div>
             <div class="item-meta">
               ${product.barcode ? `<span class="pill">Barcode: ${escapeHtml(product.barcode)}</span>` : ''}
+              ${normalizeServings(product).map(serving => `<span class="pill">${escapeHtml(serving.name)} = ${pretty(serving.grams, 1)}g</span>`).join('')}
               <span class="pill">P ${pretty(product.protein)}g</span>
               <span class="pill">C ${pretty(product.carbs)}g</span>
               <span class="pill">F ${pretty(product.fat)}g</span>
@@ -1165,7 +1261,7 @@
                 <div class="item-main">
                   <div class="item-title">${escapeHtml(entry.productName)}</div>
                   <div class="item-meta">
-                    <span class="pill">${pretty(entry.grams, 1)}g</span>
+                    <span class="pill">${entry.unitLabel && entry.unitLabel !== 'gram' ? `${pretty(entry.amount || 1, 1)} × ${escapeHtml(entry.unitLabel)} (${pretty(entry.grams, 1)}g)` : `${pretty(entry.grams, 1)}g`}</span>
                     <span class="pill">P ${pretty(entry.protein)}g</span>
                     <span class="pill">C ${pretty(entry.carbs)}g</span>
                     <span class="pill">F ${pretty(entry.fat)}g</span>
@@ -1192,6 +1288,24 @@
       }).join('');
 
       els.logList.innerHTML = groupedHtml;
+    }
+
+    function renderUnitOptions() {
+      if (!els.logUnit) return;
+      const previous = els.logUnit.value;
+      const product = state.products.find(item => item.id === els.logProduct.value);
+      const options = ['<option value="gram">gram</option>'];
+      if (product) {
+        normalizeServings(product).forEach((serving, index) => {
+          options.push(`<option value="serving-${index}">${escapeHtml(serving.name)} (${pretty(serving.grams, 1)}g)</option>`);
+        });
+      }
+      els.logUnit.innerHTML = options.join('');
+      if (Array.from(els.logUnit.options).some(option => option.value === previous)) {
+        els.logUnit.value = previous;
+      } else {
+        els.logUnit.value = 'gram';
+      }
     }
 
     function renderGoalInputs() {
@@ -1222,14 +1336,23 @@
 
     function updateLogPreview() {
       const product = state.products.find(item => item.id === els.logProduct.value);
-      const grams = parsePositiveNumber(els.logGrams.value, 'Aantal gram');
-      if (!product || !grams.ok) {
-        els.logPreview.value = 'Kies product + gram';
+      const amount = parsePositiveNumber(els.logGrams.value, 'Hoeveelheid');
+      if (!product || !amount.ok) {
+        els.logPreview.value = 'Kies product + hoeveelheid';
         return;
       }
-      const calc = calculateEntry(product, grams.value);
+      const unit = getSelectedLogUnit(product);
+      if (!unit) {
+        els.logPreview.value = 'Kies een geldige eenheid';
+        return;
+      }
+      const grams = calculateLogGrams(product, amount.value, unit);
+      const calc = calculateEntry(product, grams);
       const mealLabel = getMealMeta(els.logMeal.value).label;
-      els.logPreview.value = `${mealLabel} • ${pretty(calc.kcal, 0)} kcal | P ${pretty(calc.protein)}g | C ${pretty(calc.carbs)}g | F ${pretty(calc.fat)}g`;
+      const amountText = unit.type === 'gram'
+        ? `${pretty(grams, 1)}g`
+        : `${pretty(amount.value, 1)} × ${unit.label} (${pretty(grams, 1)}g)`;
+      els.logPreview.value = `${mealLabel} • ${amountText} • ${pretty(calc.kcal, 0)} kcal | P ${pretty(calc.protein)}g | C ${pretty(calc.carbs)}g | F ${pretty(calc.fat)}g`;
     }
 
     function addProduct(event) {
@@ -1245,6 +1368,7 @@
         carbs: result.data.carbs,
         fat: result.data.fat,
         fiber: result.data.fiber,
+        servings: result.data.servings,
         createdAt: new Date().toISOString()
       };
       state.products.push(product);
@@ -1253,6 +1377,7 @@
       closeProductModal();
       renderAll();
       els.logProduct.value = product.id;
+      renderUnitOptions();
       updateLogPreview();
       showToast('Product opgeslagen.');
     }
@@ -1269,6 +1394,9 @@
         productName: result.product.name,
         mealType: result.mealType,
         mealLabel: mealMeta.label,
+        amount: round(result.amount, 2),
+        unitLabel: result.unit ? result.unit.label : 'gram',
+        unitGrams: result.unit ? result.unit.grams : 1,
         grams: round(result.grams, 1),
         ...values,
         createdAt: new Date().toISOString()
@@ -1278,7 +1406,7 @@
       saveLogs();
       $('#log-form').reset();
       els.logMeal.value = result.mealType;
-      clearErrors(['logProductId', 'mealType', 'grams']);
+      clearErrors(['logProductId', 'mealType', 'grams', 'logUnit']);
       closeLogModal();
       renderAll();
       showToast(`Toegevoegd aan ${mealMeta.label.toLowerCase()}.`);
@@ -1333,7 +1461,8 @@
       const meal = getMealMeta(mealType);
       els.logMeal.value = meal.key;
       els.logModalMealName.textContent = meal.label;
-      clearErrors(['logProductId', 'mealType', 'grams']);
+      renderUnitOptions();
+      clearErrors(['logProductId', 'mealType', 'grams', 'logUnit']);
       updateLogPreview();
       els.logModal.classList.add('open');
       setTimeout(() => els.logProduct.focus(), 0);
@@ -1341,7 +1470,7 @@
 
     function closeLogModal() {
       els.logModal.classList.remove('open');
-      clearErrors(['logProductId', 'mealType', 'grams']);
+      clearErrors(['logProductId', 'mealType', 'grams', 'logUnit']);
     }
 
     function openProductModal() {
@@ -1351,7 +1480,7 @@
 
     function closeProductModal() {
       els.productModal.classList.remove('open');
-      clearErrors(['barcode', 'productName', 'productKcal', 'productProtein', 'productCarbs', 'productFat', 'productFiber']);
+      clearErrors(['barcode', 'productName', 'productKcal', 'productProtein', 'productCarbs', 'productFat', 'productFiber', 'servingName1', 'servingGrams1', 'servingName2', 'servingGrams2']);
     }
 
     async function loadZxingScanner() {
@@ -1439,6 +1568,7 @@
         if (product) {
           els.logProduct.value = product.id;
           setFieldError('logProductId', '');
+          renderUnitOptions();
           updateLogPreview();
           showToast(`Product gevonden: ${product.name}`);
           setTimeout(() => els.logGrams.focus(), 0);
@@ -1474,7 +1604,7 @@
     function exportData() {
       const payload = {
         exportedAt: new Date().toISOString(),
-        version: 3,
+        version: 4,
         products: state.products,
         logs: state.logs,
         goals: state.goals
@@ -1519,9 +1649,9 @@
     function seedExampleProductsIfEmpty() {
       if (state.products.length) return;
       state.products = [
-        { id: uid(), barcode: '', name: 'Havermout', kcal: 389, protein: 13.5, carbs: 60, fat: 7, fiber: 10, createdAt: new Date().toISOString() },
-        { id: uid(), barcode: '', name: 'Kipfilet bereid', kcal: 165, protein: 31, carbs: 0, fat: 3.6, fiber: 0, createdAt: new Date().toISOString() },
-        { id: uid(), barcode: '', name: 'Banaan', kcal: 89, protein: 1.1, carbs: 22.8, fat: 0.3, fiber: 2.6, createdAt: new Date().toISOString() }
+        { id: uid(), barcode: '', name: 'Havermout', kcal: 389, protein: 13.5, carbs: 60, fat: 7, fiber: 10, servings: [{ name: 'portie', grams: 80 }], createdAt: new Date().toISOString() },
+        { id: uid(), barcode: '', name: 'Kipfilet bereid', kcal: 165, protein: 31, carbs: 0, fat: 3.6, fiber: 0, servings: [{ name: 'portie', grams: 150 }], createdAt: new Date().toISOString() },
+        { id: uid(), barcode: '', name: 'Banaan', kcal: 89, protein: 1.1, carbs: 22.8, fat: 0.3, fiber: 2.6, servings: [{ name: 'stuk', grams: 120 }], createdAt: new Date().toISOString() }
       ];
       saveProducts();
     }
@@ -1539,7 +1669,7 @@
       $('#stop-scanner').addEventListener('click', () => stopBarcodeScanner());
       $('#scan-product-barcode').addEventListener('click', () => openBarcodeScanner('product-form'));
       $('#scan-log-barcode').addEventListener('click', () => openBarcodeScanner('log-form'));
-      $('#reset-product-form').addEventListener('click', () => { $('#product-form').reset(); clearErrors(['barcode', 'productName', 'productKcal', 'productProtein', 'productCarbs', 'productFat', 'productFiber']); });
+      $('#reset-product-form').addEventListener('click', () => { $('#product-form').reset(); clearErrors(['barcode', 'productName', 'productKcal', 'productProtein', 'productCarbs', 'productFat', 'productFiber', 'servingName1', 'servingGrams1', 'servingName2', 'servingGrams2']); });
       $('#product-form').addEventListener('submit', addProduct);
       $('#log-form').addEventListener('submit', addLogEntry);
       $('#goals-form').addEventListener('submit', updateGoals);
@@ -1551,7 +1681,8 @@
         $('#log-form').reset();
         els.logMeal.value = currentMeal;
         els.logModalMealName.textContent = getMealMeta(currentMeal).label;
-        clearErrors(['logProductId', 'mealType', 'grams']);
+        renderUnitOptions();
+        clearErrors(['logProductId', 'mealType', 'grams', 'logUnit']);
         updateLogPreview();
       });
       $('#clear-day').addEventListener('click', clearDay);
@@ -1562,7 +1693,8 @@
         if (file) importDataFromFile(file);
       });
       els.productSearch.addEventListener('input', renderProductList);
-      els.logProduct.addEventListener('change', () => { setFieldError('logProductId', ''); updateLogPreview(); });
+      els.logProduct.addEventListener('change', () => { setFieldError('logProductId', ''); renderUnitOptions(); updateLogPreview(); });
+      els.logUnit.addEventListener('change', () => { setFieldError('logUnit', ''); updateLogPreview(); });
       els.logMeal.addEventListener('change', () => {
         setFieldError('mealType', '');
         els.logModalMealName.textContent = getMealMeta(els.logMeal.value).label;
