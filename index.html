@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="nl">
 <head>
   <meta charset="UTF-8" />
@@ -476,9 +476,9 @@
         </div>
       </div>
       <div class="date-nav" aria-label="Datum navigatie">
-        <button class="date-btn" id="prev-day" type="button" aria-label="Vorige dag">‹</button>
+        <button class="date-btn" id="prev-day" type="button" aria-label="Vorige dag">â€¹</button>
         <div class="date-display" id="date-display"></div>
-        <button class="date-btn" id="next-day" type="button" aria-label="Volgende dag">›</button>
+        <button class="date-btn" id="next-day" type="button" aria-label="Volgende dag">â€º</button>
         <button class="ghost-btn" id="today-btn" type="button">Vandaag</button>
       </div>
     </div>
@@ -545,27 +545,6 @@
         <div class="card-head">
           <div>
             <div class="eyebrow">Loggen</div>
-            <h2>Voeg eten toe via je maaltijdblokken</h2>
-          </div>
-          <button class="secondary-btn" id="open-product-modal-2" type="button">Voeg product toe</button>
-        </div>
-        <div class="card-pad">
-          <div class="split-note">Klik bij Ontbijt, Lunch, Diner of Tussendoortjes op “Product loggen”. Dan opent er een popup waarin je een product kiest en het aantal gram invult.</div>
-        </div>
-      </article>
-
-      <article class="card">
-        <div class="card-head">
-          <div>
-            <div class="eyebrow">Maaltijden</div>
-            <h2>Ontbijt, lunch, diner en tussendoortjes</h2>
-          </div>
-          <button class="danger-btn" type="button" id="clear-day">Dag leegmaken</button>
-        </div>
-        <div class="card-pad">
-          <div class="log-list" id="log-list"></div>
-        </div>
-      </article>
     </section>
 
     <aside class="stack">
@@ -661,7 +640,7 @@
         </div>
         <div class="modal-actions-top">
           <button class="secondary-btn" id="open-product-modal-from-log" type="button">Nieuw product</button>
-          <button class="icon-btn" id="close-log-modal" type="button" aria-label="Sluiten">×</button>
+          <button class="icon-btn" id="close-log-modal" type="button" aria-label="Sluiten">Ã—</button>
         </div>
       </div>
       <div class="modal-body">
@@ -721,7 +700,7 @@
           <div class="eyebrow">Productdatabase</div>
           <h2 id="product-modal-title">Nieuw product toevoegen</h2>
         </div>
-        <button class="icon-btn" id="close-product-modal" type="button" aria-label="Sluiten">×</button>
+        <button class="icon-btn" id="close-product-modal" type="button" aria-label="Sluiten">Ã—</button>
       </div>
       <div class="modal-body">
         <form id="product-form" novalidate>
@@ -740,7 +719,7 @@
               <div class="error" id="error-productName"></div>
             </div>
             <div class="field form-full" data-field="productKcal">
-              <label for="product-kcal">Calorieën per 100g</label>
+              <label for="product-kcal">CalorieÃ«n per 100g</label>
               <input id="product-kcal" name="productKcal" type="number" inputmode="decimal" min="0.01" step="0.1" placeholder="389" />
               <div class="error" id="error-productKcal"></div>
             </div>
@@ -819,7 +798,7 @@
           <div class="eyebrow">Camera</div>
           <h2 id="scanner-modal-title">Barcode scannen</h2>
         </div>
-        <button class="icon-btn" id="close-scanner-modal" type="button" aria-label="Sluiten">×</button>
+        <button class="icon-btn" id="close-scanner-modal" type="button" aria-label="Sluiten">Ã—</button>
       </div>
       <div class="modal-body">
         <div class="scanner-wrap">
@@ -1084,7 +1063,7 @@
       }
 
       const numbers = [
-        ['productKcal', 'Calorieën', $('#product-kcal').value, false, 'kcal'],
+        ['productKcal', 'CalorieÃ«n', $('#product-kcal').value, false, 'kcal'],
         ['productFat', 'Vetten', $('#product-fat').value, true, 'fat'],
         ['productSaturatedFat', 'Verzadigde vetten', $('#product-saturated-fat').value, true, 'saturatedFat'],
         ['productCarbs', 'Koolhydraten', $('#product-carbs').value, true, 'carbs'],
@@ -1286,7 +1265,7 @@
           </div>
           <div style="display:grid; gap:8px; justify-items:end;">
             <div class="item-kcal">${pretty(product.kcal, 0)}<span>kcal/100g</span></div>
-            <button class="icon-btn" type="button" title="Verwijder product" data-delete-product="${escapeHtml(product.id)}">×</button>
+            <button class="icon-btn" type="button" title="Verwijder product" data-delete-product="${escapeHtml(product.id)}">Ã—</button>
           </div>
         </div>
       `).join('');
@@ -1306,7 +1285,7 @@
                 <div class="item-main">
                   <div class="item-title">${escapeHtml(entry.productName)}</div>
                   <div class="item-meta">
-                    <span class="pill">${entry.unitLabel && entry.unitLabel !== 'gram' ? `${pretty(entry.amount || 1, 1)} × ${escapeHtml(entry.unitLabel)} (${pretty(entry.grams, 1)}g)` : `${pretty(entry.grams, 1)}g`}</span>
+                    <span class="pill">${entry.unitLabel && entry.unitLabel !== 'gram' ? `${pretty(entry.amount || 1, 1)} Ã— ${escapeHtml(entry.unitLabel)} (${pretty(entry.grams, 1)}g)` : `${pretty(entry.grams, 1)}g`}</span>
                     <span class="pill">P ${pretty(entry.protein)}g</span>
                     <span class="pill">C ${pretty(entry.carbs)}g</span>
                     ${entry.sugar ? `<span class="pill">Suikers ${pretty(entry.sugar)}g</span>` : ''}
@@ -1316,7 +1295,7 @@
                     ${entry.salt ? `<span class="pill">Zout ${pretty(entry.salt)}g</span>` : ''}
                   </div>
                 </div>
-                <button class="icon-btn" type="button" title="Verwijder log" data-delete-log="${escapeHtml(entry.id)}">×</button>
+                <button class="icon-btn" type="button" title="Verwijder log" data-delete-log="${escapeHtml(entry.id)}">Ã—</button>
               </div>
             `).join('')}</div>`
           : `<div class="meal-empty">Nog geen producten in ${meal.label.toLowerCase()}.</div>`;
@@ -1399,8 +1378,8 @@
       const mealLabel = getMealMeta(els.logMeal.value).label;
       const amountText = unit.type === 'gram'
         ? `${pretty(grams, 1)}g`
-        : `${pretty(amount.value, 1)} × ${unit.label} (${pretty(grams, 1)}g)`;
-      els.logPreview.value = `${mealLabel} • ${amountText} • ${pretty(calc.kcal, 0)} kcal | P ${pretty(calc.protein)}g | C ${pretty(calc.carbs)}g | F ${pretty(calc.fat)}g`;
+        : `${pretty(amount.value, 1)} Ã— ${unit.label} (${pretty(grams, 1)}g)`;
+      els.logPreview.value = `${mealLabel} â€¢ ${amountText} â€¢ ${pretty(calc.kcal, 0)} kcal | P ${pretty(calc.protein)}g | C ${pretty(calc.carbs)}g | F ${pretty(calc.fat)}g`;
     }
 
     function addProduct(event) {
@@ -1410,7 +1389,7 @@
 
       // Check for comma usage in number inputs
       const commaInputs = [
-        { el: '#product-kcal', label: 'Calorieën' },
+        { el: '#product-kcal', label: 'CalorieÃ«n' },
         { el: '#product-fat', label: 'Vetten' },
         { el: '#product-saturated-fat', label: 'Verzadigde vetten' },
         { el: '#product-carbs', label: 'Koolhydraten' },
@@ -1730,7 +1709,7 @@
           saveLogs();
           saveGoals();
           renderAll();
-          showToast('Data geïmporteerd.');
+          showToast('Data geÃ¯mporteerd.');
         } catch (error) {
           showToast('Import mislukt: ongeldig JSON-bestand.');
         } finally {
@@ -1755,7 +1734,6 @@
       $('#next-day').addEventListener('click', () => changeDay(1));
       $('#today-btn').addEventListener('click', () => { state.currentDate = toDateKey(new Date()); renderAll(); });
       $('#open-product-modal').addEventListener('click', openProductModal);
-      $('#open-product-modal-2').addEventListener('click', openProductModal);
       $('#open-product-modal-from-log').addEventListener('click', openProductModal);
       $('#close-log-modal').addEventListener('click', closeLogModal);
       $('#close-product-modal').addEventListener('click', closeProductModal);
