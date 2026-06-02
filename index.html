@@ -416,6 +416,23 @@
       font-size: 13px;
       font-weight: 800;
     }
+    .auto-fill-actions {
+      grid-column: 1 / -1;
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      padding: 12px;
+      border: 1px solid rgba(239,204,122,.18);
+      background: rgba(239,204,122,.055);
+      border-radius: 14px;
+    }
+    .auto-fill-status {
+      grid-column: 1 / -1;
+      min-height: 20px;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.45;
+    }
 
     .toast {
       position: fixed;
@@ -476,9 +493,9 @@
         </div>
       </div>
       <div class="date-nav" aria-label="Datum navigatie">
-        <button class="date-btn" id="prev-day" type="button" aria-label="Vorige dag">â€¹</button>
+        <button class="date-btn" id="prev-day" type="button" aria-label="Vorige dag">‹</button>
         <div class="date-display" id="date-display"></div>
-        <button class="date-btn" id="next-day" type="button" aria-label="Volgende dag">â€º</button>
+        <button class="date-btn" id="next-day" type="button" aria-label="Volgende dag">›</button>
         <button class="ghost-btn" id="today-btn" type="button">Vandaag</button>
       </div>
     </div>
@@ -545,24 +562,34 @@
         <div class="card-head">
           <div>
             <div class="eyebrow">Loggen</div>
-    </section>
+            <h2>Voeg eten toe via je maaltijdblokken</h2>
+          </div>
+        </div>
+        <div class="card-pad">
+          <div class="split-note">Klik bij Ontbijt, Lunch, Diner of Tussendoortjes op “Product loggen”. Dan opent er een popup. Via de knop “Nieuw product” in die popup kun je direct een nieuw product aanmaken.</div>
+        </div>
+      </article>
 
-    <aside class="stack">
       <article class="card">
         <div class="card-head">
           <div>
-            <div class="eyebrow">Productdatabase</div>
-            <h2>Herbruikbare producten</h2>
+            <div class="eyebrow">Maaltijden</div>
+            <h2>Ontbijt, lunch, diner en tussendoortjes</h2>
           </div>
-          <button class="primary-btn" id="open-product-modal" type="button">Voeg product toe</button>
+          <button class="danger-btn" type="button" id="clear-day">Dag leegmaken</button>
         </div>
         <div class="card-pad">
-          <div class="product-toolbar" style="margin-bottom: 14px;">
-            <input class="search-input" id="product-search" type="search" placeholder="Zoek product of barcode..." />
-          </div>
-          <div class="product-list" id="product-list"></div>
+          <div class="log-list" id="log-list"></div>
         </div>
       </article>
+    </section>
+
+    <aside class="stack">
+      <div hidden>
+        <button id="open-product-modal" type="button"></button>
+        <input id="product-search" type="search" />
+        <div id="product-list"></div>
+      </div>
 
       <article class="card">
         <div class="card-head">
@@ -619,7 +646,7 @@
           </div>
         </div>
         <div class="card-pad stack">
-          <div class="split-note">Alles wordt opgeslagen in localStorage van je browser. Geen database en geen betaalde diensten. De barcode scanner laadt ZXing via CDN.</div>
+          <div class="split-note">Alles wordt opgeslagen in localStorage van je browser. Geen database en geen betaalde diensten. De barcode scanner laadt ZXing via CDN. Barcode-lookup gebruikt Open Food Facts en voedingslabelscan gebruikt OCR via Tesseract.js.</div>
           <div class="actions-row">
             <button class="secondary-btn" type="button" id="export-data">Export JSON</button>
             <button class="secondary-btn" type="button" id="import-data">Import JSON</button>
@@ -640,7 +667,7 @@
         </div>
         <div class="modal-actions-top">
           <button class="secondary-btn" id="open-product-modal-from-log" type="button">Nieuw product</button>
-          <button class="icon-btn" id="close-log-modal" type="button" aria-label="Sluiten">Ã—</button>
+          <button class="icon-btn" id="close-log-modal" type="button" aria-label="Sluiten">×</button>
         </div>
       </div>
       <div class="modal-body">
@@ -700,7 +727,7 @@
           <div class="eyebrow">Productdatabase</div>
           <h2 id="product-modal-title">Nieuw product toevoegen</h2>
         </div>
-        <button class="icon-btn" id="close-product-modal" type="button" aria-label="Sluiten">Ã—</button>
+        <button class="icon-btn" id="close-product-modal" type="button" aria-label="Sluiten">×</button>
       </div>
       <div class="modal-body">
         <form id="product-form" novalidate>
@@ -713,13 +740,19 @@
               </div>
               <div class="error" id="error-barcode"></div>
             </div>
+            <div class="auto-fill-actions">
+              <button class="secondary-btn" id="lookup-openfoodfacts" type="button">Vul via barcode</button>
+              <button class="secondary-btn" id="scan-nutrition-label" type="button">Scan voedingslabel</button>
+              <input id="nutrition-label-file" type="file" accept="image/*" capture="environment" hidden />
+            </div>
+            <div class="auto-fill-status" id="auto-fill-status">Tip: scan eerst de barcode. Wordt het product niet gevonden, maak dan een foto van de voedingswaarde-tabel.</div>
             <div class="field" data-field="productName">
               <label for="product-name">Productnaam</label>
               <input id="product-name" name="productName" type="text" placeholder="bijv. Havermout" />
               <div class="error" id="error-productName"></div>
             </div>
             <div class="field form-full" data-field="productKcal">
-              <label for="product-kcal">CalorieÃ«n per 100g</label>
+              <label for="product-kcal">Calorieën per 100g</label>
               <input id="product-kcal" name="productKcal" type="number" inputmode="decimal" min="0.01" step="0.1" placeholder="389" />
               <div class="error" id="error-productKcal"></div>
             </div>
@@ -798,7 +831,7 @@
           <div class="eyebrow">Camera</div>
           <h2 id="scanner-modal-title">Barcode scannen</h2>
         </div>
-        <button class="icon-btn" id="close-scanner-modal" type="button" aria-label="Sluiten">Ã—</button>
+        <button class="icon-btn" id="close-scanner-modal" type="button" aria-label="Sluiten">×</button>
       </div>
       <div class="modal-body">
         <div class="scanner-wrap">
@@ -873,6 +906,8 @@
       scannerModal: $('#scanner-modal'),
       scannerVideo: $('#scanner-video'),
       scannerStatus: $('#scanner-status'),
+      autoFillStatus: $('#auto-fill-status'),
+      nutritionLabelFile: $('#nutrition-label-file'),
       toast: $('#toast'),
       importFile: $('#import-file'),
       macroGramPreview: $('#macro-gram-preview')
@@ -920,6 +955,48 @@
     function findProductByBarcode(barcode) {
       const normalized = normalizeBarcode(barcode);
       return state.products.find(product => normalizeBarcode(product.barcode) === normalized);
+    }
+
+    function setAutoFillStatus(message) {
+      if (els.autoFillStatus) els.autoFillStatus.textContent = message || '';
+    }
+
+    function setInputValue(selector, value) {
+      const input = $(selector);
+      if (!input || value == null || value === '') return;
+      input.value = String(value).replace('.', ',');
+      input.dispatchEvent(new Event('input', { bubbles: true }));
+    }
+
+    function numberOrBlank(value, decimals = 2) {
+      const n = Number(value);
+      if (!Number.isFinite(n)) return '';
+      return round(n, decimals);
+    }
+
+    function fillProductFormFromData(data, sourceLabel = 'automatisch') {
+      if (!data) return;
+      if (data.barcode) $('#barcode').value = data.barcode;
+      if (data.name) $('#product-name').value = data.name;
+      setInputValue('#product-kcal', numberOrBlank(data.kcal, 1));
+      setInputValue('#product-fat', numberOrBlank(data.fat, 2));
+      setInputValue('#product-saturated-fat', numberOrBlank(data.saturatedFat, 2));
+      setInputValue('#product-carbs', numberOrBlank(data.carbs, 2));
+      setInputValue('#product-sugar', numberOrBlank(data.sugar, 2));
+      setInputValue('#product-fiber', numberOrBlank(data.fiber, 2));
+      setInputValue('#product-protein', numberOrBlank(data.protein, 2));
+      setInputValue('#product-salt', numberOrBlank(data.salt, 3));
+
+      const servings = Array.isArray(data.servings) ? data.servings.filter(s => s && s.name && Number(s.grams) > 0) : [];
+      if (servings[0]) {
+        $('#serving-name-1').value = servings[0].name;
+        setInputValue('#serving-grams-1', numberOrBlank(servings[0].grams, 1));
+      }
+      if (servings[1]) {
+        $('#serving-name-2').value = servings[1].name;
+        setInputValue('#serving-grams-2', numberOrBlank(servings[1].grams, 1));
+      }
+      setAutoFillStatus(`Velden ingevuld via ${sourceLabel}. Controleer de waarden nog even voor je opslaat.`);
     }
 
     function getMealMeta(key) {
@@ -1063,7 +1140,7 @@
       }
 
       const numbers = [
-        ['productKcal', 'CalorieÃ«n', $('#product-kcal').value, false, 'kcal'],
+        ['productKcal', 'Calorieën', $('#product-kcal').value, false, 'kcal'],
         ['productFat', 'Vetten', $('#product-fat').value, true, 'fat'],
         ['productSaturatedFat', 'Verzadigde vetten', $('#product-saturated-fat').value, true, 'saturatedFat'],
         ['productCarbs', 'Koolhydraten', $('#product-carbs').value, true, 'carbs'],
@@ -1265,7 +1342,7 @@
           </div>
           <div style="display:grid; gap:8px; justify-items:end;">
             <div class="item-kcal">${pretty(product.kcal, 0)}<span>kcal/100g</span></div>
-            <button class="icon-btn" type="button" title="Verwijder product" data-delete-product="${escapeHtml(product.id)}">Ã—</button>
+            <button class="icon-btn" type="button" title="Verwijder product" data-delete-product="${escapeHtml(product.id)}">×</button>
           </div>
         </div>
       `).join('');
@@ -1285,7 +1362,7 @@
                 <div class="item-main">
                   <div class="item-title">${escapeHtml(entry.productName)}</div>
                   <div class="item-meta">
-                    <span class="pill">${entry.unitLabel && entry.unitLabel !== 'gram' ? `${pretty(entry.amount || 1, 1)} Ã— ${escapeHtml(entry.unitLabel)} (${pretty(entry.grams, 1)}g)` : `${pretty(entry.grams, 1)}g`}</span>
+                    <span class="pill">${entry.unitLabel && entry.unitLabel !== 'gram' ? `${pretty(entry.amount || 1, 1)} × ${escapeHtml(entry.unitLabel)} (${pretty(entry.grams, 1)}g)` : `${pretty(entry.grams, 1)}g`}</span>
                     <span class="pill">P ${pretty(entry.protein)}g</span>
                     <span class="pill">C ${pretty(entry.carbs)}g</span>
                     ${entry.sugar ? `<span class="pill">Suikers ${pretty(entry.sugar)}g</span>` : ''}
@@ -1295,7 +1372,7 @@
                     ${entry.salt ? `<span class="pill">Zout ${pretty(entry.salt)}g</span>` : ''}
                   </div>
                 </div>
-                <button class="icon-btn" type="button" title="Verwijder log" data-delete-log="${escapeHtml(entry.id)}">Ã—</button>
+                <button class="icon-btn" type="button" title="Verwijder log" data-delete-log="${escapeHtml(entry.id)}">×</button>
               </div>
             `).join('')}</div>`
           : `<div class="meal-empty">Nog geen producten in ${meal.label.toLowerCase()}.</div>`;
@@ -1378,8 +1455,8 @@
       const mealLabel = getMealMeta(els.logMeal.value).label;
       const amountText = unit.type === 'gram'
         ? `${pretty(grams, 1)}g`
-        : `${pretty(amount.value, 1)} Ã— ${unit.label} (${pretty(grams, 1)}g)`;
-      els.logPreview.value = `${mealLabel} â€¢ ${amountText} â€¢ ${pretty(calc.kcal, 0)} kcal | P ${pretty(calc.protein)}g | C ${pretty(calc.carbs)}g | F ${pretty(calc.fat)}g`;
+        : `${pretty(amount.value, 1)} × ${unit.label} (${pretty(grams, 1)}g)`;
+      els.logPreview.value = `${mealLabel} • ${amountText} • ${pretty(calc.kcal, 0)} kcal | P ${pretty(calc.protein)}g | C ${pretty(calc.carbs)}g | F ${pretty(calc.fat)}g`;
     }
 
     function addProduct(event) {
@@ -1389,7 +1466,7 @@
 
       // Check for comma usage in number inputs
       const commaInputs = [
-        { el: '#product-kcal', label: 'CalorieÃ«n' },
+        { el: '#product-kcal', label: 'Calorieën' },
         { el: '#product-fat', label: 'Vetten' },
         { el: '#product-saturated-fat', label: 'Verzadigde vetten' },
         { el: '#product-carbs', label: 'Koolhydraten' },
@@ -1538,6 +1615,153 @@
       clearErrors(['barcode', 'productName', 'productKcal', 'productFat', 'productSaturatedFat', 'productCarbs', 'productSugar', 'productFiber', 'productProtein', 'productSalt', 'servingName1', 'servingGrams1', 'servingName2', 'servingGrams2']);
     }
 
+    function extractGramsFromText(value) {
+      const match = String(value || '').replace(',', '.').match(/([0-9]+(?:\.[0-9]+)?)\s*g/i);
+      return match ? Number(match[1]) : null;
+    }
+
+    function productDataFromOpenFoodFacts(product, barcode) {
+      const nutriments = product.nutriments || {};
+      const servings = [];
+      const servingGrams = extractGramsFromText(product.serving_size || product.serving_quantity);
+      if (servingGrams) servings.push({ name: 'portie', grams: round(servingGrams, 1) });
+      const quantityGrams = extractGramsFromText(product.quantity);
+      if (quantityGrams) servings.push({ name: 'verpakking', grams: round(quantityGrams, 1) });
+
+      return {
+        barcode,
+        name: product.product_name || product.product_name_nl || product.generic_name || '',
+        kcal: nutriments['energy-kcal_100g'] ?? nutriments['energy-kcal'] ?? '',
+        fat: nutriments.fat_100g ?? '',
+        saturatedFat: nutriments['saturated-fat_100g'] ?? '',
+        carbs: nutriments.carbohydrates_100g ?? '',
+        sugar: nutriments.sugars_100g ?? '',
+        fiber: nutriments.fiber_100g ?? '',
+        protein: nutriments.proteins_100g ?? '',
+        salt: nutriments.salt_100g ?? '',
+        servings
+      };
+    }
+
+    async function lookupOpenFoodFactsByBarcode(barcodeRaw) {
+      const barcode = normalizeBarcode(barcodeRaw || $('#barcode').value);
+      if (!barcode) {
+        setFieldError('barcode', 'Vul of scan eerst een barcode.');
+        return null;
+      }
+      setFieldError('barcode', '');
+      setAutoFillStatus('Productdata zoeken via Open Food Facts...');
+      try {
+        const url = `https://world.openfoodfacts.org/api/v2/product/${encodeURIComponent(barcode)}.json?fields=code,product_name,product_name_nl,generic_name,quantity,serving_size,nutriments`;
+        const response = await fetch(url, { headers: { 'Accept': 'application/json' } });
+        if (!response.ok) throw new Error('Netwerkfout');
+        const data = await response.json();
+        if (!data || data.status !== 1 || !data.product) {
+          setAutoFillStatus('Geen product gevonden via Open Food Facts. Gebruik “Scan voedingslabel” of vul handmatig in.');
+          return null;
+        }
+        const productData = productDataFromOpenFoodFacts(data.product, barcode);
+        fillProductFormFromData(productData, 'Open Food Facts');
+        return productData;
+      } catch (error) {
+        setAutoFillStatus('Open Food Facts kon niet worden geladen. Controleer je internetverbinding of vul handmatig in.');
+        return null;
+      }
+    }
+
+    function parseDutchNumber(value) {
+      if (value == null) return null;
+      const normalized = String(value).replace(',', '.').replace(/[^0-9.]/g, '');
+      const n = Number(normalized);
+      return Number.isFinite(n) ? n : null;
+    }
+
+    function matchNumber(text, patterns) {
+      for (const pattern of patterns) {
+        const match = text.match(pattern);
+        if (match && match[1] != null) {
+          const n = parseDutchNumber(match[1]);
+          if (n != null) return n;
+        }
+      }
+      return '';
+    }
+
+    function parseNutritionLabelText(rawText) {
+      const original = String(rawText || '');
+      const text = original
+        .toLowerCase()
+        .replace(/\s+/g, ' ')
+        .replace(/,/g, '.');
+      const lines = original.split(/\r?\n/).map(line => line.trim()).filter(Boolean);
+      const nameLine = lines.find(line => /^[A-ZÀ-Ÿ0-9 \-]{4,}$/.test(line) && !/voedingswaarde|ingred/i.test(line));
+      const totalGramsMatch = text.match(/(?:^|\s)([0-9]+(?:\.[0-9]+)?)\s*g\s*(?:e|\/|$)/i);
+      const portionMatch = text.match(/portie\s*\(?\s*([0-9]+(?:\.[0-9]+)?)\s*g\)?/i);
+
+      const data = {
+        name: nameLine ? nameLine.toLowerCase().replace(/\b\w/g, c => c.toUpperCase()) : '',
+        kcal: matchNumber(text, [
+          /(?:energie|energy)[^0-9]{0,30}[0-9]+\s*kj\s*\/\s*([0-9]+(?:\.[0-9]+)?)\s*kcal/i,
+          /([0-9]+(?:\.[0-9]+)?)\s*kcal/i
+        ]),
+        fat: matchNumber(text, [/vetten?\s+([0-9]+(?:\.[0-9]+)?)\s*g/i]),
+        saturatedFat: matchNumber(text, [/(?:verzadigde\s*(?:vetzuren|vetten)?|waarvan\s+verzadigde)[^0-9]{0,25}([0-9]+(?:\.[0-9]+)?)\s*g/i]),
+        carbs: matchNumber(text, [/koolhydraten\s+([0-9]+(?:\.[0-9]+)?)\s*g/i]),
+        sugar: matchNumber(text, [/(?:waarvan\s+suikers|suikers)\s+([0-9]+(?:\.[0-9]+)?)\s*g/i]),
+        fiber: matchNumber(text, [/(?:vezels|voedingsvezels)\s+([0-9]+(?:\.[0-9]+)?)\s*g/i]),
+        protein: matchNumber(text, [/(?:eiwitten|prote[iï]nen)\s+([0-9]+(?:\.[0-9]+)?)\s*g/i]),
+        salt: matchNumber(text, [/zout\s+([0-9]+(?:\.[0-9]+)?)\s*g/i]),
+        servings: []
+      };
+      if (portionMatch) data.servings.push({ name: 'portie', grams: round(Number(portionMatch[1]), 1) });
+      if (totalGramsMatch) data.servings.push({ name: 'verpakking', grams: round(Number(totalGramsMatch[1]), 1) });
+      return data;
+    }
+
+    async function loadTesseract() {
+      if (window.Tesseract) return window.Tesseract;
+      setAutoFillStatus('OCR wordt geladen...');
+      await new Promise((resolve, reject) => {
+        const existing = document.querySelector('script[data-tesseract]');
+        if (existing) {
+          existing.addEventListener('load', resolve, { once: true });
+          existing.addEventListener('error', reject, { once: true });
+          return;
+        }
+        const script = document.createElement('script');
+        script.src = 'https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js';
+        script.async = true;
+        script.dataset.tesseract = 'true';
+        script.onload = resolve;
+        script.onerror = reject;
+        document.head.appendChild(script);
+      });
+      return window.Tesseract;
+    }
+
+    async function scanNutritionLabelFile(file) {
+      if (!file) return;
+      setAutoFillStatus('Voedingslabel wordt gelezen. Dit kan even duren...');
+      try {
+        const Tesseract = await loadTesseract();
+        const result = await Tesseract.recognize(file, 'nld+eng', {
+          logger: progress => {
+            if (progress && progress.status) {
+              const pct = progress.progress ? ` ${Math.round(progress.progress * 100)}%` : '';
+              setAutoFillStatus(`OCR: ${progress.status}${pct}`);
+            }
+          }
+        });
+        const text = result && result.data ? result.data.text : '';
+        const parsed = parseNutritionLabelText(text);
+        fillProductFormFromData(parsed, 'voedingslabel OCR');
+      } catch (error) {
+        setAutoFillStatus('OCR is niet gelukt. Probeer een scherpere foto met goed licht of vul handmatig in.');
+      } finally {
+        if (els.nutritionLabelFile) els.nutritionLabelFile.value = '';
+      }
+    }
+
     async function loadZxingScanner() {
       if (scannerState.reader) return scannerState.reader;
       if (!scannerState.loadPromise) {
@@ -1614,7 +1838,9 @@
         $('#barcode').value = barcode;
         setFieldError('barcode', '');
         showToast(`Barcode gelezen: ${barcode}`);
-        setTimeout(() => $('#product-name').focus(), 0);
+        lookupOpenFoodFactsByBarcode(barcode).then(data => {
+          if (!data) setTimeout(() => $('#product-name').focus(), 0);
+        });
         return;
       }
 
@@ -1631,8 +1857,10 @@
         }
         openProductModal();
         $('#barcode').value = barcode;
-        showToast('Barcode niet gevonden. Voeg dit product eerst toe.');
-        setTimeout(() => $('#product-name').focus(), 0);
+        showToast('Barcode niet lokaal gevonden. Ik probeer productdata online op te halen.');
+        lookupOpenFoodFactsByBarcode(barcode).then(data => {
+          if (!data) setTimeout(() => $('#product-name').focus(), 0);
+        });
       }
     }
 
@@ -1709,7 +1937,7 @@
           saveLogs();
           saveGoals();
           renderAll();
-          showToast('Data geÃ¯mporteerd.');
+          showToast('Data geïmporteerd.');
         } catch (error) {
           showToast('Import mislukt: ongeldig JSON-bestand.');
         } finally {
@@ -1741,6 +1969,12 @@
       $('#stop-scanner').addEventListener('click', () => stopBarcodeScanner());
       $('#scan-product-barcode').addEventListener('click', () => openBarcodeScanner('product-form'));
       $('#scan-log-barcode').addEventListener('click', () => openBarcodeScanner('log-form'));
+      $('#lookup-openfoodfacts').addEventListener('click', () => lookupOpenFoodFactsByBarcode());
+      $('#scan-nutrition-label').addEventListener('click', () => els.nutritionLabelFile.click());
+      els.nutritionLabelFile.addEventListener('change', event => {
+        const file = event.target.files && event.target.files[0];
+        if (file) scanNutritionLabelFile(file);
+      });
       $('#reset-product-form').addEventListener('click', () => { $('#product-form').reset(); clearErrors(['barcode', 'productName', 'productKcal', 'productProtein', 'productCarbs', 'productFat', 'productSaturatedFat', 'productFiber', 'productSugar', 'productSalt', 'servingName1', 'servingGrams1', 'servingName2', 'servingGrams2']); });
       $('#product-form').addEventListener('submit', addProduct);
       $('#log-form').addEventListener('submit', addLogEntry);
