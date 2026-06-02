@@ -739,30 +739,45 @@
               <input id="product-name" name="productName" type="text" placeholder="bijv. Havermout" />
               <div class="error" id="error-productName"></div>
             </div>
-            <div class="field" data-field="productKcal">
+            <div class="field form-full" data-field="productKcal">
               <label for="product-kcal">Calorieën per 100g</label>
               <input id="product-kcal" name="productKcal" type="number" inputmode="decimal" min="0.01" step="0.1" placeholder="389" />
               <div class="error" id="error-productKcal"></div>
-            </div>
-            <div class="field" data-field="productProtein">
-              <label for="product-protein">Eiwitten per 100g</label>
-              <input id="product-protein" name="productProtein" type="number" inputmode="decimal" min="0" step="0.1" placeholder="13.5" />
-              <div class="error" id="error-productProtein"></div>
-            </div>
-            <div class="field" data-field="productCarbs">
-              <label for="product-carbs">Koolhydraten per 100g</label>
-              <input id="product-carbs" name="productCarbs" type="number" inputmode="decimal" min="0" step="0.1" placeholder="60" />
-              <div class="error" id="error-productCarbs"></div>
             </div>
             <div class="field" data-field="productFat">
               <label for="product-fat">Vetten per 100g</label>
               <input id="product-fat" name="productFat" type="number" inputmode="decimal" min="0" step="0.1" placeholder="7" />
               <div class="error" id="error-productFat"></div>
             </div>
-            <div class="field" data-field="productFiber">
-              <label for="product-fiber">Vezels per 100g</label>
+            <div class="field" data-field="productSaturatedFat">
+              <label for="product-saturated-fat">Verzadigde vetten per 100g <span class="tiny">optioneel</span></label>
+              <input id="product-saturated-fat" name="productSaturatedFat" type="number" inputmode="decimal" min="0" step="0.1" placeholder="2.5" />
+              <div class="error" id="error-productSaturatedFat"></div>
+            </div>
+            <div class="field form-full" data-field="productCarbs">
+              <label for="product-carbs">Koolhydraten per 100g</label>
+              <input id="product-carbs" name="productCarbs" type="number" inputmode="decimal" min="0" step="0.1" placeholder="60" />
+              <div class="error" id="error-productCarbs"></div>
+            </div>
+            <div class="field form-full" data-field="productSugar">
+              <label for="product-sugar">Suikers per 100g <span class="tiny">optioneel</span></label>
+              <input id="product-sugar" name="productSugar" type="number" inputmode="decimal" min="0" step="0.1" placeholder="15" />
+              <div class="error" id="error-productSugar"></div>
+            </div>
+            <div class="field form-full" data-field="productFiber">
+              <label for="product-fiber">Vezels per 100g <span class="tiny">optioneel</span></label>
               <input id="product-fiber" name="productFiber" type="number" inputmode="decimal" min="0" step="0.1" placeholder="10" />
               <div class="error" id="error-productFiber"></div>
+            </div>
+            <div class="field" data-field="productProtein">
+              <label for="product-protein">Eiwitten per 100g</label>
+              <input id="product-protein" name="productProtein" type="number" inputmode="decimal" min="0" step="0.1" placeholder="13.5" />
+              <div class="error" id="error-productProtein"></div>
+            </div>
+            <div class="field" data-field="productSalt">
+              <label for="product-salt">Zout per 100g <span class="tiny">optioneel</span></label>
+              <input id="product-salt" name="productSalt" type="number" inputmode="decimal" min="0" step="0.1" placeholder="0.5" />
+              <div class="error" id="error-productSalt"></div>
             </div>
             <div class="serving-note">
               Optioneel: voeg een makkelijke eenheid toe. Bijvoorbeeld: <strong>stuk = 65g</strong> of <strong>portie = 150g</strong>. De app blijft rekenen met de waarden per 100g.
@@ -934,8 +949,24 @@
 
     function loadState() {
       try {
-        state.products = JSON.parse(localStorage.getItem(STORAGE_KEYS.products)) || [];
+        state.products = (JSON.parse(localStorage.getItem(STORAGE_KEYS.products)) || []).map(product => ({
+          ...product,
+          saturatedFat: product.saturatedFat || 0,
+          sugar: product.sugar || 0,
+          salt: product.salt || 0
+        }));
+        
         state.logs = JSON.parse(localStorage.getItem(STORAGE_KEYS.logs)) || {};
+        // Ensure backward compatibility for log entries
+        Object.keys(state.logs).forEach(dateKey => {
+          state.logs[dateKey] = state.logs[dateKey].map(entry => ({
+            ...entry,
+            saturatedFat: entry.saturatedFat || 0,
+            sugar: entry.sugar || 0,
+            salt: entry.salt || 0
+          }));
+        });
+        
         state.goals = { ...DEFAULT_GOALS, ...(JSON.parse(localStorage.getItem(STORAGE_KEYS.goals)) || {}) };
         if (state.goals.carbsPct == null || state.goals.proteinPct == null || state.goals.fatPct == null) {
           state.goals.carbsPct = DEFAULT_GOALS.carbsPct;
@@ -1009,8 +1040,11 @@
         acc.carbs += Number(entry.carbs) || 0;
         acc.fat += Number(entry.fat) || 0;
         acc.fiber += Number(entry.fiber) || 0;
+        acc.sugar += Number(entry.sugar) || 0;
+        acc.saturatedFat += Number(entry.saturatedFat) || 0;
+        acc.salt += Number(entry.salt) || 0;
         return acc;
-      }, { kcal: 0, protein: 0, carbs: 0, fat: 0, fiber: 0 });
+      }, { kcal: 0, protein: 0, carbs: 0, fat: 0, fiber: 0, sugar: 0, saturatedFat: 0, salt: 0 });
     }
 
     function parsePositiveNumber(value, label, options = {}) {
@@ -1036,7 +1070,7 @@
     }
 
     function validateProductForm() {
-      const fields = ['barcode', 'productName', 'productKcal', 'productProtein', 'productCarbs', 'productFat', 'productFiber', 'servingName1', 'servingGrams1', 'servingName2', 'servingGrams2'];
+      const fields = ['barcode', 'productName', 'productKcal', 'productProtein', 'productCarbs', 'productFat', 'productSaturatedFat', 'productFiber', 'productSugar', 'productSalt', 'servingName1', 'servingGrams1', 'servingName2', 'servingGrams2'];
       clearErrors(fields);
 
       const barcode = $('#barcode').value.trim();
@@ -1051,13 +1085,21 @@
 
       const numbers = [
         ['productKcal', 'Calorieën', $('#product-kcal').value, false, 'kcal'],
-        ['productProtein', 'Eiwitten', $('#product-protein').value, true, 'protein'],
-        ['productCarbs', 'Koolhydraten', $('#product-carbs').value, true, 'carbs'],
         ['productFat', 'Vetten', $('#product-fat').value, true, 'fat'],
-        ['productFiber', 'Vezels', $('#product-fiber').value, true, 'fiber']
+        ['productSaturatedFat', 'Verzadigde vetten', $('#product-saturated-fat').value, true, 'saturatedFat'],
+        ['productCarbs', 'Koolhydraten', $('#product-carbs').value, true, 'carbs'],
+        ['productSugar', 'Suikers', $('#product-sugar').value, true, 'sugar'],
+        ['productFiber', 'Vezels', $('#product-fiber').value, true, 'fiber'],
+        ['productProtein', 'Eiwitten', $('#product-protein').value, true, 'protein'],
+        ['productSalt', 'Zout', $('#product-salt').value, true, 'salt']
       ];
 
       numbers.forEach(([field, label, value, allowZero, key]) => {
+        // Only validate if field has a value (optional fields can be empty)
+        if (value.trim() === '') {
+          data[key] = 0;
+          return;
+        }
         const parsed = parsePositiveNumber(value, label, { allowZero });
         if (!parsed.ok) {
           setFieldError(field, parsed.message);
@@ -1235,8 +1277,11 @@
               ${normalizeServings(product).map(serving => `<span class="pill">${escapeHtml(serving.name)} = ${pretty(serving.grams, 1)}g</span>`).join('')}
               <span class="pill">P ${pretty(product.protein)}g</span>
               <span class="pill">C ${pretty(product.carbs)}g</span>
+              ${product.sugar ? `<span class="pill">Suikers ${pretty(product.sugar)}g</span>` : ''}
               <span class="pill">F ${pretty(product.fat)}g</span>
+              ${product.saturatedFat ? `<span class="pill">Verz. vet ${pretty(product.saturatedFat)}g</span>` : ''}
               <span class="pill">Vezels ${pretty(product.fiber)}g</span>
+              ${product.salt ? `<span class="pill">Zout ${pretty(product.salt)}g</span>` : ''}
             </div>
           </div>
           <div style="display:grid; gap:8px; justify-items:end;">
@@ -1264,8 +1309,11 @@
                     <span class="pill">${entry.unitLabel && entry.unitLabel !== 'gram' ? `${pretty(entry.amount || 1, 1)} × ${escapeHtml(entry.unitLabel)} (${pretty(entry.grams, 1)}g)` : `${pretty(entry.grams, 1)}g`}</span>
                     <span class="pill">P ${pretty(entry.protein)}g</span>
                     <span class="pill">C ${pretty(entry.carbs)}g</span>
+                    ${entry.sugar ? `<span class="pill">Suikers ${pretty(entry.sugar)}g</span>` : ''}
                     <span class="pill">F ${pretty(entry.fat)}g</span>
+                    ${entry.saturatedFat ? `<span class="pill">Verz. ${pretty(entry.saturatedFat)}g</span>` : ''}
                     <span class="pill">Vezels ${pretty(entry.fiber)}g</span>
+                    ${entry.salt ? `<span class="pill">Zout ${pretty(entry.salt)}g</span>` : ''}
                   </div>
                 </div>
                 <button class="icon-btn" type="button" title="Verwijder log" data-delete-log="${escapeHtml(entry.id)}">×</button>
@@ -1359,15 +1407,40 @@
       event.preventDefault();
       const result = validateProductForm();
       if (!result.valid) return;
+
+      // Check for comma usage in number inputs
+      const commaInputs = [
+        { el: '#product-kcal', label: 'Calorieën' },
+        { el: '#product-fat', label: 'Vetten' },
+        { el: '#product-saturated-fat', label: 'Verzadigde vetten' },
+        { el: '#product-carbs', label: 'Koolhydraten' },
+        { el: '#product-sugar', label: 'Suikers' },
+        { el: '#product-fiber', label: 'Vezels' },
+        { el: '#product-protein', label: 'Eiwitten' },
+        { el: '#product-salt', label: 'Zout' }
+      ];
+
+      const inputsWithComma = commaInputs
+        .filter(input => $(input.el).value.includes(','))
+        .map(input => input.label);
+
+      if (inputsWithComma.length > 0) {
+        const message = `Je hebt komma's gebruikt in: ${inputsWithComma.join(', ')}.\n\nOp veel telefoons werkt komma niet goed als decimaalteken. Het is beter een punt (.) te gebruiken.\n\nWil je evengoed doorgaan?`;
+        if (!confirm(message)) return;
+      }
+
       const product = {
         id: uid(),
         barcode: result.data.barcode,
         name: result.data.name,
         kcal: result.data.kcal,
-        protein: result.data.protein,
-        carbs: result.data.carbs,
         fat: result.data.fat,
+        saturatedFat: result.data.saturatedFat || 0,
+        carbs: result.data.carbs,
+        sugar: result.data.sugar || 0,
         fiber: result.data.fiber,
+        protein: result.data.protein,
+        salt: result.data.salt || 0,
         servings: result.data.servings,
         createdAt: new Date().toISOString()
       };
@@ -1399,6 +1472,9 @@
         unitGrams: result.unit ? result.unit.grams : 1,
         grams: round(result.grams, 1),
         ...values,
+        sugar: result.product.sugar ? round((result.product.sugar || 0) * (result.grams / 100), 1) : 0,
+        saturatedFat: result.product.saturatedFat ? round((result.product.saturatedFat || 0) * (result.grams / 100), 1) : 0,
+        salt: result.product.salt ? round((result.product.salt || 0) * (result.grams / 100), 2) : 0,
         createdAt: new Date().toISOString()
       };
       if (!state.logs[state.currentDate]) state.logs[state.currentDate] = [];
@@ -1480,7 +1556,7 @@
 
     function closeProductModal() {
       els.productModal.classList.remove('open');
-      clearErrors(['barcode', 'productName', 'productKcal', 'productProtein', 'productCarbs', 'productFat', 'productFiber', 'servingName1', 'servingGrams1', 'servingName2', 'servingGrams2']);
+      clearErrors(['barcode', 'productName', 'productKcal', 'productFat', 'productSaturatedFat', 'productCarbs', 'productSugar', 'productFiber', 'productProtein', 'productSalt', 'servingName1', 'servingGrams1', 'servingName2', 'servingGrams2']);
     }
 
     async function loadZxingScanner() {
@@ -1628,8 +1704,26 @@
           if (!payload || !Array.isArray(payload.products) || typeof payload.logs !== 'object' || typeof payload.goals !== 'object') {
             throw new Error('Ongeldig importbestand');
           }
-          state.products = payload.products;
+          
+          // Ensure backward compatibility by adding missing fields with defaults
+          state.products = payload.products.map(product => ({
+            ...product,
+            saturatedFat: product.saturatedFat || 0,
+            sugar: product.sugar || 0,
+            salt: product.salt || 0
+          }));
+          
           state.logs = payload.logs;
+          // Ensure backward compatibility for log entries
+          Object.keys(state.logs).forEach(dateKey => {
+            state.logs[dateKey] = state.logs[dateKey].map(entry => ({
+              ...entry,
+              saturatedFat: entry.saturatedFat || 0,
+              sugar: entry.sugar || 0,
+              salt: entry.salt || 0
+            }));
+          });
+          
           state.goals = { ...DEFAULT_GOALS, ...payload.goals };
           state.goals = calculateMacroGoals(state.goals.kcal, state.goals.carbsPct ?? DEFAULT_GOALS.carbsPct, state.goals.proteinPct ?? DEFAULT_GOALS.proteinPct, state.goals.fatPct ?? DEFAULT_GOALS.fatPct, state.goals.fiber);
           saveProducts();
@@ -1649,9 +1743,9 @@
     function seedExampleProductsIfEmpty() {
       if (state.products.length) return;
       state.products = [
-        { id: uid(), barcode: '', name: 'Havermout', kcal: 389, protein: 13.5, carbs: 60, fat: 7, fiber: 10, servings: [{ name: 'portie', grams: 80 }], createdAt: new Date().toISOString() },
-        { id: uid(), barcode: '', name: 'Kipfilet bereid', kcal: 165, protein: 31, carbs: 0, fat: 3.6, fiber: 0, servings: [{ name: 'portie', grams: 150 }], createdAt: new Date().toISOString() },
-        { id: uid(), barcode: '', name: 'Banaan', kcal: 89, protein: 1.1, carbs: 22.8, fat: 0.3, fiber: 2.6, servings: [{ name: 'stuk', grams: 120 }], createdAt: new Date().toISOString() }
+        { id: uid(), barcode: '', name: 'Havermout', kcal: 389, fat: 7, saturatedFat: 1.3, carbs: 60, sugar: 1, fiber: 10, protein: 13.5, salt: 0.01, servings: [{ name: 'portie', grams: 80 }], createdAt: new Date().toISOString() },
+        { id: uid(), barcode: '', name: 'Kipfilet bereid', kcal: 165, fat: 3.6, saturatedFat: 1, carbs: 0, sugar: 0, fiber: 0, protein: 31, salt: 0.04, servings: [{ name: 'portie', grams: 150 }], createdAt: new Date().toISOString() },
+        { id: uid(), barcode: '', name: 'Banaan', kcal: 89, fat: 0.3, saturatedFat: 0.1, carbs: 22.8, sugar: 12, fiber: 2.6, protein: 1.1, salt: 0.001, servings: [{ name: 'stuk', grams: 120 }], createdAt: new Date().toISOString() }
       ];
       saveProducts();
     }
@@ -1669,7 +1763,7 @@
       $('#stop-scanner').addEventListener('click', () => stopBarcodeScanner());
       $('#scan-product-barcode').addEventListener('click', () => openBarcodeScanner('product-form'));
       $('#scan-log-barcode').addEventListener('click', () => openBarcodeScanner('log-form'));
-      $('#reset-product-form').addEventListener('click', () => { $('#product-form').reset(); clearErrors(['barcode', 'productName', 'productKcal', 'productProtein', 'productCarbs', 'productFat', 'productFiber', 'servingName1', 'servingGrams1', 'servingName2', 'servingGrams2']); });
+      $('#reset-product-form').addEventListener('click', () => { $('#product-form').reset(); clearErrors(['barcode', 'productName', 'productKcal', 'productProtein', 'productCarbs', 'productFat', 'productSaturatedFat', 'productFiber', 'productSugar', 'productSalt', 'servingName1', 'servingGrams1', 'servingName2', 'servingGrams2']); });
       $('#product-form').addEventListener('submit', addProduct);
       $('#log-form').addEventListener('submit', addLogEntry);
       $('#goals-form').addEventListener('submit', updateGoals);
@@ -1733,6 +1827,24 @@
         input.addEventListener('keydown', event => {
           if (['e', 'E', '+', '-'].includes(event.key)) event.preventDefault();
         });
+      });
+
+      // Add comma detection for product form inputs
+      const productNumberInputs = ['product-kcal', 'product-fat', 'product-saturated-fat', 'product-carbs', 'product-sugar', 'product-fiber', 'product-protein', 'product-salt'];
+      productNumberInputs.forEach(id => {
+        const input = $(`#${id}`);
+        if (input) {
+          input.addEventListener('input', (e) => {
+            if (e.target.value.includes(',')) {
+              e.target.style.borderColor = 'rgba(255, 124, 124, 0.5)';
+            } else {
+              e.target.style.borderColor = '';
+            }
+          });
+          input.addEventListener('blur', () => {
+            input.style.borderColor = '';
+          });
+        }
       });
     }
 
