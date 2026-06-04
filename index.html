@@ -320,9 +320,10 @@
     }
     .modal-backdrop.open { display: flex; }
     #meal-detail-modal { z-index: 60; }
-    #log-modal { z-index: 80; }
-    #product-modal { z-index: 100; }
-    #scanner-modal { z-index: 120; }
+    #copy-modal { z-index: 90; }
+    #log-modal { z-index: 100; }
+    #product-modal { z-index: 120; }
+    #scanner-modal { z-index: 140; }
     .modal {
       width: min(760px, 100%);
       max-height: min(88vh, 820px);
@@ -2151,6 +2152,7 @@
       els.copyMeal.value = meal.key;
       els.copyModalSubtitle.textContent = `${entries.length} ${entries.length === 1 ? 'item' : 'items'} geselecteerd`;
       els.copyModal.classList.add('open');
+      setTimeout(() => els.copyDate.focus(), 0);
     }
 
     function closeCopyModal() {
