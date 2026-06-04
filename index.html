@@ -319,6 +319,10 @@
       padding: 20px;
     }
     .modal-backdrop.open { display: flex; }
+    #meal-detail-modal { z-index: 60; }
+    #log-modal { z-index: 80; }
+    #product-modal { z-index: 100; }
+    #scanner-modal { z-index: 120; }
     .modal {
       width: min(760px, 100%);
       max-height: min(88vh, 820px);
@@ -2728,7 +2732,11 @@
       $('#open-product-modal-from-log').addEventListener('click', openProductModal);
       $('#close-log-modal').addEventListener('click', closeLogModal);
       $('#close-meal-detail-modal').addEventListener('click', closeMealDetail);
-      $('#add-from-meal-detail').addEventListener('click', () => openLogModal(selectedMealDetail || 'breakfast'));
+      $('#add-from-meal-detail').addEventListener('click', () => {
+        const meal = selectedMealDetail || 'breakfast';
+        closeMealDetail();
+        openLogModal(meal);
+      });
       $('#close-product-modal').addEventListener('click', closeProductModal);
       $('#close-scanner-modal').addEventListener('click', () => stopBarcodeScanner());
       $('#stop-scanner').addEventListener('click', () => stopBarcodeScanner());
