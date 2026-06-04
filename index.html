@@ -672,6 +672,98 @@
       .plus-btn { grid-column: 1 / -1; justify-self: end; margin-top: -4px; }
     }
 
+  
+
+    /* --- meal detail modal --- */
+    .meal-overview-card { cursor: pointer; }
+    .meal-overview-card:active { transform: scale(.995); }
+    .meal-detail-list { display: grid; gap: 12px; }
+    .meal-detail-empty {
+      border: 1px dashed var(--border-strong);
+      background: rgba(255,255,255,.025);
+      border-radius: 16px;
+      padding: 22px;
+      color: var(--muted-2);
+      text-align: center;
+    }
+    .meal-detail-item {
+      border: 1px solid var(--border);
+      background: rgba(255,255,255,.045);
+      border-radius: 18px;
+      padding: 14px;
+      display: grid;
+      gap: 12px;
+    }
+    .meal-detail-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 12px;
+    }
+    .meal-detail-title {
+      font-weight: 850;
+      font-size: 16px;
+      letter-spacing: -.02em;
+      line-height: 1.2;
+    }
+    .meal-detail-meta {
+      margin-top: 5px;
+      color: var(--muted-2);
+      font-size: 12px;
+      display: flex;
+      gap: 7px;
+      flex-wrap: wrap;
+    }
+    .meal-detail-edit {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto auto;
+      gap: 10px;
+      align-items: end;
+    }
+    .meal-detail-edit .field { min-width: 0; }
+    .meal-detail-edit input {
+      width: 100%;
+      border: 1px solid var(--border);
+      background: rgba(0,0,0,.22);
+      color: var(--text);
+      border-radius: 13px;
+      min-height: 42px;
+      padding: 0 12px;
+      outline: none;
+    }
+    .meal-detail-edit input:focus { border-color: rgba(239,204,122,.55); }
+    .meal-detail-unit {
+      min-height: 42px;
+      display: inline-flex;
+      align-items: center;
+      padding: 0 12px;
+      border-radius: 13px;
+      border: 1px solid var(--border);
+      background: rgba(255,255,255,.04);
+      color: var(--muted);
+      white-space: nowrap;
+      font-size: 13px;
+    }
+    .meal-detail-kcal {
+      color: var(--accent);
+      font-size: 20px;
+      font-weight: 900;
+      letter-spacing: -.04em;
+      white-space: nowrap;
+    }
+    .meal-detail-error {
+      color: var(--danger);
+      min-height: 16px;
+      font-size: 12px;
+      margin-top: -4px;
+    }
+    @media (max-width: 560px) {
+      .meal-detail-edit { grid-template-columns: 1fr; }
+      .meal-detail-edit .primary-btn,
+      .meal-detail-edit .danger-btn { width: 100%; }
+      .meal-detail-unit { justify-content: center; }
+    }
+
   </style>
 </head>
 <body>
@@ -911,6 +1003,25 @@
     </div>
   </div>
 
+  <div class="modal-backdrop" id="meal-detail-modal" role="dialog" aria-modal="true" aria-labelledby="meal-detail-title">
+    <div class="modal log-modal">
+      <div class="modal-head">
+        <div>
+          <div class="eyebrow">Maaltijd aanpassen</div>
+          <h2 id="meal-detail-title">Maaltijd</h2>
+          <div class="selected-meal-pill" id="meal-detail-subtitle">0 items</div>
+        </div>
+        <div class="modal-actions-top">
+          <button class="secondary-btn" id="add-from-meal-detail" type="button">Product loggen</button>
+          <button class="icon-btn" id="close-meal-detail-modal" type="button" aria-label="Sluiten">×</button>
+        </div>
+      </div>
+      <div class="modal-body">
+        <div class="meal-detail-list" id="meal-detail-list"></div>
+      </div>
+    </div>
+  </div>
+
   <div class="modal-backdrop" id="product-modal" role="dialog" aria-modal="true" aria-labelledby="product-modal-title">
     <div class="modal">
       <div class="modal-head">
@@ -1073,6 +1184,8 @@
       loadPromise: null
     };
 
+    let selectedMealDetail = null;
+
     const $ = (selector) => document.querySelector(selector);
     const $$ = (selector) => Array.from(document.querySelectorAll(selector));
 
@@ -1093,6 +1206,10 @@
       logPreview: $('#log-preview'),
       logModal: $('#log-modal'),
       logModalMealName: $('#log-modal-meal-name'),
+      mealDetailModal: $('#meal-detail-modal'),
+      mealDetailTitle: $('#meal-detail-title'),
+      mealDetailSubtitle: $('#meal-detail-subtitle'),
+      mealDetailList: $('#meal-detail-list'),
       productModal: $('#product-modal'),
       scannerModal: $('#scanner-modal'),
       scannerVideo: $('#scanner-video'),
@@ -1558,7 +1675,7 @@
           ? `${mealEntries.length} ${mealEntries.length === 1 ? 'item' : 'items'} • ${pretty(kcalTotal, 0)} kcal`
           : 'Nog leeg';
         return `
-          <div class="meal-overview-card">
+          <div class="meal-overview-card" data-open-meal="${meal.key}" role="button" tabindex="0" aria-label="Open ${meal.label}">
             <div class="meal-avatar ${meal.key}">${mealUi[meal.key].icon}</div>
             <div class="meal-main">
               <div class="meal-top-row">
@@ -1573,6 +1690,125 @@
       }).join('');
 
       els.logList.innerHTML = groupedHtml;
+    }
+
+    function renderMealDetail() {
+      if (!selectedMealDetail || !els.mealDetailList) return;
+      const meal = getMealMeta(selectedMealDetail);
+      const mealEntries = getDayLogs().filter(entry => (entry.mealType || 'snacks') === meal.key);
+      const kcalTotal = mealEntries.reduce((sum, entry) => sum + (Number(entry.kcal) || 0), 0);
+
+      els.mealDetailTitle.textContent = meal.label;
+      els.mealDetailSubtitle.textContent = mealEntries.length
+        ? `${mealEntries.length} ${mealEntries.length === 1 ? 'item' : 'items'} • ${pretty(kcalTotal, 0)} kcal`
+        : 'Nog niets gelogd';
+
+      if (!mealEntries.length) {
+        els.mealDetailList.innerHTML = `<div class="meal-detail-empty">Nog niets in ${meal.label.toLowerCase()}. Klik op “Product loggen” om iets toe te voegen.</div>`;
+        return;
+      }
+
+      els.mealDetailList.innerHTML = mealEntries.map(entry => {
+        const unitLabel = entry.unitLabel || 'gram';
+        const amount = entry.amount != null ? entry.amount : entry.grams;
+        const unitText = unitLabel === 'gram'
+          ? 'gram'
+          : `${escapeHtml(unitLabel)} (${pretty(entry.unitGrams || 1, 1)}g)`;
+        return `
+          <div class="meal-detail-item" data-entry-id="${escapeHtml(entry.id)}">
+            <div class="meal-detail-top">
+              <div>
+                <div class="meal-detail-title">${escapeHtml(entry.productName)}</div>
+                <div class="meal-detail-meta">
+                  <span>${pretty(entry.grams, 1)}g totaal</span>
+                  <span>P ${pretty(entry.protein)}g</span>
+                  <span>C ${pretty(entry.carbs)}g</span>
+                  <span>F ${pretty(entry.fat)}g</span>
+                  <span>Vezels ${pretty(entry.fiber)}g</span>
+                </div>
+              </div>
+              <div class="meal-detail-kcal">${pretty(entry.kcal, 0)} kcal</div>
+            </div>
+            <div class="meal-detail-edit">
+              <div class="field">
+                <label for="edit-amount-${escapeHtml(entry.id)}">Hoeveelheid</label>
+                <input id="edit-amount-${escapeHtml(entry.id)}" type="text" inputmode="decimal" value="${pretty(amount, 2)}" data-edit-amount="${escapeHtml(entry.id)}" />
+              </div>
+              <div class="meal-detail-unit">${unitText}</div>
+              <button class="primary-btn" type="button" data-save-entry="${escapeHtml(entry.id)}">Opslaan</button>
+              <button class="danger-btn" type="button" data-delete-log="${escapeHtml(entry.id)}">Verwijderen</button>
+            </div>
+            <div class="meal-detail-error" id="meal-detail-error-${escapeHtml(entry.id)}"></div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function openMealDetail(mealType) {
+      selectedMealDetail = getMealMeta(mealType).key;
+      renderMealDetail();
+      els.mealDetailModal.classList.add('open');
+    }
+
+    function closeMealDetail() {
+      els.mealDetailModal.classList.remove('open');
+    }
+
+    function updateLogEntryAmount(logId) {
+      const input = document.querySelector(`[data-edit-amount="${CSS.escape(logId)}"]`);
+      const errorEl = document.getElementById(`meal-detail-error-${logId}`);
+      if (!input) return;
+      if (errorEl) errorEl.textContent = '';
+
+      const parsed = parsePositiveNumber(input.value, 'Hoeveelheid');
+      if (!parsed.ok) {
+        if (errorEl) errorEl.textContent = parsed.message;
+        return;
+      }
+
+      const entries = getDayLogs();
+      const entry = entries.find(item => item.id === logId);
+      if (!entry) return;
+
+      const unitGrams = Number(entry.unitGrams || 1);
+      const newGrams = entry.unitLabel && entry.unitLabel !== 'gram'
+        ? round(parsed.value * unitGrams, 1)
+        : round(parsed.value, 1);
+
+      const product = state.products.find(item => item.id === entry.productId);
+      let values;
+      if (product) {
+        values = calculateEntry(product, newGrams);
+        entry.sugar = product.sugar ? round((product.sugar || 0) * (newGrams / 100), 1) : 0;
+        entry.saturatedFat = product.saturatedFat ? round((product.saturatedFat || 0) * (newGrams / 100), 1) : 0;
+        entry.salt = product.salt ? round((product.salt || 0) * (newGrams / 100), 2) : 0;
+      } else {
+        const ratio = entry.grams > 0 ? newGrams / entry.grams : 1;
+        values = {
+          kcal: round(entry.kcal * ratio, 1),
+          protein: round(entry.protein * ratio, 1),
+          carbs: round(entry.carbs * ratio, 1),
+          fat: round(entry.fat * ratio, 1),
+          fiber: round(entry.fiber * ratio, 1)
+        };
+        entry.sugar = round((entry.sugar || 0) * ratio, 1);
+        entry.saturatedFat = round((entry.saturatedFat || 0) * ratio, 1);
+        entry.salt = round((entry.salt || 0) * ratio, 2);
+      }
+
+      entry.amount = round(parsed.value, 2);
+      entry.grams = newGrams;
+      entry.kcal = values.kcal;
+      entry.protein = values.protein;
+      entry.carbs = values.carbs;
+      entry.fat = values.fat;
+      entry.fiber = values.fiber;
+      entry.updatedAt = new Date().toISOString();
+
+      saveLogs();
+      renderAll();
+      renderMealDetail();
+      showToast('Hoeveelheid aangepast.');
     }
 
     function renderUnitOptions() {
@@ -1722,6 +1958,7 @@
       clearErrors(['logProductId', 'mealType', 'grams', 'logUnit']);
       closeLogModal();
       renderAll();
+      if (selectedMealDetail === result.mealType && els.mealDetailModal && els.mealDetailModal.classList.contains('open')) renderMealDetail();
       showToast(`Toegevoegd aan ${mealMeta.label.toLowerCase()}.`);
     }
 
@@ -1751,6 +1988,7 @@
       state.logs[state.currentDate] = entries.filter(entry => entry.id !== logId);
       saveLogs();
       renderAll();
+      if (selectedMealDetail && els.mealDetailModal && els.mealDetailModal.classList.contains('open')) renderMealDetail();
       showToast('Log verwijderd.');
     }
 
@@ -2145,6 +2383,8 @@
       $('#open-product-modal').addEventListener('click', openProductModal);
       $('#open-product-modal-from-log').addEventListener('click', openProductModal);
       $('#close-log-modal').addEventListener('click', closeLogModal);
+      $('#close-meal-detail-modal').addEventListener('click', closeMealDetail);
+      $('#add-from-meal-detail').addEventListener('click', () => openLogModal(selectedMealDetail || 'breakfast'));
       $('#close-product-modal').addEventListener('click', closeProductModal);
       $('#close-scanner-modal').addEventListener('click', () => stopBarcodeScanner());
       $('#stop-scanner').addEventListener('click', () => stopBarcodeScanner());
@@ -2195,14 +2435,44 @@
       els.logList.addEventListener('click', (event) => {
         const quickMealBtn = event.target.closest('[data-quick-meal]');
         if (quickMealBtn) {
+          event.stopPropagation();
           openLogModal(quickMealBtn.dataset.quickMeal);
+          return;
+        }
+        const mealCard = event.target.closest('[data-open-meal]');
+        if (mealCard) {
+          openMealDetail(mealCard.dataset.openMeal);
           return;
         }
         const btn = event.target.closest('[data-delete-log]');
         if (btn) deleteLog(btn.dataset.deleteLog);
       });
+      els.logList.addEventListener('keydown', (event) => {
+        if (event.key !== 'Enter' && event.key !== ' ') return;
+        const mealCard = event.target.closest('[data-open-meal]');
+        if (!mealCard) return;
+        event.preventDefault();
+        openMealDetail(mealCard.dataset.openMeal);
+      });
+      els.mealDetailList.addEventListener('click', (event) => {
+        const saveBtn = event.target.closest('[data-save-entry]');
+        if (saveBtn) {
+          updateLogEntryAmount(saveBtn.dataset.saveEntry);
+          return;
+        }
+        const deleteBtn = event.target.closest('[data-delete-log]');
+        if (deleteBtn) deleteLog(deleteBtn.dataset.deleteLog);
+      });
+      els.mealDetailList.addEventListener('keydown', (event) => {
+        if (event.key !== 'Enter') return;
+        const input = event.target.closest('[data-edit-amount]');
+        if (input) updateLogEntryAmount(input.dataset.editAmount);
+      });
       els.logModal.addEventListener('click', (event) => {
         if (event.target === els.logModal) closeLogModal();
+      });
+      els.mealDetailModal.addEventListener('click', (event) => {
+        if (event.target === els.mealDetailModal) closeMealDetail();
       });
       els.productModal.addEventListener('click', (event) => {
         if (event.target === els.productModal) closeProductModal();
@@ -2215,6 +2485,7 @@
         if (els.scannerModal.classList.contains('open')) stopBarcodeScanner();
         else if (els.productModal.classList.contains('open')) closeProductModal();
         else if (els.logModal.classList.contains('open')) closeLogModal();
+        else if (els.mealDetailModal.classList.contains('open')) closeMealDetail();
       });
       $$('input[inputmode="decimal"]').forEach(input => {
         input.addEventListener('keydown', event => {
