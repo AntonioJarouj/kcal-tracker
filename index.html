@@ -716,12 +716,13 @@
     }
     .meal-detail-edit {
       display: grid;
-      grid-template-columns: minmax(0, 1fr) auto auto;
+      grid-template-columns: minmax(0, .85fr) minmax(0, 1.15fr) auto auto;
       gap: 10px;
       align-items: end;
     }
     .meal-detail-edit .field { min-width: 0; }
-    .meal-detail-edit input {
+    .meal-detail-edit input,
+    .meal-detail-edit select {
       width: 100%;
       border: 1px solid var(--border);
       background: rgba(0,0,0,.22);
@@ -731,19 +732,9 @@
       padding: 0 12px;
       outline: none;
     }
-    .meal-detail-edit input:focus { border-color: rgba(239,204,122,.55); }
-    .meal-detail-unit {
-      min-height: 42px;
-      display: inline-flex;
-      align-items: center;
-      padding: 0 12px;
-      border-radius: 13px;
-      border: 1px solid var(--border);
-      background: rgba(255,255,255,.04);
-      color: var(--muted);
-      white-space: nowrap;
-      font-size: 13px;
-    }
+    .meal-detail-edit select option { background: #15161d; color: var(--text); }
+    .meal-detail-edit input:focus,
+    .meal-detail-edit select:focus { border-color: rgba(239,204,122,.55); }
     .meal-detail-kcal {
       color: var(--accent);
       font-size: 20px;
@@ -1711,9 +1702,18 @@
       els.mealDetailList.innerHTML = mealEntries.map(entry => {
         const unitLabel = entry.unitLabel || 'gram';
         const amount = entry.amount != null ? entry.amount : entry.grams;
-        const unitText = unitLabel === 'gram'
-          ? 'gram'
-          : `${escapeHtml(unitLabel)} (${pretty(entry.unitGrams || 1, 1)}g)`;
+        const product = state.products.find(item => item.id === entry.productId);
+        const currentUnitValue = unitLabel === 'gram' ? 'gram' : `custom|${unitLabel}|${entry.unitGrams || 1}`;
+        let unitOptions = `<option value="gram" ${unitLabel === 'gram' ? 'selected' : ''}>gram</option>`;
+        if (product) {
+          normalizeServings(product).forEach((serving, index) => {
+            const selected = unitLabel !== 'gram' && String(serving.name) === String(unitLabel) && Number(serving.grams) === Number(entry.unitGrams || 1);
+            unitOptions += `<option value="serving-${index}" ${selected ? 'selected' : ''}>${escapeHtml(serving.name)} (${pretty(serving.grams, 1)}g)</option>`;
+          });
+        }
+        if (unitLabel !== 'gram' && !unitOptions.includes('selected')) {
+          unitOptions += `<option value="${escapeHtml(currentUnitValue)}" selected>${escapeHtml(unitLabel)} (${pretty(entry.unitGrams || 1, 1)}g)</option>`;
+        }
         return `
           <div class="meal-detail-item" data-entry-id="${escapeHtml(entry.id)}">
             <div class="meal-detail-top">
@@ -1734,7 +1734,12 @@
                 <label for="edit-amount-${escapeHtml(entry.id)}">Hoeveelheid</label>
                 <input id="edit-amount-${escapeHtml(entry.id)}" type="text" inputmode="decimal" value="${pretty(amount, 2)}" data-edit-amount="${escapeHtml(entry.id)}" />
               </div>
-              <div class="meal-detail-unit">${unitText}</div>
+              <div class="field">
+                <label for="edit-unit-${escapeHtml(entry.id)}">Eenheid</label>
+                <select id="edit-unit-${escapeHtml(entry.id)}" data-edit-unit="${escapeHtml(entry.id)}">
+                  ${unitOptions}
+                </select>
+              </div>
               <button class="primary-btn" type="button" data-save-entry="${escapeHtml(entry.id)}">Opslaan</button>
               <button class="danger-btn" type="button" data-delete-log="${escapeHtml(entry.id)}">Verwijderen</button>
             </div>
@@ -1754,6 +1759,36 @@
       els.mealDetailModal.classList.remove('open');
     }
 
+    function getMealDetailUnitFromSelect(logId, entry) {
+      const select = document.querySelector(`[data-edit-unit="${CSS.escape(logId)}"]`);
+      const product = state.products.find(item => item.id === entry.productId);
+      const value = select ? select.value : 'gram';
+      if (value === 'gram') return { label: 'gram', grams: 1 };
+      if (value.startsWith('serving-') && product) {
+        const index = Number(value.replace('serving-', ''));
+        const serving = normalizeServings(product)[index];
+        if (serving) return { label: serving.name, grams: Number(serving.grams) || 1 };
+      }
+      if (value.startsWith('custom|')) {
+        const parts = value.split('|');
+        return { label: parts[1] || entry.unitLabel || 'portie', grams: Number(parts[2]) || Number(entry.unitGrams) || 1 };
+      }
+      return null;
+    }
+
+    function syncMealDetailAmountForUnit(logId) {
+      const entries = getDayLogs();
+      const entry = entries.find(item => item.id === logId);
+      if (!entry) return;
+      const input = document.querySelector(`[data-edit-amount="${CSS.escape(logId)}"]`);
+      const errorEl = document.getElementById(`meal-detail-error-${logId}`);
+      const unit = getMealDetailUnitFromSelect(logId, entry);
+      if (!input || !unit) return;
+      if (errorEl) errorEl.textContent = '';
+      const amount = unit.label === 'gram' ? entry.grams : (entry.grams / unit.grams);
+      input.value = pretty(amount, 2);
+    }
+
     function updateLogEntryAmount(logId) {
       const input = document.querySelector(`[data-edit-amount="${CSS.escape(logId)}"]`);
       const errorEl = document.getElementById(`meal-detail-error-${logId}`);
@@ -1770,10 +1805,14 @@
       const entry = entries.find(item => item.id === logId);
       if (!entry) return;
 
-      const unitGrams = Number(entry.unitGrams || 1);
-      const newGrams = entry.unitLabel && entry.unitLabel !== 'gram'
-        ? round(parsed.value * unitGrams, 1)
-        : round(parsed.value, 1);
+      const unit = getMealDetailUnitFromSelect(logId, entry);
+      if (!unit) {
+        if (errorEl) errorEl.textContent = 'Kies een geldige eenheid.';
+        return;
+      }
+      const newGrams = unit.label === 'gram'
+        ? round(parsed.value, 1)
+        : round(parsed.value * unit.grams, 1);
 
       const product = state.products.find(item => item.id === entry.productId);
       let values;
@@ -1797,6 +1836,8 @@
       }
 
       entry.amount = round(parsed.value, 2);
+      entry.unitLabel = unit.label;
+      entry.unitGrams = unit.grams;
       entry.grams = newGrams;
       entry.kcal = values.kcal;
       entry.protein = values.protein;
@@ -2462,6 +2503,10 @@
         }
         const deleteBtn = event.target.closest('[data-delete-log]');
         if (deleteBtn) deleteLog(deleteBtn.dataset.deleteLog);
+      });
+      els.mealDetailList.addEventListener('change', (event) => {
+        const unitSelect = event.target.closest('[data-edit-unit]');
+        if (unitSelect) syncMealDetailAmountForUnit(unitSelect.dataset.editUnit);
       });
       els.mealDetailList.addEventListener('keydown', (event) => {
         if (event.key !== 'Enter') return;
