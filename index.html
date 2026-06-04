@@ -1121,11 +1121,24 @@
           <div class="accordion-chevron">⌄</div>
         </summary>
         <div class="accordion-body stack">
-          <div class="split-note">Alles wordt opgeslagen in localStorage van je browser. Barcode-lookup gebruikt Open Food Facts en voedingslabelscan gebruikt OCR via Tesseract.js.</div>
+          <div class="split-note">Alles wordt opgeslagen in localStorage van je browser. Gebruik “Producten delen” om alleen je productdatabase naar iemand te sturen. Gebruik “Volledige backup” alleen voor jezelf, want daarin zitten ook je daglogs en doelen.</div>
+          <div class="split-note">
+            <strong>Producten delen</strong><br>
+            Exporteert alleen producten, barcodes, porties en voedingswaarden. Geen persoonlijke logs.
+          </div>
           <div class="actions-row">
-            <button class="secondary-btn" type="button" id="export-data">Export JSON</button>
-            <button class="secondary-btn" type="button" id="import-data">Import JSON</button>
-            <input id="import-file" type="file" accept="application/json" hidden />
+            <button class="secondary-btn" type="button" id="export-products">Export producten</button>
+            <button class="secondary-btn" type="button" id="import-products">Import producten</button>
+            <input id="import-products-file" type="file" accept="application/json" hidden />
+          </div>
+          <div class="split-note">
+            <strong>Volledige backup</strong><br>
+            Exporteert producten, daglogs en doelen. Handig als je van telefoon wisselt of een reservekopie wilt maken.
+          </div>
+          <div class="actions-row">
+            <button class="secondary-btn" type="button" id="export-backup">Export backup</button>
+            <button class="secondary-btn" type="button" id="import-backup">Import backup</button>
+            <input id="import-backup-file" type="file" accept="application/json" hidden />
           </div>
         </div>
       </details>
@@ -1469,7 +1482,8 @@
       autoFillStatus: $('#auto-fill-status'),
       nutritionLabelFile: $('#nutrition-label-file'),
       toast: $('#toast'),
-      importFile: $('#import-file'),
+      importProductsFile: $('#import-products-file'),
+      importBackupFile: $('#import-backup-file'),
       macroGramPreview: $('#macro-gram-preview')
     };
 
@@ -2837,26 +2851,106 @@
       showToast.timer = setTimeout(() => els.toast.classList.remove('show'), 2200);
     }
 
-    function exportData() {
-      const payload = {
-        exportedAt: new Date().toISOString(),
-        version: 4,
-        products: state.products,
-        logs: state.logs,
-        goals: state.goals
-      };
+    function downloadJson(filename, payload) {
       const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `kcal-tracker-export-${toDateKey(new Date())}.json`;
+      a.download = filename;
       document.body.appendChild(a);
       a.click();
       a.remove();
       URL.revokeObjectURL(url);
     }
 
-    function importDataFromFile(file) {
+    function normalizeImportedProduct(product) {
+      return {
+        id: product.id || uid(),
+        barcode: product.barcode || '',
+        name: product.name || 'Naamloos product',
+        kcal: Number(product.kcal) || 0,
+        fat: Number(product.fat) || 0,
+        saturatedFat: Number(product.saturatedFat) || 0,
+        carbs: Number(product.carbs) || 0,
+        sugar: Number(product.sugar) || 0,
+        fiber: Number(product.fiber) || 0,
+        protein: Number(product.protein) || 0,
+        salt: Number(product.salt) || 0,
+        servings: normalizeServings(product),
+        createdAt: product.createdAt || new Date().toISOString()
+      };
+    }
+
+    function productMergeKey(product) {
+      const barcode = normalizeBarcode(product.barcode);
+      if (barcode) return `barcode:${barcode}`;
+      return `name:${String(product.name || '').trim().toLowerCase()}`;
+    }
+
+    function exportProductsOnly() {
+      const payload = {
+        exportedAt: new Date().toISOString(),
+        type: 'kcal-tracker-products',
+        version: 5,
+        products: state.products
+      };
+      downloadJson(`kcal-tracker-products-${toDateKey(new Date())}.json`, payload);
+      showToast('Producten geëxporteerd.');
+    }
+
+    function importProductsFromFile(file) {
+      const reader = new FileReader();
+      reader.onload = () => {
+        try {
+          const payload = JSON.parse(String(reader.result));
+          const importedProducts = Array.isArray(payload.products) ? payload.products : null;
+          if (!importedProducts) throw new Error('Geen producten gevonden');
+
+          const existingByKey = new Map(state.products.map(product => [productMergeKey(product), product]));
+          let added = 0;
+          let updated = 0;
+
+          importedProducts.map(normalizeImportedProduct).forEach(product => {
+            if (!product.name || product.kcal <= 0) return;
+            const key = productMergeKey(product);
+            const existing = existingByKey.get(key);
+            if (existing) {
+              Object.assign(existing, { ...product, id: existing.id });
+              updated += 1;
+            } else {
+              product.id = uid();
+              state.products.push(product);
+              existingByKey.set(key, product);
+              added += 1;
+            }
+          });
+
+          saveProducts();
+          renderAll();
+          showToast(`Producten geïmporteerd: ${added} nieuw, ${updated} bijgewerkt.`);
+        } catch (error) {
+          showToast('Import producten mislukt: ongeldig JSON-bestand.');
+        } finally {
+          els.importProductsFile.value = '';
+        }
+      };
+      reader.readAsText(file);
+    }
+
+    function exportFullBackup() {
+      const payload = {
+        exportedAt: new Date().toISOString(),
+        type: 'kcal-tracker-full-backup',
+        version: 5,
+        products: state.products,
+        logs: state.logs,
+        goals: state.goals
+      };
+      downloadJson(`kcal-tracker-backup-${toDateKey(new Date())}.json`, payload);
+      showToast('Volledige backup geëxporteerd.');
+    }
+
+    function importFullBackupFromFile(file) {
       const reader = new FileReader();
       reader.onload = () => {
         try {
@@ -2864,17 +2958,9 @@
           if (!payload || !Array.isArray(payload.products) || typeof payload.logs !== 'object' || typeof payload.goals !== 'object') {
             throw new Error('Ongeldig importbestand');
           }
-          
-          // Ensure backward compatibility by adding missing fields with defaults
-          state.products = payload.products.map(product => ({
-            ...product,
-            saturatedFat: product.saturatedFat || 0,
-            sugar: product.sugar || 0,
-            salt: product.salt || 0
-          }));
-          
+
+          state.products = payload.products.map(normalizeImportedProduct);
           state.logs = payload.logs;
-          // Ensure backward compatibility for log entries
           Object.keys(state.logs).forEach(dateKey => {
             state.logs[dateKey] = state.logs[dateKey].map(entry => ({
               ...entry,
@@ -2883,18 +2969,24 @@
               salt: entry.salt || 0
             }));
           });
-          
+
           state.goals = { ...DEFAULT_GOALS, ...payload.goals };
-          state.goals = calculateMacroGoals(state.goals.kcal, state.goals.carbsPct ?? DEFAULT_GOALS.carbsPct, state.goals.proteinPct ?? DEFAULT_GOALS.proteinPct, state.goals.fatPct ?? DEFAULT_GOALS.fatPct, state.goals.fiber);
+          state.goals = calculateMacroGoals(
+            state.goals.kcal,
+            state.goals.carbsPct ?? DEFAULT_GOALS.carbsPct,
+            state.goals.proteinPct ?? DEFAULT_GOALS.proteinPct,
+            state.goals.fatPct ?? DEFAULT_GOALS.fatPct,
+            state.goals.fiber
+          );
           saveProducts();
           saveLogs();
           saveGoals();
           renderAll();
-          showToast('Data geïmporteerd.');
+          showToast('Volledige backup geïmporteerd.');
         } catch (error) {
-          showToast('Import mislukt: ongeldig JSON-bestand.');
+          showToast('Import backup mislukt: ongeldig JSON-bestand.');
         } finally {
-          els.importFile.value = '';
+          els.importBackupFile.value = '';
         }
       };
       reader.readAsText(file);
@@ -3011,11 +3103,17 @@
         updateLogPreview();
       });
       $('#clear-day').addEventListener('click', clearDay);
-      $('#export-data').addEventListener('click', exportData);
-      $('#import-data').addEventListener('click', () => els.importFile.click());
-      els.importFile.addEventListener('change', (event) => {
+      $('#export-products').addEventListener('click', exportProductsOnly);
+      $('#import-products').addEventListener('click', () => els.importProductsFile.click());
+      els.importProductsFile.addEventListener('change', (event) => {
         const file = event.target.files && event.target.files[0];
-        if (file) importDataFromFile(file);
+        if (file) importProductsFromFile(file);
+      });
+      $('#export-backup').addEventListener('click', exportFullBackup);
+      $('#import-backup').addEventListener('click', () => els.importBackupFile.click());
+      els.importBackupFile.addEventListener('change', (event) => {
+        const file = event.target.files && event.target.files[0];
+        if (file) importFullBackupFromFile(file);
       });
       els.productSearch.addEventListener('input', renderProductList);
       els.logProductSearch.addEventListener('input', () => {
