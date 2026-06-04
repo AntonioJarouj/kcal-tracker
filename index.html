@@ -399,6 +399,41 @@
       font-size: 13px;
       line-height: 1.45;
     }
+    .scanner-manual {
+      margin-top: 14px;
+      border: 1px solid var(--border);
+      background: rgba(255,255,255,.035);
+      border-radius: 16px;
+      padding: 14px;
+    }
+    .scanner-manual-title {
+      font-size: 13px;
+      color: var(--muted);
+      font-weight: 800;
+      margin-bottom: 9px;
+    }
+    .scanner-manual-row {
+      display: flex;
+      gap: 10px;
+      align-items: stretch;
+    }
+    .scanner-manual-row input {
+      flex: 1;
+      min-width: 0;
+      border: 1px solid var(--border);
+      background: rgba(0,0,0,.22);
+      color: var(--text);
+      border-radius: 13px;
+      min-height: 44px;
+      padding: 0 12px;
+      outline: none;
+    }
+    .scanner-hints {
+      margin-top: 10px;
+      color: var(--muted-2);
+      font-size: 12px;
+      line-height: 1.45;
+    }
     @media (max-width: 640px) {
       .field-action-row { flex-direction: column; }
       .scan-btn { width: 100%; }
@@ -1133,7 +1168,16 @@
           <div class="scanner-line"></div>
         </div>
         <div class="scanner-status" id="scanner-status">Richt de camera op de streepjescode. Houd de barcode recht, dichtbij genoeg en goed belicht.</div>
+        <div class="scanner-manual">
+          <div class="scanner-manual-title">Werkt scannen niet goed?</div>
+          <div class="scanner-manual-row">
+            <input id="manual-barcode-input" type="text" inputmode="numeric" pattern="[0-9]*" placeholder="Typ barcode handmatig" />
+            <button class="secondary-btn" id="use-manual-barcode" type="button">Gebruik</button>
+          </div>
+          <div class="scanner-hints">Tip: houd de barcode plat, goed belicht en iets verder van de camera. Wacht 1–2 seconden tot de camera scherpstelt.</div>
+        </div>
         <div class="actions-row" style="margin-top: 14px;">
+          <button class="secondary-btn" id="retry-scanner" type="button">Opnieuw proberen</button>
           <button class="secondary-btn" id="stop-scanner" type="button">Stop scanner</button>
         </div>
       </div>
@@ -1172,7 +1216,10 @@
       target: null,
       reader: null,
       controls: null,
-      loadPromise: null
+      loadPromise: null,
+      lastValue: '',
+      lastValueAt: 0,
+      statusTimer: null
     };
 
     let selectedMealDetail = null;
@@ -1205,6 +1252,7 @@
       scannerModal: $('#scanner-modal'),
       scannerVideo: $('#scanner-video'),
       scannerStatus: $('#scanner-status'),
+      manualBarcodeInput: $('#manual-barcode-input'),
       autoFillStatus: $('#auto-fill-status'),
       nutritionLabelFile: $('#nutrition-label-file'),
       toast: $('#toast'),
@@ -1248,7 +1296,12 @@
     }
 
     function normalizeBarcode(value) {
-      return String(value ?? '').trim().replace(/\s+/g, '');
+      return String(value ?? '').trim().replace(/\s+/g, '').replace(/[^0-9]/g, '');
+    }
+
+    function isUsableBarcode(value) {
+      const barcode = normalizeBarcode(value);
+      return barcode.length >= 8 && barcode.length <= 14;
     }
 
     function findProductByBarcode(barcode) {
@@ -2241,11 +2294,14 @@
 
     async function openBarcodeScanner(target) {
       scannerState.target = target;
+      scannerState.lastValue = '';
+      scannerState.lastValueAt = 0;
+      if (els.manualBarcodeInput) els.manualBarcodeInput.value = '';
       els.scannerStatus.textContent = 'Camera wordt gestart...';
       els.scannerModal.classList.add('open');
 
       if (!window.isSecureContext) {
-        els.scannerStatus.textContent = 'Camera werkt alleen via HTTPS of localhost. Host de app via een https-link. Via gewoon http op je telefoon blokkeert iOS/Android vaak de camera.';
+        els.scannerStatus.textContent = 'Camera werkt alleen via HTTPS of localhost. Gebruik je GitHub Pages https-link op je iPhone.';
         return;
       }
       if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
@@ -2258,36 +2314,67 @@
         scannerState.target = target;
         scannerState.active = true;
         const reader = await loadZxingScanner();
-        els.scannerStatus.textContent = 'Geef cameratoegang en richt de streepjescode binnen het kader. Houd je telefoon stil en zorg voor goed licht.';
+        els.scannerStatus.textContent = 'Camera actief. Houd de barcode recht in het kader en wacht tot hij scherp is.';
+        clearInterval(scannerState.statusTimer);
+        scannerState.statusTimer = setInterval(() => {
+          if (!scannerState.active) return;
+          els.scannerStatus.textContent = 'Nog aan het zoeken... probeer iets meer afstand, minder reflectie en houd je telefoon stil.';
+        }, 7000);
 
         scannerState.controls = await reader.decodeFromConstraints(
           {
             video: {
               facingMode: { ideal: 'environment' },
-              width: { ideal: 1280 },
-              height: { ideal: 720 }
+              width: { ideal: 1920 },
+              height: { ideal: 1080 },
+              advanced: [
+                { focusMode: 'continuous' },
+                { exposureMode: 'continuous' }
+              ]
             },
             audio: false
           },
           els.scannerVideo,
           (result, error) => {
-            if (!scannerState.active) return;
-            if (!result) return;
+            if (!scannerState.active || !result) return;
             const value = normalizeBarcode(result.getText ? result.getText() : result.text);
-            if (value) handleScannedBarcode(value);
+            if (!isUsableBarcode(value)) return;
+
+            const now = Date.now();
+            if (scannerState.lastValue === value && now - scannerState.lastValueAt < 1200) return;
+            scannerState.lastValue = value;
+            scannerState.lastValueAt = now;
+            els.scannerStatus.textContent = `Barcode gevonden: ${value}`;
+            handleScannedBarcode(value);
           }
         );
       } catch (error) {
         stopBarcodeScanner(false);
         const message = error && (error.name || error.message) ? `${error.name || ''} ${error.message || ''}`.trim() : '';
         if (message.toLowerCase().includes('notallowed')) {
-          els.scannerStatus.textContent = 'Camera is geweigerd. Sta cameratoegang toe in je browserinstellingen en probeer opnieuw.';
+          els.scannerStatus.textContent = 'Camera is geweigerd. Sta cameratoegang toe in Safari/Chrome en probeer opnieuw.';
         } else if (message.toLowerCase().includes('notfound')) {
           els.scannerStatus.textContent = 'Geen camera gevonden. Typ de barcode handmatig in.';
         } else {
-          els.scannerStatus.textContent = 'Scanner starten is niet gelukt. Controleer of je de app via HTTPS opent en of de barcode-library geladen kan worden.';
+          els.scannerStatus.textContent = 'Scanner starten is niet gelukt. Je kunt de barcode hieronder handmatig invullen.';
         }
       }
+    }
+
+    function useManualBarcode() {
+      const value = normalizeBarcode(els.manualBarcodeInput ? els.manualBarcodeInput.value : '');
+      if (!isUsableBarcode(value)) {
+        els.scannerStatus.textContent = 'Typ een geldige barcode van meestal 8 tot 14 cijfers.';
+        if (els.manualBarcodeInput) els.manualBarcodeInput.focus();
+        return;
+      }
+      handleScannedBarcode(value);
+    }
+
+    function retryBarcodeScanner() {
+      const target = scannerState.target || 'log-form';
+      stopBarcodeScanner(false);
+      openBarcodeScanner(target);
     }
 
     function handleScannedBarcode(barcode) {
@@ -2326,6 +2413,8 @@
 
     function stopBarcodeScanner(closeModal = true) {
       scannerState.active = false;
+      clearInterval(scannerState.statusTimer);
+      scannerState.statusTimer = null;
       if (scannerState.controls && typeof scannerState.controls.stop === 'function') {
         scannerState.controls.stop();
       }
@@ -2429,6 +2518,16 @@
       $('#close-product-modal').addEventListener('click', closeProductModal);
       $('#close-scanner-modal').addEventListener('click', () => stopBarcodeScanner());
       $('#stop-scanner').addEventListener('click', () => stopBarcodeScanner());
+      $('#retry-scanner').addEventListener('click', retryBarcodeScanner);
+      $('#use-manual-barcode').addEventListener('click', useManualBarcode);
+      if (els.manualBarcodeInput) {
+        els.manualBarcodeInput.addEventListener('keydown', (event) => {
+          if (event.key === 'Enter') {
+            event.preventDefault();
+            useManualBarcode();
+          }
+        });
+      }
       $('#scan-product-barcode').addEventListener('click', () => openBarcodeScanner('product-form'));
       $('#scan-log-barcode').addEventListener('click', () => openBarcodeScanner('log-form'));
       $('#lookup-openfoodfacts').addEventListener('click', () => lookupOpenFoodFactsByBarcode());
