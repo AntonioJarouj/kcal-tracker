@@ -794,6 +794,71 @@
       .meal-detail-unit { justify-content: center; }
     }
 
+    /* --- selectie, kopiëren en bulk acties voor maaltijdlogs --- */
+    .meal-detail-bulkbar {
+      border: 1px solid var(--border);
+      background: rgba(255,255,255,.035);
+      border-radius: 16px;
+      padding: 12px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    .bulk-left { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+    .select-all-btn {
+      border: 1px solid var(--border);
+      background: rgba(255,255,255,.04);
+      color: var(--text);
+      min-height: 38px;
+      border-radius: 999px;
+      padding: 0 13px;
+      font-size: 13px;
+      font-weight: 800;
+    }
+    .selected-count { color: var(--muted); font-size: 13px; }
+    .bulk-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+    .compact-btn {
+      border-radius: 999px;
+      min-height: 38px;
+      padding: 0 13px;
+      border: 1px solid var(--border);
+      background: rgba(255,255,255,.055);
+      color: var(--text);
+      font-size: 13px;
+      font-weight: 850;
+    }
+    .compact-btn.copy { border-color: rgba(239,204,122,.35); color: var(--accent); background: rgba(239,204,122,.08); }
+    .compact-btn.danger { border-color: rgba(255,124,124,.30); color: var(--danger); background: rgba(255,124,124,.08); }
+    .compact-btn:disabled { opacity: .38; cursor: not-allowed; }
+    .meal-select-check {
+      width: 28px;
+      height: 28px;
+      accent-color: var(--accent);
+      flex: 0 0 auto;
+      margin-top: 2px;
+    }
+    .meal-detail-top.with-check {
+      display: grid;
+      grid-template-columns: auto 1fr auto;
+      align-items: start;
+    }
+    .meal-detail-item.is-selected {
+      border-color: rgba(239,204,122,.45);
+      background: rgba(239,204,122,.065);
+    }
+    .copy-grid { display: grid; gap: 14px; }
+    .copy-note {
+      color: var(--muted);
+      border: 1px solid rgba(239,204,122,.18);
+      background: rgba(239,204,122,.06);
+      border-radius: 14px;
+      padding: 12px 14px;
+      font-size: 13px;
+      line-height: 1.45;
+    }
+
   
 
     /* --- product zoeken in plaats van lange dropdown + betere topbar --- */
@@ -1150,6 +1215,44 @@
     </div>
   </div>
 
+  <div class="modal-backdrop" id="copy-modal" role="dialog" aria-modal="true" aria-labelledby="copy-modal-title">
+    <div class="modal log-modal">
+      <div class="modal-head">
+        <div>
+          <div class="eyebrow">Kopiëren</div>
+          <h2 id="copy-modal-title">Logs kopiëren</h2>
+          <div class="selected-meal-pill" id="copy-modal-subtitle">0 items geselecteerd</div>
+        </div>
+        <button class="icon-btn" id="close-copy-modal" type="button" aria-label="Sluiten">×</button>
+      </div>
+      <div class="modal-body">
+        <form id="copy-form" novalidate>
+          <div class="copy-grid">
+            <div class="copy-note">Kies naar welke dag en maaltijd je de geselecteerde producten wilt kopiëren. De originele logs blijven gewoon staan.</div>
+            <div class="form-grid">
+              <div class="field" data-field="copyDate">
+                <label for="copy-date">Naar welke dag?</label>
+                <input id="copy-date" name="copyDate" type="date" />
+                <div class="error" id="error-copyDate"></div>
+              </div>
+              <div class="field" data-field="copyMeal">
+                <label for="copy-meal">Maaltijd</label>
+                <select id="copy-meal" name="copyMeal">
+                  <option value="breakfast">Ontbijt</option>
+                  <option value="lunch">Lunch</option>
+                  <option value="dinner">Diner</option>
+                  <option value="snacks">Tussendoortjes</option>
+                </select>
+                <div class="error" id="error-copyMeal"></div>
+              </div>
+            </div>
+            <button class="primary-btn" type="submit" style="width:100%;">Kopiëren</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
   <div class="modal-backdrop" id="product-modal" role="dialog" aria-modal="true" aria-labelledby="product-modal-title">
     <div class="modal">
       <div class="modal-head">
@@ -1325,6 +1428,7 @@
     };
 
     let selectedMealDetail = null;
+    let selectedMealLogIds = new Set();
 
     const $ = (selector) => document.querySelector(selector);
     const $$ = (selector) => Array.from(document.querySelectorAll(selector));
@@ -1352,6 +1456,10 @@
       mealDetailTitle: $('#meal-detail-title'),
       mealDetailSubtitle: $('#meal-detail-subtitle'),
       mealDetailList: $('#meal-detail-list'),
+      copyModal: $('#copy-modal'),
+      copyModalSubtitle: $('#copy-modal-subtitle'),
+      copyDate: $('#copy-date'),
+      copyMeal: $('#copy-meal'),
       productModal: $('#product-modal'),
       scannerModal: $('#scanner-modal'),
       scannerVideo: $('#scanner-video'),
@@ -1914,11 +2022,21 @@
       els.logList.innerHTML = groupedHtml;
     }
 
+    function getSelectedMealEntries() {
+      if (!selectedMealDetail) return [];
+      const meal = getMealMeta(selectedMealDetail);
+      return getDayLogs().filter(entry => (entry.mealType || 'snacks') === meal.key);
+    }
+
     function renderMealDetail() {
       if (!selectedMealDetail || !els.mealDetailList) return;
       const meal = getMealMeta(selectedMealDetail);
-      const mealEntries = getDayLogs().filter(entry => (entry.mealType || 'snacks') === meal.key);
+      const mealEntries = getSelectedMealEntries();
+      const validIds = new Set(mealEntries.map(entry => entry.id));
+      selectedMealLogIds = new Set([...selectedMealLogIds].filter(id => validIds.has(id)));
       const kcalTotal = mealEntries.reduce((sum, entry) => sum + (Number(entry.kcal) || 0), 0);
+      const allSelected = mealEntries.length > 0 && mealEntries.every(entry => selectedMealLogIds.has(entry.id));
+      const selectedCount = selectedMealLogIds.size;
 
       els.mealDetailTitle.textContent = meal.label;
       els.mealDetailSubtitle.textContent = mealEntries.length
@@ -1930,7 +2048,21 @@
         return;
       }
 
-      els.mealDetailList.innerHTML = mealEntries.map(entry => {
+      const bulkbar = `
+        <div class="meal-detail-bulkbar">
+          <div class="bulk-left">
+            <button class="select-all-btn" type="button" data-select-all-meal>${allSelected ? 'Deselecteer alles' : 'Selecteer alles'}</button>
+            <span class="selected-count">${selectedCount ? `${selectedCount} geselecteerd` : 'Selecteer producten om te kopiëren of verwijderen'}</span>
+          </div>
+          <div class="bulk-actions">
+            <button class="compact-btn copy" type="button" data-copy-selected ${selectedCount ? '' : 'disabled'}>Kopiëren</button>
+            <button class="compact-btn danger" type="button" data-delete-selected ${selectedCount ? '' : 'disabled'}>Verwijderen</button>
+          </div>
+        </div>
+      `;
+
+      const items = mealEntries.map(entry => {
+        const isSelected = selectedMealLogIds.has(entry.id);
         const unitLabel = entry.unitLabel || 'gram';
         const amount = entry.amount != null ? entry.amount : entry.grams;
         const product = state.products.find(item => item.id === entry.productId);
@@ -1946,8 +2078,9 @@
           unitOptions += `<option value="${escapeHtml(currentUnitValue)}" selected>${escapeHtml(unitLabel)} (${pretty(entry.unitGrams || 1, 1)}g)</option>`;
         }
         return `
-          <div class="meal-detail-item" data-entry-id="${escapeHtml(entry.id)}">
-            <div class="meal-detail-top">
+          <div class="meal-detail-item ${isSelected ? 'is-selected' : ''}" data-entry-id="${escapeHtml(entry.id)}">
+            <div class="meal-detail-top with-check">
+              <input class="meal-select-check" type="checkbox" aria-label="Selecteer ${escapeHtml(entry.productName)}" data-toggle-log-selection="${escapeHtml(entry.id)}" ${isSelected ? 'checked' : ''} />
               <div>
                 <div class="meal-detail-title">${escapeHtml(entry.productName)}</div>
                 <div class="meal-detail-meta">
@@ -1978,16 +2111,111 @@
           </div>
         `;
       }).join('');
+
+      els.mealDetailList.innerHTML = bulkbar + items;
     }
 
     function openMealDetail(mealType) {
       selectedMealDetail = getMealMeta(mealType).key;
+      selectedMealLogIds = new Set();
       renderMealDetail();
       els.mealDetailModal.classList.add('open');
     }
 
     function closeMealDetail() {
       els.mealDetailModal.classList.remove('open');
+    }
+
+    function toggleMealLogSelection(logId) {
+      if (selectedMealLogIds.has(logId)) selectedMealLogIds.delete(logId);
+      else selectedMealLogIds.add(logId);
+      renderMealDetail();
+    }
+
+    function toggleSelectAllMealLogs() {
+      const entries = getSelectedMealEntries();
+      const allSelected = entries.length > 0 && entries.every(entry => selectedMealLogIds.has(entry.id));
+      selectedMealLogIds = allSelected ? new Set() : new Set(entries.map(entry => entry.id));
+      renderMealDetail();
+    }
+
+    function openCopyModal() {
+      const entries = getSelectedMealEntries().filter(entry => selectedMealLogIds.has(entry.id));
+      if (!entries.length) {
+        showToast('Selecteer eerst één of meer producten.');
+        return;
+      }
+      const meal = getMealMeta(selectedMealDetail || 'breakfast');
+      clearErrors(['copyDate', 'copyMeal']);
+      els.copyDate.value = state.currentDate;
+      els.copyMeal.value = meal.key;
+      els.copyModalSubtitle.textContent = `${entries.length} ${entries.length === 1 ? 'item' : 'items'} geselecteerd`;
+      els.copyModal.classList.add('open');
+    }
+
+    function closeCopyModal() {
+      els.copyModal.classList.remove('open');
+      clearErrors(['copyDate', 'copyMeal']);
+    }
+
+    function copySelectedLogs(event) {
+      event.preventDefault();
+      clearErrors(['copyDate', 'copyMeal']);
+      const targetDate = String(els.copyDate.value || '').trim();
+      const targetMeal = String(els.copyMeal.value || '').trim();
+      let valid = true;
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(targetDate)) {
+        setFieldError('copyDate', 'Kies een geldige datum.');
+        valid = false;
+      }
+      if (!MEAL_TYPES.some(meal => meal.key === targetMeal)) {
+        setFieldError('copyMeal', 'Kies een geldige maaltijd.');
+        valid = false;
+      }
+      if (!valid) return;
+
+      const sourceEntries = getSelectedMealEntries().filter(entry => selectedMealLogIds.has(entry.id));
+      if (!sourceEntries.length) {
+        showToast('Er is niets geselecteerd om te kopiëren.');
+        return;
+      }
+
+      const mealMeta = getMealMeta(targetMeal);
+      if (!state.logs[targetDate]) state.logs[targetDate] = [];
+      const now = new Date().toISOString();
+      sourceEntries.forEach(entry => {
+        const copy = JSON.parse(JSON.stringify(entry));
+        copy.id = uid();
+        copy.mealType = mealMeta.key;
+        copy.mealLabel = mealMeta.label;
+        copy.createdAt = now;
+        copy.copiedAt = now;
+        copy.copiedFrom = { date: state.currentDate, id: entry.id, mealType: entry.mealType || selectedMealDetail };
+        delete copy.updatedAt;
+        state.logs[targetDate].push(copy);
+      });
+
+      saveLogs();
+      closeCopyModal();
+      showToast(`${sourceEntries.length} item(s) gekopieerd naar ${mealMeta.label.toLowerCase()}.`);
+      if (targetDate === state.currentDate) renderAll();
+      renderMealDetail();
+    }
+
+    function deleteSelectedMealLogs() {
+      const sourceEntries = getSelectedMealEntries().filter(entry => selectedMealLogIds.has(entry.id));
+      if (!sourceEntries.length) {
+        showToast('Selecteer eerst één of meer producten.');
+        return;
+      }
+      if (!confirm(`${sourceEntries.length} geselecteerde item(s) verwijderen?`)) return;
+      const selectedIds = new Set(sourceEntries.map(entry => entry.id));
+      state.logs[state.currentDate] = getDayLogs().filter(entry => !selectedIds.has(entry.id));
+      selectedMealLogIds = new Set();
+      saveLogs();
+      renderAll();
+      renderMealDetail();
+      showToast('Geselecteerde items verwijderd.');
     }
 
     function getMealDetailUnitFromSelect(logId, entry) {
@@ -2256,6 +2484,7 @@
     function deleteLog(logId) {
       const entries = getDayLogs();
       state.logs[state.currentDate] = entries.filter(entry => entry.id !== logId);
+      selectedMealLogIds.delete(logId);
       saveLogs();
       renderAll();
       if (selectedMealDetail && els.mealDetailModal && els.mealDetailModal.classList.contains('open')) renderMealDetail();
@@ -2732,6 +2961,8 @@
       $('#open-product-modal-from-log').addEventListener('click', openProductModal);
       $('#close-log-modal').addEventListener('click', closeLogModal);
       $('#close-meal-detail-modal').addEventListener('click', closeMealDetail);
+      $('#close-copy-modal').addEventListener('click', closeCopyModal);
+      $('#copy-form').addEventListener('submit', copySelectedLogs);
       $('#add-from-meal-detail').addEventListener('click', () => {
         const meal = selectedMealDetail || 'breakfast';
         closeMealDetail();
@@ -2832,6 +3063,26 @@
         openMealDetail(mealCard.dataset.openMeal);
       });
       els.mealDetailList.addEventListener('click', (event) => {
+        const toggle = event.target.closest('[data-toggle-log-selection]');
+        if (toggle) {
+          toggleMealLogSelection(toggle.dataset.toggleLogSelection);
+          return;
+        }
+        const selectAll = event.target.closest('[data-select-all-meal]');
+        if (selectAll) {
+          toggleSelectAllMealLogs();
+          return;
+        }
+        const copySelected = event.target.closest('[data-copy-selected]');
+        if (copySelected) {
+          openCopyModal();
+          return;
+        }
+        const deleteSelected = event.target.closest('[data-delete-selected]');
+        if (deleteSelected) {
+          deleteSelectedMealLogs();
+          return;
+        }
         const saveBtn = event.target.closest('[data-save-entry]');
         if (saveBtn) {
           updateLogEntryAmount(saveBtn.dataset.saveEntry);
@@ -2854,6 +3105,9 @@
       });
       els.mealDetailModal.addEventListener('click', (event) => {
         if (event.target === els.mealDetailModal) closeMealDetail();
+      });
+      els.copyModal.addEventListener('click', (event) => {
+        if (event.target === els.copyModal) closeCopyModal();
       });
       els.productModal.addEventListener('click', (event) => {
         if (event.target === els.productModal) closeProductModal();
