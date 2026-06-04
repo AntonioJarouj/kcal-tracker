@@ -956,6 +956,70 @@
       .product-results { max-height: 285px; }
     }
 
+
+    /* --- producten bewerken --- */
+    .product-edit-toolbar {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      flex-wrap: wrap;
+      margin-bottom: 14px;
+    }
+    .product-edit-search {
+      flex: 1;
+      min-width: 220px;
+      border: 1px solid var(--border);
+      background: rgba(0,0,0,.22);
+      color: var(--text);
+      border-radius: 999px;
+      min-height: 42px;
+      padding: 0 14px;
+      outline: none;
+    }
+    .product-edit-search:focus {
+      border-color: rgba(239,204,122,.55);
+      background: rgba(0,0,0,.28);
+    }
+    .product-edit-list { display: grid; gap: 10px; }
+    .product-edit-card {
+      border: 1px solid var(--border);
+      background: rgba(255,255,255,.04);
+      border-radius: 16px;
+      padding: 14px;
+      display: grid;
+      grid-template-columns: minmax(0,1fr) auto;
+      gap: 12px;
+      align-items: center;
+    }
+    .product-edit-title {
+      font-weight: 850;
+      letter-spacing: -.02em;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .product-edit-meta {
+      color: var(--muted-2);
+      font-size: 12px;
+      margin-top: 6px;
+      display: flex;
+      gap: 7px;
+      flex-wrap: wrap;
+    }
+    .product-edit-actions {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+    }
+    @media (max-width: 640px) {
+      .product-edit-card { grid-template-columns: 1fr; }
+      .product-edit-actions { justify-content: stretch; }
+      .product-edit-actions button { flex: 1; }
+      .product-edit-search { min-width: 100%; }
+    }
+
   </style>
 </head>
 <body>
@@ -1109,6 +1173,26 @@
             </div>
             <button class="primary-btn" type="submit" style="margin-top: 14px; width: 100%;">Doelen opslaan</button>
           </form>
+        </div>
+      </details>
+
+      <details class="accordion-card" id="product-edit-card">
+        <summary>
+          <div>
+            <div class="accordion-title">Producten bewerken</div>
+            <div class="accordion-sub">Zoek, wijzig of verwijder bestaande producten</div>
+          </div>
+          <div class="accordion-chevron">⌄</div>
+        </summary>
+        <div class="accordion-body">
+          <div class="split-note" style="margin-bottom: 14px;">
+            Hier kun je bestaande producten aanpassen. Nieuwe logs gebruiken daarna de aangepaste waarden. Oude daglogs blijven bewaard als snapshot.
+          </div>
+          <div class="product-edit-toolbar">
+            <input class="product-edit-search" id="product-edit-search" type="search" placeholder="Zoek product, barcode of portie..." />
+            <button class="primary-btn" type="button" id="open-new-product-from-edit">Nieuw product</button>
+          </div>
+          <div class="product-edit-list" id="product-edit-list"></div>
         </div>
       </details>
 
@@ -1363,7 +1447,7 @@
             </div>
           </div>
           <div class="actions-row" style="margin-top: 6px;">
-            <button class="primary-btn" type="submit">Product opslaan</button>
+            <button class="primary-btn" type="submit" id="product-submit-btn">Product opslaan</button>
             <button class="secondary-btn" type="button" id="reset-product-form">Leegmaken</button>
           </div>
         </form>
@@ -1443,6 +1527,7 @@
 
     let selectedMealDetail = null;
     let selectedMealLogIds = new Set();
+    let editingProductId = null;
 
     const $ = (selector) => document.querySelector(selector);
     const $$ = (selector) => Array.from(document.querySelectorAll(selector));
@@ -1457,6 +1542,10 @@
       logList: $('#log-list'),
       productList: $('#product-list'),
       productSearch: $('#product-search'),
+      productEditSearch: $('#product-edit-search'),
+      productEditList: $('#product-edit-list'),
+      productModalTitle: $('#product-modal-title'),
+      productSubmitBtn: $('#product-submit-btn'),
       logProduct: $('#log-product'),
       logProductSearch: $('#log-product-search'),
       logProductResults: $('#log-product-results'),
@@ -1840,6 +1929,7 @@
       renderProductSelect();
       renderUnitOptions();
       renderProductList();
+      renderProductEditList();
       renderLogs();
       renderGoalInputs();
       renderGoalPreview();
@@ -2001,6 +2091,79 @@
           </div>
         </div>
       `).join('');
+    }
+
+    function renderProductEditList() {
+      if (!els.productEditList) return;
+      const query = (els.productEditSearch ? els.productEditSearch.value.trim().toLowerCase() : '');
+      let products = state.products.slice().sort((a, b) => a.name.localeCompare(b.name, 'nl'));
+      if (query) {
+        products = products.filter(product => productSearchText(product).includes(query));
+      }
+      if (!products.length) {
+        els.productEditList.innerHTML = `<div class="empty">${state.products.length ? 'Geen producten gevonden.' : 'Nog geen producten toegevoegd.'}</div>`;
+        return;
+      }
+      els.productEditList.innerHTML = products.map(product => {
+        const servings = normalizeServings(product).map(serving => `${escapeHtml(serving.name)} = ${pretty(serving.grams, 1)}g`).join(' · ');
+        const meta = [
+          product.barcode ? `Barcode: ${escapeHtml(product.barcode)}` : 'Geen barcode',
+          `${pretty(product.kcal, 0)} kcal/100g`,
+          `P ${pretty(product.protein)}g`,
+          `C ${pretty(product.carbs)}g`,
+          `F ${pretty(product.fat)}g`,
+          servings
+        ].filter(Boolean).join(' · ');
+        return `
+          <div class="product-edit-card">
+            <div>
+              <div class="product-edit-title">${escapeHtml(product.name)}</div>
+              <div class="product-edit-meta">${meta}</div>
+            </div>
+            <div class="product-edit-actions">
+              <button class="secondary-btn" type="button" data-edit-product="${escapeHtml(product.id)}">Bewerk</button>
+              <button class="danger-btn" type="button" data-delete-product="${escapeHtml(product.id)}">Verwijder</button>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function fillProductFormForEdit(product) {
+      $('#barcode').value = product.barcode || '';
+      $('#product-name').value = product.name || '';
+      setInputValue('#product-kcal', numberOrBlank(product.kcal, 1));
+      setInputValue('#product-fat', numberOrBlank(product.fat, 2));
+      setInputValue('#product-saturated-fat', numberOrBlank(product.saturatedFat, 2));
+      setInputValue('#product-carbs', numberOrBlank(product.carbs, 2));
+      setInputValue('#product-sugar', numberOrBlank(product.sugar, 2));
+      setInputValue('#product-fiber', numberOrBlank(product.fiber, 2));
+      setInputValue('#product-protein', numberOrBlank(product.protein, 2));
+      setInputValue('#product-salt', numberOrBlank(product.salt, 3));
+      const servings = normalizeServings(product);
+      $('#serving-name-1').value = servings[0] ? servings[0].name : '';
+      $('#serving-grams-1').value = servings[0] ? pretty(servings[0].grams, 1) : '';
+      $('#serving-name-2').value = servings[1] ? servings[1].name : '';
+      $('#serving-grams-2').value = servings[1] ? pretty(servings[1].grams, 1) : '';
+    }
+
+    function setProductModalMode(mode, product = null) {
+      const isEdit = mode === 'edit';
+      editingProductId = isEdit && product ? product.id : null;
+      if (els.productModalTitle) els.productModalTitle.textContent = isEdit ? 'Product bewerken' : 'Nieuw product toevoegen';
+      if (els.productSubmitBtn) els.productSubmitBtn.textContent = isEdit ? 'Wijzigingen opslaan' : 'Product opslaan';
+      setAutoFillStatus(isEdit ? 'Pas de waarden aan en klik op “Wijzigingen opslaan”.' : 'Tip: scan eerst de barcode. Wordt het product niet gevonden, maak dan een foto van de voedingswaarde-tabel.');
+    }
+
+    function editProduct(productId) {
+      const product = state.products.find(item => item.id === productId);
+      if (!product) return;
+      $('#product-form').reset();
+      clearErrors(['barcode', 'productName', 'productKcal', 'productFat', 'productSaturatedFat', 'productCarbs', 'productSugar', 'productFiber', 'productProtein', 'productSalt', 'servingName1', 'servingGrams1', 'servingName2', 'servingGrams2']);
+      setProductModalMode('edit', product);
+      fillProductFormForEdit(product);
+      els.productModal.classList.add('open');
+      setTimeout(() => $('#product-name').focus(), 0);
     }
 
     function renderLogs() {
@@ -2397,29 +2560,9 @@
       const result = validateProductForm();
       if (!result.valid) return;
 
-      // Check for comma usage in number inputs
-      const commaInputs = [
-        { el: '#product-kcal', label: 'Calorieën' },
-        { el: '#product-fat', label: 'Vetten' },
-        { el: '#product-saturated-fat', label: 'Verzadigde vetten' },
-        { el: '#product-carbs', label: 'Koolhydraten' },
-        { el: '#product-sugar', label: 'Suikers' },
-        { el: '#product-fiber', label: 'Vezels' },
-        { el: '#product-protein', label: 'Eiwitten' },
-        { el: '#product-salt', label: 'Zout' }
-      ];
-
-      const inputsWithComma = commaInputs
-        .filter(input => $(input.el).value.includes(','))
-        .map(input => input.label);
-
-      if (inputsWithComma.length > 0) {
-        const message = `Je hebt komma's gebruikt in: ${inputsWithComma.join(', ')}.\n\nOp veel telefoons werkt komma niet goed als decimaalteken. Het is beter een punt (.) te gebruiken.\n\nWil je evengoed doorgaan?`;
-        if (!confirm(message)) return;
-      }
-
-      const product = {
-        id: uid(),
+      const now = new Date().toISOString();
+      const existingProduct = editingProductId ? state.products.find(item => item.id === editingProductId) : null;
+      const productData = {
         barcode: result.data.barcode,
         name: result.data.name,
         kcal: result.data.kcal,
@@ -2430,8 +2573,24 @@
         fiber: result.data.fiber,
         protein: result.data.protein,
         salt: result.data.salt || 0,
-        servings: result.data.servings,
-        createdAt: new Date().toISOString()
+        servings: result.data.servings
+      };
+
+      if (existingProduct) {
+        Object.assign(existingProduct, productData, { updatedAt: now });
+        saveProducts();
+        $('#product-form').reset();
+        closeProductModal();
+        renderAll();
+        if (els.logProduct.value === existingProduct.id) selectLogProduct(existingProduct.id, { focusAmount: false });
+        showToast('Product bijgewerkt.');
+        return;
+      }
+
+      const product = {
+        id: uid(),
+        ...productData,
+        createdAt: now
       };
       state.products.push(product);
       saveProducts();
@@ -2540,13 +2699,19 @@
       clearErrors(['logProductId', 'mealType', 'grams', 'logUnit']);
     }
 
-    function openProductModal() {
+    function openProductModal(options = {}) {
+      const { reset = true } = options;
+      if (reset) $('#product-form').reset();
+      setProductModalMode('create');
+      clearErrors(['barcode', 'productName', 'productKcal', 'productFat', 'productSaturatedFat', 'productCarbs', 'productSugar', 'productFiber', 'productProtein', 'productSalt', 'servingName1', 'servingGrams1', 'servingName2', 'servingGrams2']);
       els.productModal.classList.add('open');
       setTimeout(() => $('#product-name').focus(), 0);
     }
 
     function closeProductModal() {
       els.productModal.classList.remove('open');
+      editingProductId = null;
+      setProductModalMode('create');
       clearErrors(['barcode', 'productName', 'productKcal', 'productFat', 'productSaturatedFat', 'productCarbs', 'productSugar', 'productFiber', 'productProtein', 'productSalt', 'servingName1', 'servingGrams1', 'servingName2', 'servingGrams2']);
     }
 
@@ -2606,48 +2771,182 @@
 
     function parseDutchNumber(value) {
       if (value == null) return null;
-      const normalized = String(value).replace(',', '.').replace(/[^0-9.]/g, '');
-      const n = Number(normalized);
+      let raw = String(value).trim();
+
+      // Herstel decimale komma's/punten vóór we een getal matchen:
+      // "0,5" / "0, 5" / "0. 5" => "0.5"
+      raw = raw.replace(/(\d)\s*[,\.]\s*(\d)/g, '$1.$2');
+
+      // OCR splitst soms "0,5" naar "0 5" of "0,18" naar "0 18".
+      // Alleen corrigeren als de volledige waarde zo is, niet midden in een zin.
+      raw = raw.replace(/^0\s+(\d{1,3})$/g, (_, dec) => `0.${dec}`);
+
+      raw = raw.replace(/,/g, '.');
+      const match = raw.match(/\d+(?:\.\d+)?/);
+      if (!match) return null;
+      const n = Number(match[0]);
       return Number.isFinite(n) ? n : null;
     }
 
-    function matchNumber(text, patterns) {
-      for (const pattern of patterns) {
-        const match = text.match(pattern);
-        if (match && match[1] != null) {
-          const n = parseDutchNumber(match[1]);
-          if (n != null) return n;
+    function normalizeOcrNutritionText(rawText) {
+      return String(rawText || '')
+        .toLowerCase()
+        .replace(/\u00a0/g, ' ')
+        .replace(/[|]/g, ' ')
+        .replace(/[–—]/g, '-')
+        .replace(/(\d)\s*[,\.]\s*(\d)/g, '$1.$2')
+        .replace(/\b0\s+(\d{1,3})\s*g\b/gi, '0.$1 g')
+        .replace(/,/g, '.')
+        .replace(/\s+/g, ' ')
+        .trim();
+    }
+
+    function normalizeOcrLine(line) {
+      return String(line || '')
+        .toLowerCase()
+        .replace(/\u00a0/g, ' ')
+        .replace(/[|]/g, ' ')
+        .replace(/[–—]/g, '-')
+        // Komma-decimalen normaliseren VOORDAT spaties worden samengevouwen.
+        .replace(/(\d)\s*[,\.]\s*(\d)/g, '$1.$2')
+        // OCR-gesplitste decimalen: "0 5 g" => "0.5 g" en "0 18 g" => "0.18 g".
+        .replace(/\b0\s+(\d{1,3})\s*g\b/gi, '0.$1 g')
+        .replace(/,/g, '.')
+        .replace(/\s+/g, ' ')
+        .trim();
+    }
+
+    function numberBeforeGramFromLine(line) {
+      const normalized = normalizeOcrLine(line);
+      const matches = Array.from(normalized.matchAll(/(\d+(?:\.\d+)?)\s*g\b/gi));
+      if (!matches.length) return null;
+      const n = Number(matches[matches.length - 1][1]);
+      return Number.isFinite(n) ? n : null;
+    }
+
+    function labelRegexForKind(kind) {
+      const map = {
+        fat: /\bvet(?:ten)?\b/i,
+        saturatedFat: /(?:verzadigd|verzadigde|verzadigde\s+vet(?:ten|zuren)?)/i,
+        carbs: /koolhydraten/i,
+        sugar: /suikers/i,
+        fiber: /voedingsvezel|voedingsvezels|vezels/i,
+        protein: /eiwitten|eiwit|prote[iï]nen/i,
+        salt: /\bzout\b/i
+      };
+      return map[kind] || null;
+    }
+
+    function valueSegmentAfterLabel(line, kind) {
+      const normalized = normalizeOcrLine(line);
+      const labelRegex = labelRegexForKind(kind);
+      if (!labelRegex) return normalized;
+
+      const labelMatch = normalized.match(labelRegex);
+      if (!labelMatch) return normalized;
+
+      let segment = normalized.slice(labelMatch.index + labelMatch[0].length);
+
+      // Als OCR meerdere rijen op één regel plakt, knippen we af bij de volgende macro-label.
+      // Zo wordt "suikers 0 g voedingsvezel 0 g eiwitten 20 g" niet gelezen als suikers = 20.
+      const otherLabels = [
+        /\bvet(?:ten)?\b/i,
+        /verzadigd/i,
+        /koolhydraten/i,
+        /suikers/i,
+        /voedingsvezel|voedingsvezels|vezels/i,
+        /eiwitten|eiwit|prote[iï]nen/i,
+        /\bzout\b/i
+      ].filter(regex => String(regex) !== String(labelRegex));
+
+      let cutAt = segment.length;
+      for (const regex of otherLabels) {
+        const m = segment.match(regex);
+        if (m && m.index > 0 && m.index < cutAt) cutAt = m.index;
+      }
+      return segment.slice(0, cutAt).trim();
+    }
+
+    function kcalFromLines(lines, text) {
+      for (const line of lines) {
+        const normalized = normalizeOcrLine(line);
+        if (!/energie|kcal/.test(normalized)) continue;
+        const kcalMatch = normalized.match(/(\d+(?:\.\d+)?)\s*kcal/);
+        if (kcalMatch) return parseDutchNumber(kcalMatch[1]);
+        const parenMatch = normalized.match(/\((\d+(?:\.\d+)?)\s*kcal\)/);
+        if (parenMatch) return parseDutchNumber(parenMatch[1]);
+      }
+      const fallback = text.match(/(\d+(?:\.\d+)?)\s*kcal/i);
+      return fallback ? parseDutchNumber(fallback[1]) : '';
+    }
+
+    function valueFromNutritionLines(lines, matcher, options = {}) {
+      for (let i = 0; i < lines.length; i++) {
+        const line = normalizeOcrLine(lines[i]);
+        if (!matcher(line)) continue;
+
+        const segment = options.kind ? valueSegmentAfterLabel(line, options.kind) : line;
+        let n = numberBeforeGramFromLine(segment);
+
+        // Soms OCR splitst tabel: label op ene regel, waarde op volgende regel.
+        // Alleen volgende regel gebruiken als die bijna alleen een gramwaarde bevat.
+        if (n == null && lines[i + 1]) {
+          const nextLine = normalizeOcrLine(lines[i + 1]);
+          if (/^\d+(?:\.\d+)?\s*g\s*$/.test(nextLine)) n = numberBeforeGramFromLine(nextLine);
         }
+
+        if (n == null) continue;
+
+        // Zout op labels is vaak 0,18. Als OCR daar 18 van maakt, corrigeren we voorzichtig.
+        if (options.kind === 'salt' && n > 10 && n < 100 && Number.isInteger(n)) n = n / 100;
+        return n;
       }
       return '';
     }
 
+    function sanitizeOcrNutritionData(data) {
+      const fixed = { ...data };
+
+      // Saturated fat cannot normally be higher than total fat. If OCR lost a comma,
+      // 52 with total fat 12 is probably 5.2.
+      if (fixed.saturatedFat !== '' && fixed.fat !== '' && fixed.saturatedFat > fixed.fat) {
+        const divided = fixed.saturatedFat / 10;
+        fixed.saturatedFat = divided <= fixed.fat ? round(divided, 2) : '';
+      }
+
+      // Sugar is part of carbs. If it is higher, OCR probably grabbed the protein value.
+      if (fixed.sugar !== '' && fixed.carbs !== '' && fixed.sugar > fixed.carbs) fixed.sugar = '';
+
+      // Fiber values above 30 g/100g are suspicious for normal products in OCR mode.
+      // More importantly: if it equals protein and there was no clear fiber line, leave it blank.
+      if (fixed.fiber !== '' && fixed.fiber > 30) fixed.fiber = '';
+
+      return fixed;
+    }
+
     function parseNutritionLabelText(rawText) {
       const original = String(rawText || '');
-      const text = original
-        .toLowerCase()
-        .replace(/\s+/g, ' ')
-        .replace(/,/g, '.');
+      const text = normalizeOcrNutritionText(original);
       const lines = original.split(/\r?\n/).map(line => line.trim()).filter(Boolean);
-      const nameLine = lines.find(line => /^[A-ZÀ-Ÿ0-9 \-]{4,}$/.test(line) && !/voedingswaarde|ingred/i.test(line));
+      const normalizedLines = lines.map(normalizeOcrLine);
+      const nameLine = lines.find(line => /^[A-ZÀ-Ÿ0-9 \-]{4,}$/.test(line) && !/voedingswaarde|ingred|soort|energie|kcal|vet|koolhydraten|eiwit|zout/i.test(line));
       const totalGramsMatch = text.match(/(?:^|\s)([0-9]+(?:\.[0-9]+)?)\s*g\s*(?:e|\/|$)/i);
       const portionMatch = text.match(/portie\s*\(?\s*([0-9]+(?:\.[0-9]+)?)\s*g\)?/i);
 
-      const data = {
+      let data = {
         name: nameLine ? nameLine.toLowerCase().replace(/\b\w/g, c => c.toUpperCase()) : '',
-        kcal: matchNumber(text, [
-          /(?:energie|energy)[^0-9]{0,30}[0-9]+\s*kj\s*\/\s*([0-9]+(?:\.[0-9]+)?)\s*kcal/i,
-          /([0-9]+(?:\.[0-9]+)?)\s*kcal/i
-        ]),
-        fat: matchNumber(text, [/vetten?\s+([0-9]+(?:\.[0-9]+)?)\s*g/i]),
-        saturatedFat: matchNumber(text, [/(?:verzadigde\s*(?:vetzuren|vetten)?|waarvan\s+verzadigde)[^0-9]{0,25}([0-9]+(?:\.[0-9]+)?)\s*g/i]),
-        carbs: matchNumber(text, [/koolhydraten\s+([0-9]+(?:\.[0-9]+)?)\s*g/i]),
-        sugar: matchNumber(text, [/(?:waarvan\s+suikers|suikers)\s+([0-9]+(?:\.[0-9]+)?)\s*g/i]),
-        fiber: matchNumber(text, [/(?:vezels|voedingsvezels)\s+([0-9]+(?:\.[0-9]+)?)\s*g/i]),
-        protein: matchNumber(text, [/(?:eiwitten|prote[iï]nen)\s+([0-9]+(?:\.[0-9]+)?)\s*g/i]),
-        salt: matchNumber(text, [/zout\s+([0-9]+(?:\.[0-9]+)?)\s*g/i]),
+        kcal: kcalFromLines(lines, text),
+        fat: valueFromNutritionLines(lines, line => /^(?:.*\s)?vet(?:ten)?\b/.test(line) && !/verzadigd|onverzadigd|vetzuur|vetzuren/.test(line)),
+        saturatedFat: valueFromNutritionLines(lines, line => /verzadigd/.test(line)),
+        carbs: valueFromNutritionLines(lines, line => /koolhydraten/.test(line)),
+        sugar: valueFromNutritionLines(lines, line => /suikers/.test(line)),
+        fiber: valueFromNutritionLines(lines, line => /voedingsvezel|voedingsvezels|vezels/.test(line)),
+        protein: valueFromNutritionLines(lines, line => /eiwitten|eiwit|prote[iï]nen/.test(line)),
+        salt: valueFromNutritionLines(lines, line => /\bzout\b/.test(line), { kind: 'salt' }),
         servings: []
       };
+
+      data = sanitizeOcrNutritionData(data);
       if (portionMatch) data.servings.push({ name: 'portie', grams: round(Number(portionMatch[1]), 1) });
       if (totalGramsMatch) data.servings.push({ name: 'verpakking', grams: round(Number(totalGramsMatch[1]), 1) });
       return data;
@@ -3051,8 +3350,8 @@
       $('#prev-day').addEventListener('click', () => changeDay(-1));
       $('#next-day').addEventListener('click', () => changeDay(1));
       $('#today-btn').addEventListener('click', () => { state.currentDate = toDateKey(new Date()); renderAll(); });
-      $('#open-product-modal').addEventListener('click', openProductModal);
-      $('#open-product-modal-from-log').addEventListener('click', openProductModal);
+      $('#open-product-modal').addEventListener('click', () => openProductModal());
+      $('#open-product-modal-from-log').addEventListener('click', () => openProductModal());
       $('#close-log-modal').addEventListener('click', closeLogModal);
       $('#close-meal-detail-modal').addEventListener('click', closeMealDetail);
       $('#close-copy-modal').addEventListener('click', closeCopyModal);
@@ -3083,7 +3382,7 @@
         const file = event.target.files && event.target.files[0];
         if (file) scanNutritionLabelFile(file);
       });
-      $('#reset-product-form').addEventListener('click', () => { $('#product-form').reset(); clearErrors(['barcode', 'productName', 'productKcal', 'productProtein', 'productCarbs', 'productFat', 'productSaturatedFat', 'productFiber', 'productSugar', 'productSalt', 'servingName1', 'servingGrams1', 'servingName2', 'servingGrams2']); });
+      $('#reset-product-form').addEventListener('click', () => { $('#product-form').reset(); setProductModalMode('create'); clearErrors(['barcode', 'productName', 'productKcal', 'productProtein', 'productCarbs', 'productFat', 'productSaturatedFat', 'productFiber', 'productSugar', 'productSalt', 'servingName1', 'servingGrams1', 'servingName2', 'servingGrams2']); });
       $('#product-form').addEventListener('submit', addProduct);
       $('#log-form').addEventListener('submit', addLogEntry);
       $('#goals-form').addEventListener('submit', updateGoals);
@@ -3116,6 +3415,9 @@
         if (file) importFullBackupFromFile(file);
       });
       els.productSearch.addEventListener('input', renderProductList);
+      if (els.productEditSearch) els.productEditSearch.addEventListener('input', renderProductEditList);
+      const openNewProductFromEdit = document.getElementById('open-new-product-from-edit');
+      if (openNewProductFromEdit) openNewProductFromEdit.addEventListener('click', () => openProductModal());
       els.logProductSearch.addEventListener('input', () => {
         clearLogProductSelection();
         renderProductSearchResults();
@@ -3136,6 +3438,17 @@
         updateLogPreview();
       });
       els.logGrams.addEventListener('input', () => { setFieldError('grams', ''); updateLogPreview(); });
+      if (els.productEditList) {
+        els.productEditList.addEventListener('click', (event) => {
+          const editBtn = event.target.closest('[data-edit-product]');
+          if (editBtn) {
+            editProduct(editBtn.dataset.editProduct);
+            return;
+          }
+          const deleteBtn = event.target.closest('[data-delete-product]');
+          if (deleteBtn) deleteProduct(deleteBtn.dataset.deleteProduct);
+        });
+      }
       els.productList.addEventListener('click', (event) => {
         const btn = event.target.closest('[data-delete-product]');
         if (btn) deleteProduct(btn.dataset.deleteProduct);
