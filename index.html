@@ -790,6 +790,102 @@
       .meal-detail-unit { justify-content: center; }
     }
 
+  
+
+    /* --- product zoeken in plaats van lange dropdown + betere topbar --- */
+    .product-search-row { align-items: flex-start; }
+    .product-search-wrap {
+      position: relative;
+      flex: 1;
+      min-width: 0;
+    }
+    .product-search-input {
+      width: 100%;
+      border: 1px solid var(--border);
+      background: rgba(0,0,0,.22);
+      color: var(--text);
+      border-radius: 13px;
+      min-height: 44px;
+      padding: 0 12px;
+      outline: none;
+      transition: border-color .14s ease, background .14s ease;
+    }
+    .product-search-input:focus {
+      border-color: rgba(239,204,122,.55);
+      background: rgba(0,0,0,.28);
+    }
+    .product-results {
+      position: absolute;
+      left: 0;
+      right: 0;
+      top: calc(100% + 8px);
+      z-index: 80;
+      display: none;
+      max-height: 310px;
+      overflow: auto;
+      border: 1px solid var(--border-strong);
+      border-radius: 16px;
+      background: #171820;
+      box-shadow: 0 18px 70px rgba(0,0,0,.55);
+      padding: 8px;
+    }
+    .product-results.open { display: grid; gap: 6px; }
+    .product-result-btn {
+      width: 100%;
+      border: 1px solid transparent;
+      background: rgba(255,255,255,.035);
+      color: var(--text);
+      text-align: left;
+      border-radius: 13px;
+      padding: 11px 12px;
+      display: grid;
+      gap: 4px;
+    }
+    .product-result-btn:hover,
+    .product-result-btn:focus {
+      background: rgba(239,204,122,.09);
+      border-color: rgba(239,204,122,.22);
+      outline: none;
+    }
+    .product-result-name { font-weight: 850; }
+    .product-result-meta { color: var(--muted-2); font-size: 12px; line-height: 1.35; }
+    .product-results-empty {
+      padding: 12px;
+      color: var(--muted-2);
+      font-size: 13px;
+      line-height: 1.4;
+    }
+
+    @media (max-width: 640px) {
+      .topbar { height: auto !important; }
+      .topbar-inner {
+        flex-direction: column !important;
+        align-items: stretch !important;
+        gap: 10px !important;
+        padding: 12px 14px !important;
+      }
+      .brand { width: 100%; }
+      .brand-mark { width: 34px; height: 34px; border-radius: 12px; }
+      .brand-title { font-size: 18px; white-space: nowrap; }
+      .date-nav {
+        width: 100% !important;
+        display: grid !important;
+        grid-template-columns: 42px minmax(0,1fr) 42px auto;
+        gap: 8px;
+        align-items: center;
+      }
+      .date-display {
+        min-width: 0 !important;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      .ghost-btn { padding: 0 12px; }
+      .product-search-row { flex-direction: column; }
+      .product-search-wrap { width: 100%; }
+      .product-results { max-height: 285px; }
+    }
+
   </style>
 </head>
 <body>
@@ -984,10 +1080,12 @@
           <div class="form-grid">
             <div class="field form-full" data-field="logProductId">
               <label for="log-product">Product</label>
-              <div class="field-action-row">
-                <select id="log-product" name="logProductId">
-                  <option value="">Kies een product...</option>
-                </select>
+              <div class="field-action-row product-search-row">
+                <div class="product-search-wrap">
+                  <input id="log-product-search" class="product-search-input" type="search" autocomplete="off" placeholder="Zoek product, fruit, ei, noten of barcode..." />
+                  <input id="log-product" name="logProductId" type="hidden" />
+                  <div id="log-product-results" class="product-results" role="listbox" aria-label="Productresultaten"></div>
+                </div>
                 <button class="scan-btn" id="scan-log-barcode" type="button">Scan barcode</button>
               </div>
               <div class="error" id="error-logProductId"></div>
@@ -1238,6 +1336,8 @@
       productList: $('#product-list'),
       productSearch: $('#product-search'),
       logProduct: $('#log-product'),
+      logProductSearch: $('#log-product-search'),
+      logProductResults: $('#log-product-results'),
       logMeal: $('#log-meal'),
       logGrams: $('#log-grams'),
       logUnit: $('#log-unit'),
@@ -1652,16 +1752,90 @@
       $(`#${key}-fill`).style.width = `${Math.min((value / goal) * 100, 100)}%`;
     }
 
+    function productSearchText(product) {
+      return `${product.name || ''} ${product.barcode || ''} ${normalizeServings(product).map(s => s.name).join(' ')}`.toLowerCase();
+    }
+
+    function productDisplayLabel(product) {
+      if (!product) return '';
+      return `${product.name} (${pretty(product.kcal, 0)} kcal/100g)`;
+    }
+
+    function selectLogProduct(productId, options = {}) {
+      const { closeResults = true, focusAmount = false } = options;
+      const product = state.products.find(item => item.id === productId);
+      if (!product) return;
+      els.logProduct.value = product.id;
+      els.logProductSearch.value = productDisplayLabel(product);
+      setFieldError('logProductId', '');
+      renderUnitOptions();
+      updateLogPreview();
+      if (closeResults) hideProductResults();
+      if (focusAmount) setTimeout(() => els.logGrams.focus(), 0);
+    }
+
+    function clearLogProductSelection() {
+      els.logProduct.value = '';
+      renderUnitOptions();
+      updateLogPreview();
+    }
+
+    function hideProductResults() {
+      if (els.logProductResults) els.logProductResults.classList.remove('open');
+    }
+
+    function renderProductSearchResults() {
+      if (!els.logProductResults) return;
+      const query = (els.logProductSearch.value || '').trim().toLowerCase();
+      let products = state.products.slice().sort((a, b) => a.name.localeCompare(b.name, 'nl'));
+
+      if (query) {
+        products = products
+          .map(product => {
+            const haystack = productSearchText(product);
+            const name = (product.name || '').toLowerCase();
+            let score = 0;
+            if (name === query) score += 100;
+            if (name.startsWith(query)) score += 60;
+            if (haystack.includes(query)) score += 20;
+            return { product, score };
+          })
+          .filter(item => item.score > 0)
+          .sort((a, b) => b.score - a.score || a.product.name.localeCompare(b.product.name, 'nl'))
+          .map(item => item.product);
+      }
+
+      const limited = products.slice(0, query ? 14 : 10);
+      if (!limited.length) {
+        els.logProductResults.innerHTML = `<div class="product-results-empty">Geen product gevonden. Gebruik “Nieuw product” of scan de barcode.</div>`;
+        els.logProductResults.classList.add('open');
+        return;
+      }
+
+      els.logProductResults.innerHTML = limited.map(product => {
+        const servings = normalizeServings(product).slice(0, 2).map(serving => `${escapeHtml(serving.name)} ${pretty(serving.grams, 0)}g`).join(' · ');
+        const meta = [
+          `${pretty(product.kcal, 0)} kcal/100g`,
+          `P ${pretty(product.protein)}g`,
+          `C ${pretty(product.carbs)}g`,
+          `F ${pretty(product.fat)}g`,
+          servings
+        ].filter(Boolean).join(' · ');
+        return `
+          <button class="product-result-btn" type="button" role="option" data-select-product="${escapeHtml(product.id)}">
+            <span class="product-result-name">${escapeHtml(product.name)}</span>
+            <span class="product-result-meta">${meta}</span>
+          </button>
+        `;
+      }).join('');
+      els.logProductResults.classList.add('open');
+    }
+
     function renderProductSelect() {
-      const selected = els.logProduct.value;
-      const options = ['<option value="">Kies een product...</option>'].concat(
-        state.products
-          .slice()
-          .sort((a, b) => a.name.localeCompare(b.name, 'nl'))
-          .map(product => `<option value="${escapeHtml(product.id)}">${escapeHtml(product.name)} - ${pretty(product.kcal, 0)} kcal/100g</option>`)
-      );
-      els.logProduct.innerHTML = options.join('');
-      if (state.products.some(product => product.id === selected)) els.logProduct.value = selected;
+      const selected = state.products.find(product => product.id === els.logProduct.value);
+      if (selected && els.logProductSearch) {
+        els.logProductSearch.value = productDisplayLabel(selected);
+      }
     }
 
     function renderProductList() {
@@ -2016,9 +2190,7 @@
       $('#product-form').reset();
       closeProductModal();
       renderAll();
-      els.logProduct.value = product.id;
-      renderUnitOptions();
-      updateLogPreview();
+      selectLogProduct(product.id, { focusAmount: false });
       showToast('Product opgeslagen.');
     }
 
@@ -2110,11 +2282,12 @@
       clearErrors(['logProductId', 'mealType', 'grams', 'logUnit']);
       updateLogPreview();
       els.logModal.classList.add('open');
-      setTimeout(() => els.logProduct.focus(), 0);
+      setTimeout(() => { els.logProductSearch.focus(); renderProductSearchResults(); }, 0);
     }
 
     function closeLogModal() {
       els.logModal.classList.remove('open');
+      hideProductResults();
       clearErrors(['logProductId', 'mealType', 'grams', 'logUnit']);
     }
 
@@ -2394,12 +2567,8 @@
       if (target === 'log-form') {
         const product = findProductByBarcode(barcode);
         if (product) {
-          els.logProduct.value = product.id;
-          setFieldError('logProductId', '');
-          renderUnitOptions();
-          updateLogPreview();
+          selectLogProduct(product.id, { focusAmount: true });
           showToast(`Product gevonden: ${product.name}`);
-          setTimeout(() => els.logGrams.focus(), 0);
           return;
         }
         openProductModal();
@@ -2496,14 +2665,59 @@
       reader.readAsText(file);
     }
 
-    function seedExampleProductsIfEmpty() {
-      if (state.products.length) return;
-      state.products = [
-        { id: uid(), barcode: '', name: 'Havermout', kcal: 389, fat: 7, saturatedFat: 1.3, carbs: 60, sugar: 1, fiber: 10, protein: 13.5, salt: 0.01, servings: [{ name: 'portie', grams: 80 }], createdAt: new Date().toISOString() },
-        { id: uid(), barcode: '', name: 'Kipfilet bereid', kcal: 165, fat: 3.6, saturatedFat: 1, carbs: 0, sugar: 0, fiber: 0, protein: 31, salt: 0.04, servings: [{ name: 'portie', grams: 150 }], createdAt: new Date().toISOString() },
-        { id: uid(), barcode: '', name: 'Banaan', kcal: 89, fat: 0.3, saturatedFat: 0.1, carbs: 22.8, sugar: 12, fiber: 2.6, protein: 1.1, salt: 0.001, servings: [{ name: 'stuk', grams: 120 }], createdAt: new Date().toISOString() }
-      ];
-      saveProducts();
+    const STANDARD_PRODUCTS = [
+      { name: 'Appel', kcal: 52, fat: 0.2, saturatedFat: 0, carbs: 13.8, sugar: 10.4, fiber: 2.4, protein: 0.3, salt: 0, servings: [{ name: 'stuk', grams: 150 }] },
+      { name: 'Peer', kcal: 57, fat: 0.1, saturatedFat: 0, carbs: 15.2, sugar: 9.8, fiber: 3.1, protein: 0.4, salt: 0, servings: [{ name: 'stuk', grams: 160 }] },
+      { name: 'Banaan', kcal: 89, fat: 0.3, saturatedFat: 0.1, carbs: 22.8, sugar: 12.2, fiber: 2.6, protein: 1.1, salt: 0, servings: [{ name: 'stuk', grams: 120 }] },
+      { name: 'Aardbeien', kcal: 32, fat: 0.3, saturatedFat: 0, carbs: 7.7, sugar: 4.9, fiber: 2.0, protein: 0.7, salt: 0, servings: [{ name: 'portie', grams: 100 }] },
+      { name: 'Blauwe bessen', kcal: 57, fat: 0.3, saturatedFat: 0, carbs: 14.5, sugar: 10.0, fiber: 2.4, protein: 0.7, salt: 0, servings: [{ name: 'portie', grams: 100 }] },
+      { name: 'Frambozen', kcal: 52, fat: 0.7, saturatedFat: 0, carbs: 11.9, sugar: 4.4, fiber: 6.5, protein: 1.2, salt: 0, servings: [{ name: 'portie', grams: 100 }] },
+      { name: 'Mango', kcal: 60, fat: 0.4, saturatedFat: 0.1, carbs: 15.0, sugar: 13.7, fiber: 1.6, protein: 0.8, salt: 0, servings: [{ name: 'portie', grams: 125 }] },
+      { name: 'Sinaasappel', kcal: 47, fat: 0.1, saturatedFat: 0, carbs: 11.8, sugar: 9.4, fiber: 2.4, protein: 0.9, salt: 0, servings: [{ name: 'stuk', grams: 130 }] },
+      { name: 'Kiwi', kcal: 61, fat: 0.5, saturatedFat: 0, carbs: 14.7, sugar: 9.0, fiber: 3.0, protein: 1.1, salt: 0, servings: [{ name: 'stuk', grams: 75 }] },
+      { name: 'Druiven', kcal: 69, fat: 0.2, saturatedFat: 0, carbs: 18.1, sugar: 15.5, fiber: 0.9, protein: 0.7, salt: 0, servings: [{ name: 'portie', grams: 100 }] },
+      { name: 'Watermeloen', kcal: 30, fat: 0.2, saturatedFat: 0, carbs: 7.6, sugar: 6.2, fiber: 0.4, protein: 0.6, salt: 0, servings: [{ name: 'portie', grams: 150 }] },
+      { name: 'Ananas', kcal: 50, fat: 0.1, saturatedFat: 0, carbs: 13.1, sugar: 9.9, fiber: 1.4, protein: 0.5, salt: 0, servings: [{ name: 'portie', grams: 100 }] },
+      { name: 'Ei rauw', kcal: 143, fat: 9.5, saturatedFat: 3.1, carbs: 0.7, sugar: 0.4, fiber: 0, protein: 12.6, salt: 0.36, servings: [{ name: 'stuk', grams: 50 }] },
+      { name: 'Ei gekookt', kcal: 155, fat: 10.6, saturatedFat: 3.3, carbs: 1.1, sugar: 1.1, fiber: 0, protein: 12.6, salt: 0.31, servings: [{ name: 'stuk', grams: 50 }] },
+      { name: 'Ei gebakken', kcal: 196, fat: 15.3, saturatedFat: 4.3, carbs: 0.8, sugar: 0.4, fiber: 0, protein: 13.6, salt: 0.37, servings: [{ name: 'stuk', grams: 50 }] },
+      { name: 'Walnoten', kcal: 654, fat: 65.2, saturatedFat: 6.1, carbs: 13.7, sugar: 2.6, fiber: 6.7, protein: 15.2, salt: 0, servings: [{ name: 'handje', grams: 30 }] },
+      { name: 'Amandelen', kcal: 579, fat: 49.9, saturatedFat: 3.8, carbs: 21.6, sugar: 4.4, fiber: 12.5, protein: 21.2, salt: 0, servings: [{ name: 'handje', grams: 30 }] },
+      { name: 'Cashewnoten', kcal: 553, fat: 43.9, saturatedFat: 7.8, carbs: 30.2, sugar: 5.9, fiber: 3.3, protein: 18.2, salt: 0, servings: [{ name: 'handje', grams: 30 }] },
+      { name: 'Pinda’s', kcal: 567, fat: 49.2, saturatedFat: 6.3, carbs: 16.1, sugar: 4.7, fiber: 8.5, protein: 25.8, salt: 0, servings: [{ name: 'handje', grams: 30 }] },
+      { name: 'Hazelnoten', kcal: 628, fat: 60.8, saturatedFat: 4.5, carbs: 16.7, sugar: 4.3, fiber: 9.7, protein: 15.0, salt: 0, servings: [{ name: 'handje', grams: 30 }] },
+      { name: 'Pistachenoten', kcal: 560, fat: 45.3, saturatedFat: 5.9, carbs: 27.2, sugar: 7.7, fiber: 10.6, protein: 20.2, salt: 0, servings: [{ name: 'handje', grams: 30 }] },
+      { name: 'Pecannoten', kcal: 691, fat: 72.0, saturatedFat: 6.2, carbs: 13.9, sugar: 4.0, fiber: 9.6, protein: 9.2, salt: 0, servings: [{ name: 'handje', grams: 30 }] }
+    ];
+
+    function syncStandardProducts() {
+      const oldDefaultNames = new Set(['havermout', 'kipfilet bereid']);
+      let changed = false;
+
+      const before = state.products.length;
+      state.products = state.products.filter(product => {
+        const name = String(product.name || '').trim().toLowerCase();
+        const isOldDefault = oldDefaultNames.has(name) && !normalizeBarcode(product.barcode);
+        return !isOldDefault;
+      });
+      if (state.products.length !== before) changed = true;
+
+      const existingNames = new Set(state.products.map(product => String(product.name || '').trim().toLowerCase()));
+      STANDARD_PRODUCTS.forEach(template => {
+        const nameKey = template.name.trim().toLowerCase();
+        if (existingNames.has(nameKey)) return;
+        state.products.push({
+          id: uid(),
+          barcode: '',
+          ...template,
+          createdAt: new Date().toISOString(),
+          isStandardProduct: true
+        });
+        existingNames.add(nameKey);
+        changed = true;
+      });
+
+      if (changed) saveProducts();
     }
 
     function bindEvents() {
@@ -2546,8 +2760,11 @@
       $('#clear-log-form').addEventListener('click', () => {
         const currentMeal = els.logMeal.value || 'breakfast';
         $('#log-form').reset();
+        els.logProduct.value = '';
+        els.logProductSearch.value = '';
         els.logMeal.value = currentMeal;
         els.logModalMealName.textContent = getMealMeta(currentMeal).label;
+        hideProductResults();
         renderUnitOptions();
         clearErrors(['logProductId', 'mealType', 'grams', 'logUnit']);
         updateLogPreview();
@@ -2560,7 +2777,19 @@
         if (file) importDataFromFile(file);
       });
       els.productSearch.addEventListener('input', renderProductList);
-      els.logProduct.addEventListener('change', () => { setFieldError('logProductId', ''); renderUnitOptions(); updateLogPreview(); });
+      els.logProductSearch.addEventListener('input', () => {
+        clearLogProductSelection();
+        renderProductSearchResults();
+      });
+      els.logProductSearch.addEventListener('focus', renderProductSearchResults);
+      els.logProductResults.addEventListener('click', (event) => {
+        const btn = event.target.closest('[data-select-product]');
+        if (!btn) return;
+        selectLogProduct(btn.dataset.selectProduct, { focusAmount: true });
+      });
+      document.addEventListener('click', (event) => {
+        if (!event.target.closest('.product-search-wrap')) hideProductResults();
+      });
       els.logUnit.addEventListener('change', () => { setFieldError('logUnit', ''); updateLogPreview(); });
       els.logMeal.addEventListener('change', () => {
         setFieldError('mealType', '');
@@ -2639,7 +2868,7 @@
     }
 
     loadState();
-    seedExampleProductsIfEmpty();
+    syncStandardProducts();
     bindEvents();
     renderAll();
   </script>
