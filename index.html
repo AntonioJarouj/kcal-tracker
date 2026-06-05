@@ -196,7 +196,7 @@
     .form-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
     .form-full { grid-column: 1 / -1; }
     .field label { display: flex; justify-content: space-between; gap: 8px; font-size: 12px; color: var(--muted); margin-bottom: 7px; font-weight: 700; }
-    .field input, .field select {
+    .field input, .field select, .field textarea {
       width: 100%;
       border: 1px solid var(--border);
       background: rgba(0,0,0,.22);
@@ -207,7 +207,13 @@
       outline: none;
       transition: border-color .14s ease, background .14s ease;
     }
-    .field input:focus, .field select:focus { border-color: rgba(239,204,122,.55); background: rgba(0,0,0,.28); }
+    .field textarea {
+      min-height: 92px;
+      padding: 12px;
+      resize: vertical;
+      line-height: 1.45;
+    }
+    .field input:focus, .field select:focus, .field textarea:focus { border-color: rgba(239,204,122,.55); background: rgba(0,0,0,.28); }
     .field input::placeholder { color: rgba(246,240,232,.25); }
     .field select option { background: #15161d; color: var(--text); }
     .field.has-error input, .field.has-error select { border-color: rgba(255,124,124,.72); background: rgba(255,124,124,.055); }
@@ -1578,6 +1584,14 @@
             </select>
             <div class="error" id="error-aiMealType"></div>
           </div>
+          <div class="field" data-field="aiExtraContext">
+            <label for="ai-extra-context">Extra info voor AI <span class="tiny">optioneel</span></label>
+            <textarea id="ai-extra-context" placeholder="Bijv. rijst 250g, kip 180g, yoghurt saus 40g, 1 eetlepel olie. Of: dit is maqluba met kip en aubergine."></textarea>
+            <div class="error" id="error-aiExtraContext"></div>
+          </div>
+          <div class="split-note">
+            Tip: als je de grammen of ingrediënten weet, zet ze hierboven. Dan gebruikt AI jouw info als belangrijker dan de visuele schatting.
+          </div>
           <div class="ai-file-row">
             <button class="secondary-btn" type="button" id="take-ai-meal-photo">Foto maken</button>
             <button class="secondary-btn" type="button" id="choose-ai-meal-photo">Foto selecteren</button>
@@ -1586,7 +1600,7 @@
             <input id="ai-meal-photo" type="file" accept="image/*" hidden />
           </div>
           <img id="ai-meal-preview" class="ai-preview" alt="Voorbeeld van maaltijd foto" />
-          <div class="ai-status" id="ai-scan-status">Kies een duidelijke foto van je bord. Zorg dat de portie goed zichtbaar is.</div>
+          <div class="ai-status" id="ai-scan-status">Kies een duidelijke foto van je bord. Geef eventueel grammen/ingrediënten mee voor een betere schatting.</div>
           <div class="ai-results" id="ai-results"></div>
           <button class="primary-btn" type="button" id="add-ai-results" style="display:none;width:100%;">Geselecteerde schatting toevoegen</button>
         </div>
@@ -1814,6 +1828,7 @@
       aiMealType: $('#ai-meal-type'),
       aiOllamaUrl: $('#ai-ollama-url'),
       aiModel: $('#ai-model'),
+      aiExtraContext: $('#ai-extra-context'),
       aiMealPhoto: $('#ai-meal-photo'),
       aiMealPhotoCamera: $('#ai-meal-photo-camera'),
       aiMealPreview: $('#ai-meal-preview'),
@@ -3425,6 +3440,20 @@
         return;
       }
 
+      const extraContext = String(els.aiExtraContext ? els.aiExtraContext.value : '').trim();
+      const userKnownInfoBlock = extraContext
+        ? `
+# User-provided known information
+De gebruiker heeft extra informatie meegegeven. Behandel deze informatie als belangrijker dan visuele schatting wanneer het over grammen, ingrediënten of bereiding gaat. Gebruik deze info om de items en voedingswaarden realistischer te maken, maar retourneer nog steeds uitsluitend JSON.
+
+Extra info van gebruiker:
+${extraContext}
+`
+        : '
+# User-provided known information
+De gebruiker heeft geen extra grammen of ingrediënten opgegeven. Maak dan een voorzichtige visuele schatting op basis van de foto.
+';
+
       const prompt = `# Role
 Je bent een gespecialiseerde voedingslog-assistent met diepgaande kennis van Arabische en Syrische keuken, voedingswaarden en portiegrootte-analyse op basis van visuele schatting.
 
@@ -3433,13 +3462,15 @@ Analyseer een foto van een maaltijd en retourneer uitsluitend geldige JSON met g
 
 # Context
 De gebruiker logt maaltijden die vaak bestaan uit Arabisch/Syrisch eten. Nauwkeurige herkenning van gerechten zoals rijst, kip, vlees, hummus, fattoush, baba ghanoush, yalanji, kibbeh, molokhia, maqluba, brood, saus en olie is essentieel. Schattingen zijn gebaseerd op de zichtbare portie op de foto — nooit per 100g.
-
+${userKnownInfoBlock}
 # Instructions
 
 Kerngedrag:
 - Retourneer ALTIJD en UITSLUITEND geldige JSON. Geen uitleg, geen inleiding, geen tekst buiten de JSON.
 - Splits elke maaltijd in afzonderlijke logbare onderdelen (bijv. rijst, kip, saus apart).
-- Alle voedingswaarden zijn gebaseerd op de geschatte portiegrootte zichtbaar op de foto.
+- Alle voedingswaarden zijn gebaseerd op de geschatte portiegrootte zichtbaar op de foto, behalve wanneer de gebruiker specifieke grammen/ingrediënten meegeeft.
+- Als de gebruiker specifieke grammen opgeeft, gebruik die grammen als leidend voor estimated_grams.
+- Als de gebruiker ingrediënten opgeeft zonder grammen, gebruik die ingrediënten om de foto beter te interpreteren.
 - Maak voorzichtige schattingen — onderschat liever licht dan overschatten.
 - Houd rekening met verborgen calorieën in olie, sauzen en bereidingsvet.
 
