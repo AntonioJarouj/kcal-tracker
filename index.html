@@ -1579,9 +1579,11 @@
             <div class="error" id="error-aiMealType"></div>
           </div>
           <div class="ai-file-row">
-            <button class="secondary-btn" type="button" id="choose-ai-meal-photo">Foto kiezen/maken</button>
+            <button class="secondary-btn" type="button" id="take-ai-meal-photo">Foto maken</button>
+            <button class="secondary-btn" type="button" id="choose-ai-meal-photo">Foto selecteren</button>
             <button class="primary-btn" type="button" id="analyze-ai-meal-photo">Analyseer maaltijd</button>
-            <input id="ai-meal-photo" type="file" accept="image/*" capture="environment" hidden />
+            <input id="ai-meal-photo-camera" type="file" accept="image/*" capture="environment" hidden />
+            <input id="ai-meal-photo" type="file" accept="image/*" hidden />
           </div>
           <img id="ai-meal-preview" class="ai-preview" alt="Voorbeeld van maaltijd foto" />
           <div class="ai-status" id="ai-scan-status">Kies een duidelijke foto van je bord. Zorg dat de portie goed zichtbaar is.</div>
@@ -1813,6 +1815,7 @@
       aiOllamaUrl: $('#ai-ollama-url'),
       aiModel: $('#ai-model'),
       aiMealPhoto: $('#ai-meal-photo'),
+      aiMealPhotoCamera: $('#ai-meal-photo-camera'),
       aiMealPreview: $('#ai-meal-preview'),
       aiScanStatus: $('#ai-scan-status'),
       aiResults: $('#ai-results'),
@@ -3316,6 +3319,7 @@
       aiMealImageBase64 = null;
       aiMealProposals = [];
       if (els.aiMealPhoto) els.aiMealPhoto.value = '';
+      if (els.aiMealPhotoCamera) els.aiMealPhotoCamera.value = '';
       if (els.aiMealPreview) {
         els.aiMealPreview.src = '';
         els.aiMealPreview.classList.remove('show');
@@ -3421,7 +3425,62 @@
         return;
       }
 
-      const prompt = `Je bent een voedingslog-assistent. Analyseer de foto van een maaltijd en geef GEEN uitleg, alleen geldige JSON. Maak een voorzichtige schatting. Splits de maaltijd in logbare onderdelen. Houd rekening met Arabisch/Syrisch eten zoals rijst, kip, vlees, hummus, fattoush, baba ghanoush, yalanji, kibbeh, molokhia, maqluba, brood, saus en olie. Als je onzeker bent, zet confidence op low en noteer wat gecontroleerd moet worden. Gebruik kcal en macro's voor de zichtbare portie, niet per 100g. JSON-formaat exact: {"meal_name":"string","items":[{"name":"string","estimated_grams":number,"kcal":number,"protein":number,"carbs":number,"fat":number,"fiber":number,"confidence":"low|medium|high","notes":"string"}],"warning":"string"}`;
+      const prompt = `# Role
+Je bent een gespecialiseerde voedingslog-assistent met diepgaande kennis van Arabische en Syrische keuken, voedingswaarden en portiegrootte-analyse op basis van visuele schatting.
+
+# Task
+Analyseer een foto van een maaltijd en retourneer uitsluitend geldige JSON met gedetailleerde voedingswaarden per logbaar onderdeel van de maaltijd.
+
+# Context
+De gebruiker logt maaltijden die vaak bestaan uit Arabisch/Syrisch eten. Nauwkeurige herkenning van gerechten zoals rijst, kip, vlees, hummus, fattoush, baba ghanoush, yalanji, kibbeh, molokhia, maqluba, brood, saus en olie is essentieel. Schattingen zijn gebaseerd op de zichtbare portie op de foto — nooit per 100g.
+
+# Instructions
+
+Kerngedrag:
+- Retourneer ALTIJD en UITSLUITEND geldige JSON. Geen uitleg, geen inleiding, geen tekst buiten de JSON.
+- Splits elke maaltijd in afzonderlijke logbare onderdelen (bijv. rijst, kip, saus apart).
+- Alle voedingswaarden zijn gebaseerd op de geschatte portiegrootte zichtbaar op de foto.
+- Maak voorzichtige schattingen — onderschat liever licht dan overschatten.
+- Houd rekening met verborgen calorieën in olie, sauzen en bereidingsvet.
+
+Confidence-regels:
+- Stel confidence in op "low" wanneer het gerecht moeilijk te onderscheiden is, de portie onduidelijk is, of ingrediënten verborgen kunnen zijn.
+- Stel confidence in op "medium" bij herkenbare gerechten met enige onzekerheid over portie of bereiding.
+- Stel confidence in op "high" alleen bij duidelijk zichtbare, goed herkenbare gerechten met inschatbare portie.
+- Gebruik het veld notes om aan te geven wat gecontroleerd of gecorrigeerd moet worden.
+
+Arabische/Syrische gerechten — speciale aandachtspunten:
+- Rijst (zoals maqluba, ruzz) bevat vaak boter of olie in de bereiding — verwerk dit in de schatting.
+- Kibbeh kan gebakken of rauw zijn — noteer dit in notes als onduidelijk.
+- Yalanji (gevulde druivenbladeren) bevat rijst en olie — schat per stuk of per portie.
+- Hummus en baba ghanoush bevatten significante hoeveelheden olie/tahini — niet onderschatten.
+- Brood (khubz) — schat op basis van zichtbare stukken of schijven.
+- Molokhia bevat vaak knoflook en olie — meerekenen in vetschatting.
+
+Verplicht JSON-formaat — exact zo retourneren:
+{
+  "meal_name": "string",
+  "items": [
+    {
+      "name": "string",
+      "estimated_grams": number,
+      "kcal": number,
+      "protein": number,
+      "carbs": number,
+      "fat": number,
+      "fiber": number,
+      "confidence": "low|medium|high",
+      "notes": "string"
+    }
+  ],
+  "warning": "string"
+}
+
+Edge cases:
+- Als de foto onduidelijk of onherkenbaar is: retourneer toch geldige JSON met confidence: "low" voor alle items en een beschrijvende warning.
+- Als een gerecht meerdere interpretaties heeft (bijv. gevuld of niet gevuld): noteer beide mogelijkheden in notes en kies de meest waarschijnlijke schatting.
+- Als er geen foto is aangeleverd: retourneer JSON met een leeg items-array en warning: "Geen foto ontvangen. Stuur een foto van de maaltijd.".
+- Voeg nooit tekst toe buiten de JSON-structuur, ook niet als disclaimer of toelichting.`;
 
       els.aiScanStatus.textContent = 'AI analyseert je maaltijd via Ollama. Dit kan even duren...';
       els.addAiResults.style.display = 'none';
@@ -3919,8 +3978,9 @@
         openAiScanModal(meal);
       });
       $('#close-ai-scan-modal').addEventListener('click', closeAiScanModal);
+      $('#take-ai-meal-photo').addEventListener('click', () => els.aiMealPhotoCamera.click());
       $('#choose-ai-meal-photo').addEventListener('click', () => els.aiMealPhoto.click());
-      els.aiMealPhoto.addEventListener('change', async (event) => {
+      async function handleAiMealPhotoChange(event) {
         const file = event.target.files && event.target.files[0];
         if (!file) return;
         const image = await readImageFileAsBase64(file);
@@ -3928,7 +3988,9 @@
         els.aiMealPreview.src = image.dataUrl;
         els.aiMealPreview.classList.add('show');
         els.aiScanStatus.textContent = 'Foto gekozen. Klik op “Analyseer maaltijd”.';
-      });
+      }
+      els.aiMealPhoto.addEventListener('change', handleAiMealPhotoChange);
+      els.aiMealPhotoCamera.addEventListener('change', handleAiMealPhotoChange);
       $('#analyze-ai-meal-photo').addEventListener('click', analyzeAiMealPhoto);
       $('#add-ai-results').addEventListener('click', addAiResultsToLog);
       els.aiMealType.addEventListener('change', () => {
