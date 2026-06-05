@@ -3449,10 +3449,10 @@ De gebruiker heeft extra informatie meegegeven. Behandel deze informatie als bel
 Extra info van gebruiker:
 ${extraContext}
 `
-        : '
+        : `
 # User-provided known information
 De gebruiker heeft geen extra grammen of ingrediënten opgegeven. Maak dan een voorzichtige visuele schatting op basis van de foto.
-';
+`;
 
       const prompt = `# Role
 Je bent een gespecialiseerde voedingslog-assistent met diepgaande kennis van Arabische en Syrische keuken, voedingswaarden en portiegrootte-analyse op basis van visuele schatting.
@@ -3518,7 +3518,11 @@ Edge cases:
       try {
         const response = await fetch(`${settings.endpoint}/api/generate`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: {
+            'Content-Type': 'application/json',
+            // Nodig voor gratis trycloudflare.com quick tunnels, anders kan Cloudflare een HTML-waarschuwingspagina teruggeven i.p.v. Ollama JSON.
+            'bypass-tunnel-reminder': 'true'
+          },
           body: JSON.stringify({
             model: settings.model,
             prompt,
