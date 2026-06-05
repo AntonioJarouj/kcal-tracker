@@ -196,7 +196,7 @@
     .form-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
     .form-full { grid-column: 1 / -1; }
     .field label { display: flex; justify-content: space-between; gap: 8px; font-size: 12px; color: var(--muted); margin-bottom: 7px; font-weight: 700; }
-    .field input, .field select, .field textarea {
+    .field input, .field select {
       width: 100%;
       border: 1px solid var(--border);
       background: rgba(0,0,0,.22);
@@ -207,13 +207,7 @@
       outline: none;
       transition: border-color .14s ease, background .14s ease;
     }
-    .field textarea {
-      min-height: 92px;
-      padding: 12px;
-      resize: vertical;
-      line-height: 1.45;
-    }
-    .field input:focus, .field select:focus, .field textarea:focus { border-color: rgba(239,204,122,.55); background: rgba(0,0,0,.28); }
+    .field input:focus, .field select:focus { border-color: rgba(239,204,122,.55); background: rgba(0,0,0,.28); }
     .field input::placeholder { color: rgba(246,240,232,.25); }
     .field select option { background: #15161d; color: var(--text); }
     .field.has-error input, .field.has-error select { border-color: rgba(255,124,124,.72); background: rgba(255,124,124,.055); }
@@ -1117,104 +1111,6 @@
       .plus-btn { flex: 0 0 54px; }
     }
 
-  
-
-    /* --- compact maaltijd-detail + samenvatting --- */
-    .meal-summary-grid {
-      display: grid;
-      grid-template-columns: repeat(5, minmax(0, 1fr));
-      gap: 8px;
-      margin-bottom: 12px;
-    }
-    .meal-summary-box {
-      border: 1px solid var(--border);
-      background: rgba(255,255,255,.04);
-      border-radius: 14px;
-      padding: 10px 8px;
-      text-align: center;
-      min-width: 0;
-    }
-    .meal-summary-value {
-      font-weight: 900;
-      color: var(--accent);
-      font-size: 16px;
-      letter-spacing: -.03em;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
-    .meal-summary-label {
-      color: var(--muted-2);
-      font-size: 11px;
-      margin-top: 3px;
-      white-space: nowrap;
-    }
-    .meal-detail-item.compact {
-      padding: 11px 12px;
-      gap: 8px;
-    }
-    .meal-detail-row {
-      display: grid;
-      grid-template-columns: auto minmax(0,1fr) auto auto;
-      gap: 10px;
-      align-items: center;
-    }
-    .meal-detail-row .meal-select-check {
-      width: 24px;
-      height: 24px;
-      margin: 0;
-    }
-    .meal-detail-title-compact {
-      font-weight: 850;
-      font-size: 15px;
-      letter-spacing: -.02em;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
-    .meal-detail-meta-compact {
-      margin-top: 3px;
-      color: var(--muted-2);
-      font-size: 12px;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
-    .meal-detail-kcal.compact-kcal {
-      font-size: 16px;
-      min-width: 70px;
-      text-align: right;
-    }
-    .edit-entry-btn {
-      min-height: 34px;
-      padding: 0 11px;
-      border-radius: 999px;
-      border: 1px solid var(--border);
-      background: rgba(255,255,255,.055);
-      color: var(--text);
-      font-size: 12px;
-      font-weight: 850;
-      white-space: nowrap;
-    }
-    .edit-entry-btn:hover { background: var(--surface-2); border-color: var(--border-strong); }
-    .meal-detail-edit-panel[hidden] { display: none !important; }
-    .meal-detail-edit-panel {
-      border-top: 1px solid var(--border);
-      padding-top: 10px;
-      margin-top: 2px;
-    }
-    .meal-detail-edit-panel .meal-detail-edit {
-      grid-template-columns: minmax(0,.85fr) minmax(0,1fr) auto auto;
-    }
-    @media (max-width: 560px) {
-      .meal-summary-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-      .meal-summary-box:first-child { grid-column: 1 / -1; }
-      .meal-detail-row { grid-template-columns: auto minmax(0,1fr) auto; }
-      .meal-detail-kcal.compact-kcal { min-width: auto; }
-      .edit-entry-btn { grid-column: 2 / -1; justify-self: end; margin-top: 2px; }
-      .meal-detail-edit-panel .meal-detail-edit { grid-template-columns: 1fr; }
-    }
-
   </style>
 </head>
 <body>
@@ -1584,23 +1480,13 @@
             </select>
             <div class="error" id="error-aiMealType"></div>
           </div>
-          <div class="field" data-field="aiExtraContext">
-            <label for="ai-extra-context">Extra info voor AI <span class="tiny">optioneel</span></label>
-            <textarea id="ai-extra-context" placeholder="Bijv. rijst 250g, kip 180g, yoghurt saus 40g, 1 eetlepel olie. Of: dit is maqluba met kip en aubergine."></textarea>
-            <div class="error" id="error-aiExtraContext"></div>
-          </div>
-          <div class="split-note">
-            Tip: als je de grammen of ingrediënten weet, zet ze hierboven. Dan gebruikt AI jouw info als belangrijker dan de visuele schatting.
-          </div>
           <div class="ai-file-row">
-            <button class="secondary-btn" type="button" id="take-ai-meal-photo">Foto maken</button>
-            <button class="secondary-btn" type="button" id="choose-ai-meal-photo">Foto selecteren</button>
+            <button class="secondary-btn" type="button" id="choose-ai-meal-photo">Foto kiezen/maken</button>
             <button class="primary-btn" type="button" id="analyze-ai-meal-photo">Analyseer maaltijd</button>
-            <input id="ai-meal-photo-camera" type="file" accept="image/*" capture="environment" hidden />
-            <input id="ai-meal-photo" type="file" accept="image/*" hidden />
+            <input id="ai-meal-photo" type="file" accept="image/*" capture="environment" hidden />
           </div>
           <img id="ai-meal-preview" class="ai-preview" alt="Voorbeeld van maaltijd foto" />
-          <div class="ai-status" id="ai-scan-status">Kies een duidelijke foto van je bord. Geef eventueel grammen/ingrediënten mee voor een betere schatting.</div>
+          <div class="ai-status" id="ai-scan-status">Kies een duidelijke foto van je bord. Zorg dat de portie goed zichtbaar is.</div>
           <div class="ai-results" id="ai-results"></div>
           <button class="primary-btn" type="button" id="add-ai-results" style="display:none;width:100%;">Geselecteerde schatting toevoegen</button>
         </div>
@@ -1828,9 +1714,7 @@
       aiMealType: $('#ai-meal-type'),
       aiOllamaUrl: $('#ai-ollama-url'),
       aiModel: $('#ai-model'),
-      aiExtraContext: $('#ai-extra-context'),
       aiMealPhoto: $('#ai-meal-photo'),
-      aiMealPhotoCamera: $('#ai-meal-photo-camera'),
       aiMealPreview: $('#ai-meal-preview'),
       aiScanStatus: $('#ai-scan-status'),
       aiResults: $('#ai-results'),
@@ -2487,20 +2371,13 @@
       const mealEntries = getSelectedMealEntries();
       const validIds = new Set(mealEntries.map(entry => entry.id));
       selectedMealLogIds = new Set([...selectedMealLogIds].filter(id => validIds.has(id)));
-      const totals = mealEntries.reduce((acc, entry) => {
-        acc.kcal += Number(entry.kcal) || 0;
-        acc.protein += Number(entry.protein) || 0;
-        acc.carbs += Number(entry.carbs) || 0;
-        acc.fat += Number(entry.fat) || 0;
-        acc.fiber += Number(entry.fiber) || 0;
-        return acc;
-      }, { kcal: 0, protein: 0, carbs: 0, fat: 0, fiber: 0 });
+      const kcalTotal = mealEntries.reduce((sum, entry) => sum + (Number(entry.kcal) || 0), 0);
       const allSelected = mealEntries.length > 0 && mealEntries.every(entry => selectedMealLogIds.has(entry.id));
       const selectedCount = selectedMealLogIds.size;
 
       els.mealDetailTitle.textContent = meal.label;
       els.mealDetailSubtitle.textContent = mealEntries.length
-        ? `${mealEntries.length} ${mealEntries.length === 1 ? 'item' : 'items'} • ${pretty(totals.kcal, 0)} kcal`
+        ? `${mealEntries.length} ${mealEntries.length === 1 ? 'item' : 'items'} • ${pretty(kcalTotal, 0)} kcal`
         : 'Nog niets gelogd';
 
       if (!mealEntries.length) {
@@ -2508,21 +2385,11 @@
         return;
       }
 
-      const mealSummary = `
-        <div class="meal-summary-grid" aria-label="Samenvatting van ${meal.label}">
-          <div class="meal-summary-box"><div class="meal-summary-value">${pretty(totals.kcal, 0)}</div><div class="meal-summary-label">kcal</div></div>
-          <div class="meal-summary-box"><div class="meal-summary-value">${pretty(totals.protein, 1)}g</div><div class="meal-summary-label">eiwit</div></div>
-          <div class="meal-summary-box"><div class="meal-summary-value">${pretty(totals.carbs, 1)}g</div><div class="meal-summary-label">koolhydraten</div></div>
-          <div class="meal-summary-box"><div class="meal-summary-value">${pretty(totals.fat, 1)}g</div><div class="meal-summary-label">vet</div></div>
-          <div class="meal-summary-box"><div class="meal-summary-value">${pretty(totals.fiber, 1)}g</div><div class="meal-summary-label">vezels</div></div>
-        </div>
-      `;
-
       const bulkbar = `
         <div class="meal-detail-bulkbar">
           <div class="bulk-left">
             <button class="select-all-btn" type="button" data-select-all-meal>${allSelected ? 'Deselecteer alles' : 'Selecteer alles'}</button>
-            <span class="selected-count">${selectedCount ? `${selectedCount} geselecteerd` : 'Selecteer om te kopiëren of verwijderen'}</span>
+            <span class="selected-count">${selectedCount ? `${selectedCount} geselecteerd` : 'Selecteer producten om te kopiëren of verwijderen'}</span>
           </div>
           <div class="bulk-actions">
             <button class="compact-btn copy" type="button" data-copy-selected ${selectedCount ? '' : 'disabled'}>Kopiëren</button>
@@ -2547,42 +2414,42 @@
         if (unitLabel !== 'gram' && !unitOptions.includes('selected')) {
           unitOptions += `<option value="${escapeHtml(currentUnitValue)}" selected>${escapeHtml(unitLabel)} (${pretty(entry.unitGrams || 1, 1)}g)</option>`;
         }
-        const amountText = unitLabel === 'gram'
-          ? `${pretty(entry.grams, 1)}g`
-          : `${pretty(amount, 2)} × ${escapeHtml(unitLabel)} (${pretty(entry.grams, 1)}g)`;
         return `
-          <div class="meal-detail-item compact ${isSelected ? 'is-selected' : ''}" data-entry-id="${escapeHtml(entry.id)}">
-            <div class="meal-detail-row">
+          <div class="meal-detail-item ${isSelected ? 'is-selected' : ''}" data-entry-id="${escapeHtml(entry.id)}">
+            <div class="meal-detail-top with-check">
               <input class="meal-select-check" type="checkbox" aria-label="Selecteer ${escapeHtml(entry.productName)}" data-toggle-log-selection="${escapeHtml(entry.id)}" ${isSelected ? 'checked' : ''} />
-              <div class="meal-detail-main-compact">
-                <div class="meal-detail-title-compact">${escapeHtml(entry.productName)}</div>
-                <div class="meal-detail-meta-compact">${amountText} • P ${pretty(entry.protein)}g • C ${pretty(entry.carbs)}g • F ${pretty(entry.fat)}g • Vezels ${pretty(entry.fiber)}g</div>
-              </div>
-              <div class="meal-detail-kcal compact-kcal">${pretty(entry.kcal, 0)} kcal</div>
-              <button class="edit-entry-btn" type="button" data-toggle-edit="${escapeHtml(entry.id)}">Bewerk</button>
-            </div>
-            <div class="meal-detail-edit-panel" data-edit-panel="${escapeHtml(entry.id)}" hidden>
-              <div class="meal-detail-edit">
-                <div class="field">
-                  <label for="edit-amount-${escapeHtml(entry.id)}">Hoeveelheid</label>
-                  <input id="edit-amount-${escapeHtml(entry.id)}" type="text" inputmode="decimal" value="${pretty(amount, 2)}" data-edit-amount="${escapeHtml(entry.id)}" />
+              <div>
+                <div class="meal-detail-title">${escapeHtml(entry.productName)}</div>
+                <div class="meal-detail-meta">
+                  <span>${pretty(entry.grams, 1)}g totaal</span>
+                  <span>P ${pretty(entry.protein)}g</span>
+                  <span>C ${pretty(entry.carbs)}g</span>
+                  <span>F ${pretty(entry.fat)}g</span>
+                  <span>Vezels ${pretty(entry.fiber)}g</span>
                 </div>
-                <div class="field">
-                  <label for="edit-unit-${escapeHtml(entry.id)}">Eenheid</label>
-                  <select id="edit-unit-${escapeHtml(entry.id)}" data-edit-unit="${escapeHtml(entry.id)}">
-                    ${unitOptions}
-                  </select>
-                </div>
-                <button class="primary-btn" type="button" data-save-entry="${escapeHtml(entry.id)}">Opslaan</button>
-                <button class="danger-btn" type="button" data-delete-log="${escapeHtml(entry.id)}">Verwijderen</button>
               </div>
-              <div class="meal-detail-error" id="meal-detail-error-${escapeHtml(entry.id)}"></div>
+              <div class="meal-detail-kcal">${pretty(entry.kcal, 0)} kcal</div>
             </div>
+            <div class="meal-detail-edit">
+              <div class="field">
+                <label for="edit-amount-${escapeHtml(entry.id)}">Hoeveelheid</label>
+                <input id="edit-amount-${escapeHtml(entry.id)}" type="text" inputmode="decimal" value="${pretty(amount, 2)}" data-edit-amount="${escapeHtml(entry.id)}" />
+              </div>
+              <div class="field">
+                <label for="edit-unit-${escapeHtml(entry.id)}">Eenheid</label>
+                <select id="edit-unit-${escapeHtml(entry.id)}" data-edit-unit="${escapeHtml(entry.id)}">
+                  ${unitOptions}
+                </select>
+              </div>
+              <button class="primary-btn" type="button" data-save-entry="${escapeHtml(entry.id)}">Opslaan</button>
+              <button class="danger-btn" type="button" data-delete-log="${escapeHtml(entry.id)}">Verwijderen</button>
+            </div>
+            <div class="meal-detail-error" id="meal-detail-error-${escapeHtml(entry.id)}"></div>
           </div>
         `;
       }).join('');
 
-      els.mealDetailList.innerHTML = mealSummary + bulkbar + items;
+      els.mealDetailList.innerHTML = bulkbar + items;
     }
 
     function openMealDetail(mealType) {
@@ -3334,7 +3201,6 @@
       aiMealImageBase64 = null;
       aiMealProposals = [];
       if (els.aiMealPhoto) els.aiMealPhoto.value = '';
-      if (els.aiMealPhotoCamera) els.aiMealPhotoCamera.value = '';
       if (els.aiMealPreview) {
         els.aiMealPreview.src = '';
         els.aiMealPreview.classList.remove('show');
@@ -3440,89 +3306,14 @@
         return;
       }
 
-      const extraContext = String(els.aiExtraContext ? els.aiExtraContext.value : '').trim();
-      const userKnownInfoBlock = extraContext
-        ? `
-# User-provided known information
-De gebruiker heeft extra informatie meegegeven. Behandel deze informatie als belangrijker dan visuele schatting wanneer het over grammen, ingrediënten of bereiding gaat. Gebruik deze info om de items en voedingswaarden realistischer te maken, maar retourneer nog steeds uitsluitend JSON.
-
-Extra info van gebruiker:
-${extraContext}
-`
-        : `
-# User-provided known information
-De gebruiker heeft geen extra grammen of ingrediënten opgegeven. Maak dan een voorzichtige visuele schatting op basis van de foto.
-`;
-
-      const prompt = `# Role
-Je bent een gespecialiseerde voedingslog-assistent met diepgaande kennis van Arabische en Syrische keuken, voedingswaarden en portiegrootte-analyse op basis van visuele schatting.
-
-# Task
-Analyseer een foto van een maaltijd en retourneer uitsluitend geldige JSON met gedetailleerde voedingswaarden per logbaar onderdeel van de maaltijd.
-
-# Context
-De gebruiker logt maaltijden die vaak bestaan uit Arabisch/Syrisch eten. Nauwkeurige herkenning van gerechten zoals rijst, kip, vlees, hummus, fattoush, baba ghanoush, yalanji, kibbeh, molokhia, maqluba, brood, saus en olie is essentieel. Schattingen zijn gebaseerd op de zichtbare portie op de foto — nooit per 100g.
-${userKnownInfoBlock}
-# Instructions
-
-Kerngedrag:
-- Retourneer ALTIJD en UITSLUITEND geldige JSON. Geen uitleg, geen inleiding, geen tekst buiten de JSON.
-- Splits elke maaltijd in afzonderlijke logbare onderdelen (bijv. rijst, kip, saus apart).
-- Alle voedingswaarden zijn gebaseerd op de geschatte portiegrootte zichtbaar op de foto, behalve wanneer de gebruiker specifieke grammen/ingrediënten meegeeft.
-- Als de gebruiker specifieke grammen opgeeft, gebruik die grammen als leidend voor estimated_grams.
-- Als de gebruiker ingrediënten opgeeft zonder grammen, gebruik die ingrediënten om de foto beter te interpreteren.
-- Maak voorzichtige schattingen — onderschat liever licht dan overschatten.
-- Houd rekening met verborgen calorieën in olie, sauzen en bereidingsvet.
-
-Confidence-regels:
-- Stel confidence in op "low" wanneer het gerecht moeilijk te onderscheiden is, de portie onduidelijk is, of ingrediënten verborgen kunnen zijn.
-- Stel confidence in op "medium" bij herkenbare gerechten met enige onzekerheid over portie of bereiding.
-- Stel confidence in op "high" alleen bij duidelijk zichtbare, goed herkenbare gerechten met inschatbare portie.
-- Gebruik het veld notes om aan te geven wat gecontroleerd of gecorrigeerd moet worden.
-
-Arabische/Syrische gerechten — speciale aandachtspunten:
-- Rijst (zoals maqluba, ruzz) bevat vaak boter of olie in de bereiding — verwerk dit in de schatting.
-- Kibbeh kan gebakken of rauw zijn — noteer dit in notes als onduidelijk.
-- Yalanji (gevulde druivenbladeren) bevat rijst en olie — schat per stuk of per portie.
-- Hummus en baba ghanoush bevatten significante hoeveelheden olie/tahini — niet onderschatten.
-- Brood (khubz) — schat op basis van zichtbare stukken of schijven.
-- Molokhia bevat vaak knoflook en olie — meerekenen in vetschatting.
-
-Verplicht JSON-formaat — exact zo retourneren:
-{
-  "meal_name": "string",
-  "items": [
-    {
-      "name": "string",
-      "estimated_grams": number,
-      "kcal": number,
-      "protein": number,
-      "carbs": number,
-      "fat": number,
-      "fiber": number,
-      "confidence": "low|medium|high",
-      "notes": "string"
-    }
-  ],
-  "warning": "string"
-}
-
-Edge cases:
-- Als de foto onduidelijk of onherkenbaar is: retourneer toch geldige JSON met confidence: "low" voor alle items en een beschrijvende warning.
-- Als een gerecht meerdere interpretaties heeft (bijv. gevuld of niet gevuld): noteer beide mogelijkheden in notes en kies de meest waarschijnlijke schatting.
-- Als er geen foto is aangeleverd: retourneer JSON met een leeg items-array en warning: "Geen foto ontvangen. Stuur een foto van de maaltijd.".
-- Voeg nooit tekst toe buiten de JSON-structuur, ook niet als disclaimer of toelichting.`;
+      const prompt = `Je bent een voedingslog-assistent. Analyseer de foto van een maaltijd en geef GEEN uitleg, alleen geldige JSON. Maak een voorzichtige schatting. Splits de maaltijd in logbare onderdelen. Houd rekening met Arabisch/Syrisch eten zoals rijst, kip, vlees, hummus, fattoush, baba ghanoush, yalanji, kibbeh, molokhia, maqluba, brood, saus en olie. Als je onzeker bent, zet confidence op low en noteer wat gecontroleerd moet worden. Gebruik kcal en macro's voor de zichtbare portie, niet per 100g. JSON-formaat exact: {"meal_name":"string","items":[{"name":"string","estimated_grams":number,"kcal":number,"protein":number,"carbs":number,"fat":number,"fiber":number,"confidence":"low|medium|high","notes":"string"}],"warning":"string"}`;
 
       els.aiScanStatus.textContent = 'AI analyseert je maaltijd via Ollama. Dit kan even duren...';
       els.addAiResults.style.display = 'none';
       try {
         const response = await fetch(`${settings.endpoint}/api/generate`, {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            // Nodig voor gratis trycloudflare.com quick tunnels, anders kan Cloudflare een HTML-waarschuwingspagina teruggeven i.p.v. Ollama JSON.
-            'bypass-tunnel-reminder': 'true'
-          },
+          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             model: settings.model,
             prompt,
@@ -4013,9 +3804,8 @@ Edge cases:
         openAiScanModal(meal);
       });
       $('#close-ai-scan-modal').addEventListener('click', closeAiScanModal);
-      $('#take-ai-meal-photo').addEventListener('click', () => els.aiMealPhotoCamera.click());
       $('#choose-ai-meal-photo').addEventListener('click', () => els.aiMealPhoto.click());
-      async function handleAiMealPhotoChange(event) {
+      els.aiMealPhoto.addEventListener('change', async (event) => {
         const file = event.target.files && event.target.files[0];
         if (!file) return;
         const image = await readImageFileAsBase64(file);
@@ -4023,9 +3813,7 @@ Edge cases:
         els.aiMealPreview.src = image.dataUrl;
         els.aiMealPreview.classList.add('show');
         els.aiScanStatus.textContent = 'Foto gekozen. Klik op “Analyseer maaltijd”.';
-      }
-      els.aiMealPhoto.addEventListener('change', handleAiMealPhotoChange);
-      els.aiMealPhotoCamera.addEventListener('change', handleAiMealPhotoChange);
+      });
       $('#analyze-ai-meal-photo').addEventListener('click', analyzeAiMealPhoto);
       $('#add-ai-results').addEventListener('click', addAiResultsToLog);
       els.aiMealType.addEventListener('change', () => {
@@ -4189,16 +3977,6 @@ Edge cases:
         const deleteSelected = event.target.closest('[data-delete-selected]');
         if (deleteSelected) {
           deleteSelectedMealLogs();
-          return;
-        }
-        const editToggle = event.target.closest('[data-toggle-edit]');
-        if (editToggle) {
-          const panel = document.querySelector(`[data-edit-panel="${CSS.escape(editToggle.dataset.toggleEdit)}"]`);
-          if (panel) {
-            const isHidden = panel.hasAttribute('hidden');
-            panel.toggleAttribute('hidden', !isHidden);
-            editToggle.textContent = isHidden ? 'Sluit' : 'Bewerk';
-          }
           return;
         }
         const saveBtn = event.target.closest('[data-save-entry]');
