@@ -1045,6 +1045,50 @@
       .ai-preview-grid { grid-template-columns: repeat(2, minmax(0,1fr)); }
     }
 
+  
+
+    /* --- veiliger dag leegmaken + duidelijke maaltijd bewerken knop --- */
+    .day-clear-bottom {
+      margin-top: 18px;
+      padding-top: 16px;
+      border-top: 1px solid var(--border);
+      display: flex;
+      justify-content: flex-end;
+    }
+    .day-clear-bottom .danger-btn {
+      min-height: 44px;
+      padding-inline: 18px;
+    }
+    .meal-card-actions {
+      grid-column: 2 / 4;
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 10px;
+      align-items: center;
+      margin-top: 2px;
+    }
+    .edit-meal-btn {
+      min-height: 40px;
+      border-radius: 999px;
+      border: 1px solid rgba(255,255,255,.16);
+      background: rgba(255,255,255,.055);
+      color: var(--text);
+      font-weight: 850;
+      padding: 0 14px;
+    }
+    .edit-meal-btn:hover { background: rgba(255,255,255,.095); }
+    @media (max-width: 640px) {
+      .section-head { align-items: flex-start; }
+      .day-clear-bottom { justify-content: stretch; }
+      .day-clear-bottom .danger-btn { width: 100%; }
+      .meal-card-actions {
+        grid-column: 1 / -1;
+        grid-template-columns: 1fr auto;
+      }
+      .edit-meal-btn { width: 100%; }
+      .plus-btn { grid-column: auto; justify-self: auto; margin-top: 0; }
+    }
+
   </style>
 </head>
 <body>
@@ -1141,9 +1185,11 @@
               <div class="eyebrow">Voedingswaardes</div>
               <h2>Maaltijden</h2>
             </div>
-            <button class="danger-btn" type="button" id="clear-day">Dag leegmaken</button>
           </div>
           <div class="meal-list" id="log-list"></div>
+          <div class="day-clear-bottom">
+            <button class="danger-btn" type="button" id="clear-day">Dag leegmaken</button>
+          </div>
         </div>
       </article>
 
@@ -2959,50 +3005,154 @@ Regels:
       }
     }
 
+    function normalizeNutritionOcrText(value) {
+      return String(value || '')
+        .replace(/[“”]/g, '"')
+        .replace(/[‘’]/g, "'")
+        .replace(/\u00a0/g, ' ')
+        .replace(/[|]/g, ' ')
+        .replace(/[–—]/g, '-')
+        .replace(/([0-9])\s*[,\.]\s*([0-9])/g, '$1.$2')
+        .replace(/\b0\s+(\d{1,3})\s*g\b/gi, '0.$1 g')
+        .replace(/,/g, '.')
+        .replace(/\s+/g, ' ')
+        .trim();
+    }
+
+    function normalizeNutritionLine(line) {
+      return normalizeNutritionOcrText(line).toLowerCase()
+        // veel voorkomende OCR-fouten op labels
+        .replace(/\bfata\b|\bfat\b|\bfett\b|\bvettenn\b/g, 'vet')
+        .replace(/\bverzadigde\s+vetzuren\b|\bverzadigd\b|\bverz\.?\s*vet\b/g, 'verzadigde vetten')
+        .replace(/\bkoolhydraten?\b|\bcarbohydrates?\b|\bcarbs?\b|\bkh\b/g, 'koolhydraten')
+        .replace(/\bsuikers?\b|\bsugars?\b/g, 'suikers')
+        .replace(/\bvoedingsvezels?\b|\bvezels?\b|\bfibers?\b|\bfibre\b/g, 'vezels')
+        .replace(/\beiwitten?\b|\bprote[iï]nen?\b|\bproteins?\b/g, 'eiwitten')
+        .replace(/\bsalt\b|\bsel\b/g, 'zout')
+        .trim();
+    }
+
     function parseDutchNumber(value) {
       if (value == null) return null;
-      const normalized = String(value).replace(',', '.').replace(/[^0-9.]/g, '');
-      const n = Number(normalized);
+      let raw = String(value).trim();
+      raw = raw.replace(/[“”]/g, '').replace(/,/g, '.');
+      raw = raw.replace(/(\d)\s*\.\s*(\d)/g, '$1.$2');
+      raw = raw.replace(/^0\s+(\d{1,3})$/g, '0.$1');
+      const match = raw.match(/\d+(?:\.\d+)?/);
+      if (!match) return null;
+      const n = Number(match[0]);
       return Number.isFinite(n) ? n : null;
     }
 
-    function matchNumber(text, patterns) {
-      for (const pattern of patterns) {
-        const match = text.match(pattern);
-        if (match && match[1] != null) {
-          const n = parseDutchNumber(match[1]);
-          if (n != null) return n;
+    function firstGramNumber(segment) {
+      const normalized = normalizeNutritionOcrText(segment);
+      const matches = Array.from(normalized.matchAll(/(\d+(?:\.\d+)?)\s*g\b/gi));
+      if (!matches.length) return null;
+      const n = Number(matches[0][1]);
+      return Number.isFinite(n) ? n : null;
+    }
+
+    function kcalFromOcrLines(lines, allText) {
+      for (const rawLine of lines) {
+        const line = normalizeNutritionLine(rawLine);
+        if (!/energie|energy|kcal/.test(line)) continue;
+        const kcalMatch = line.match(/(\d+(?:\.\d+)?)\s*kcal/);
+        if (kcalMatch) return parseDutchNumber(kcalMatch[1]);
+      }
+      const fallback = normalizeNutritionOcrText(allText).match(/(\d+(?:\.\d+)?)\s*kcal/i);
+      return fallback ? parseDutchNumber(fallback[1]) : '';
+    }
+
+    function lineHasKind(line, kind) {
+      const l = normalizeNutritionLine(line);
+      const rules = {
+        fat: /\bvet\b|\bvetten\b|\bfat\b|\bfata\b/i,
+        saturatedFat: /verzadigde\s+vetten|verzadigd|saturated/i,
+        carbs: /koolhydraten|carbohydrate|carbs/i,
+        sugar: /suikers|sugars/i,
+        fiber: /vezels|voedingsvezel|fiber|fibre/i,
+        protein: /eiwitten|eiwit|protein|proteine|prote[iï]nen/i,
+        salt: /\bzout\b|\bsalt\b|\bsel\b/i
+      };
+      return rules[kind] && rules[kind].test(l);
+    }
+
+    function cutAtNextNutritionLabel(segment, currentKind) {
+      const labels = [
+        'energie', 'energy', 'kcal', 'vet', 'vetten', 'fat', 'fata', 'verzadigd', 'saturated',
+        'koolhydraten', 'carbohydrates', 'carbs', 'suikers', 'sugars', 'vezels', 'fiber', 'fibre',
+        'eiwitten', 'eiwit', 'protein', 'proteinen', 'proteïnen', 'zout', 'salt', 'sel'
+      ];
+      let cut = segment.length;
+      const lower = segment.toLowerCase();
+      for (const label of labels) {
+        const idx = lower.indexOf(label);
+        if (idx > 0 && idx < cut) cut = idx;
+      }
+      return segment.slice(0, cut).trim();
+    }
+
+    function valueFromOcrLines(lines, kind) {
+      for (let i = 0; i < lines.length; i++) {
+        const normalized = normalizeNutritionLine(lines[i]);
+        if (!lineHasKind(normalized, kind)) continue;
+
+        let segment = normalized;
+        const labelMatch = segment.match(/(verzadigde\s+vetten|verzadigd|saturated|vetten?|fat|fata|koolhydraten|carbohydrates?|carbs?|suikers?|sugars?|vezels?|voedingsvezel|fibers?|fibre|eiwitten?|eiwit|proteins?|prote[iï]nen?|zout|salt|sel)/i);
+        if (labelMatch) segment = segment.slice(labelMatch.index + labelMatch[0].length);
+        segment = cutAtNextNutritionLabel(segment, kind);
+
+        let n = firstGramNumber(segment);
+
+        // Tabel-layout: label links, waarde rechts op volgende OCR-regel.
+        if (n == null && lines[i + 1]) {
+          const next = normalizeNutritionLine(lines[i + 1]);
+          if (/^\d+(?:\.\d+)?\s*g\s*$/.test(next)) n = firstGramNumber(next);
         }
+        if (n == null) continue;
+
+        // Voorzichtig decimaal herstellen als OCR komma verloor: 52g verzadigd bij 12g vet => 5.2g
+        if ((kind === 'salt') && n > 5 && n < 100 && Number.isInteger(n)) n = n / 100;
+        return n;
       }
       return '';
     }
 
+    function sanitizeOcrNutritionData(data) {
+      const fixed = { ...data };
+      if (fixed.saturatedFat !== '' && fixed.fat !== '' && fixed.saturatedFat > fixed.fat) {
+        const divided10 = fixed.saturatedFat / 10;
+        const divided100 = fixed.saturatedFat / 100;
+        fixed.saturatedFat = divided10 <= fixed.fat ? round(divided10, 2) : (divided100 <= fixed.fat ? round(divided100, 2) : '');
+      }
+      if (fixed.carbs !== '' && fixed.sugar !== '' && fixed.sugar > fixed.carbs) fixed.sugar = '';
+      if (fixed.fiber !== '' && fixed.fiber > 35) fixed.fiber = '';
+      if (fixed.salt !== '' && fixed.salt > 5) fixed.salt = '';
+      return fixed;
+    }
+
     function parseNutritionLabelText(rawText) {
       const original = String(rawText || '');
-      const text = original
-        .toLowerCase()
-        .replace(/\s+/g, ' ')
-        .replace(/,/g, '.');
+      const text = normalizeNutritionOcrText(original.toLowerCase());
       const lines = original.split(/\r?\n/).map(line => line.trim()).filter(Boolean);
-      const nameLine = lines.find(line => /^[A-ZÀ-Ÿ0-9 \-]{4,}$/.test(line) && !/voedingswaarde|ingred/i.test(line));
+      const nameLine = lines.find(line => /^[A-ZÀ-Ÿ0-9 \-]{4,}$/.test(line) && !/voedingswaarde|ingred|nutrition|energie|kcal|vet|fat|koolhydraat|eiwit|protein|zout|salt/i.test(line));
       const totalGramsMatch = text.match(/(?:^|\s)([0-9]+(?:\.[0-9]+)?)\s*g\s*(?:e|\/|$)/i);
-      const portionMatch = text.match(/portie\s*\(?\s*([0-9]+(?:\.[0-9]+)?)\s*g\)?/i);
+      const portionMatch = text.match(/(?:portie|serving)\s*\(?\s*([0-9]+(?:\.[0-9]+)?)\s*g\)?/i);
 
-      const data = {
+      let data = {
         name: nameLine ? nameLine.toLowerCase().replace(/\b\w/g, c => c.toUpperCase()) : '',
-        kcal: matchNumber(text, [
-          /(?:energie|energy)[^0-9]{0,30}[0-9]+\s*kj\s*\/\s*([0-9]+(?:\.[0-9]+)?)\s*kcal/i,
-          /([0-9]+(?:\.[0-9]+)?)\s*kcal/i
-        ]),
-        fat: matchNumber(text, [/vetten?\s+([0-9]+(?:\.[0-9]+)?)\s*g/i]),
-        saturatedFat: matchNumber(text, [/(?:verzadigde\s*(?:vetzuren|vetten)?|waarvan\s+verzadigde)[^0-9]{0,25}([0-9]+(?:\.[0-9]+)?)\s*g/i]),
-        carbs: matchNumber(text, [/koolhydraten\s+([0-9]+(?:\.[0-9]+)?)\s*g/i]),
-        sugar: matchNumber(text, [/(?:waarvan\s+suikers|suikers)\s+([0-9]+(?:\.[0-9]+)?)\s*g/i]),
-        fiber: matchNumber(text, [/(?:vezels|voedingsvezels)\s+([0-9]+(?:\.[0-9]+)?)\s*g/i]),
-        protein: matchNumber(text, [/(?:eiwitten|prote[iï]nen)\s+([0-9]+(?:\.[0-9]+)?)\s*g/i]),
-        salt: matchNumber(text, [/zout\s+([0-9]+(?:\.[0-9]+)?)\s*g/i]),
+        kcal: kcalFromOcrLines(lines, text),
+        fat: valueFromOcrLines(lines, 'fat'),
+        saturatedFat: valueFromOcrLines(lines, 'saturatedFat'),
+        carbs: valueFromOcrLines(lines, 'carbs'),
+        sugar: valueFromOcrLines(lines, 'sugar'),
+        fiber: valueFromOcrLines(lines, 'fiber'),
+        protein: valueFromOcrLines(lines, 'protein'),
+        salt: valueFromOcrLines(lines, 'salt'),
         servings: []
       };
+
+      data = sanitizeOcrNutritionData(data);
       if (portionMatch) data.servings.push({ name: 'portie', grams: round(Number(portionMatch[1]), 1) });
       if (totalGramsMatch) data.servings.push({ name: 'verpakking', grams: round(Number(totalGramsMatch[1]), 1) });
       return data;
