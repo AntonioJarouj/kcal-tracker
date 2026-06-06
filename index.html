@@ -1089,6 +1089,40 @@
       .plus-btn { grid-column: auto; justify-self: auto; margin-top: 0; }
     }
 
+  
+
+    /* --- product edit section --- */
+    .product-edit-search {
+      width: 100%;
+      min-height: 44px;
+      border: 1px solid var(--border);
+      background: rgba(0,0,0,.22);
+      color: var(--text);
+      border-radius: 13px;
+      padding: 0 12px;
+      outline: none;
+    }
+    .product-edit-search:focus { border-color: rgba(239,204,122,.55); background: rgba(0,0,0,.28); }
+    .product-edit-list { display: grid; gap: 10px; }
+    .product-edit-item {
+      border: 1px solid var(--border);
+      background: rgba(255,255,255,.045);
+      border-radius: 16px;
+      padding: 12px;
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 12px;
+      align-items: center;
+    }
+    .product-edit-name { font-weight: 850; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .product-edit-meta { color: var(--muted-2); font-size: 12px; margin-top: 4px; }
+    .product-edit-actions { display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
+    @media (max-width: 560px) {
+      .product-edit-item { grid-template-columns: 1fr; }
+      .product-edit-actions { justify-content: stretch; }
+      .product-edit-actions button { flex: 1; }
+    }
+
   </style>
 </head>
 <body>
@@ -1198,6 +1232,24 @@
         <input id="product-search" type="search" />
         <div id="product-list"></div>
       </div>
+
+      <details class="accordion-card" id="product-edit-card">
+        <summary>
+          <div>
+            <div class="accordion-title">Producten bewerken</div>
+            <div class="accordion-sub">Zoek, wijzig of verwijder producten</div>
+          </div>
+          <div class="accordion-chevron">⌄</div>
+        </summary>
+        <div class="accordion-body stack">
+          <div class="split-note">Hier kun je bestaande producten aanpassen. Bestaande daglogs blijven als snapshot bewaard, zodat oude dagen niet ineens veranderen.</div>
+          <div class="actions-row">
+            <button class="secondary-btn" type="button" id="new-product-from-edit">Nieuw product</button>
+          </div>
+          <input id="edit-product-search" class="product-edit-search" type="search" placeholder="Zoek product op naam of barcode..." autocomplete="off" />
+          <div class="product-edit-list" id="edit-product-list"></div>
+        </div>
+      </details>
 
       <details class="accordion-card" id="settings-card">
         <summary>
@@ -1445,8 +1497,10 @@
             </div>
             <div class="auto-fill-actions">
               <button class="secondary-btn" id="lookup-openfoodfacts" type="button">Vul via barcode</button>
-              <button class="secondary-btn" id="scan-nutrition-label" type="button">Scan voedingslabel</button>
-              <input id="nutrition-label-file" type="file" accept="image/*" capture="environment" hidden />
+              <button class="secondary-btn" id="scan-nutrition-label" type="button">Maak foto voedingslabel</button>
+              <button class="secondary-btn" id="upload-nutrition-label" type="button">Upload voedingslabel</button>
+              <input id="nutrition-label-camera-file" type="file" accept="image/*" capture="environment" hidden />
+              <input id="nutrition-label-file" type="file" accept="image/*" hidden />
             </div>
             <div class="auto-fill-status" id="auto-fill-status">Tip: scan eerst de barcode. Wordt het product niet gevonden, maak dan een foto van de voedingswaarde-tabel.</div>
             <div class="field" data-field="productName">
@@ -1599,6 +1653,7 @@
 
     let selectedMealDetail = null;
     let selectedMealLogIds = new Set();
+    let editingProductId = null;
     let selectedAskAiMeal = null;
     let parsedAiItems = [];
 
@@ -1645,7 +1700,10 @@
       scannerStatus: $('#scanner-status'),
       manualBarcodeInput: $('#manual-barcode-input'),
       autoFillStatus: $('#auto-fill-status'),
+      nutritionLabelCameraFile: $('#nutrition-label-camera-file'),
       nutritionLabelFile: $('#nutrition-label-file'),
+      editProductSearch: $('#edit-product-search'),
+      editProductList: $('#edit-product-list'),
       toast: $('#toast'),
       importFile: $('#import-file'),
       macroGramPreview: $('#macro-gram-preview')
@@ -2004,6 +2062,7 @@
       renderProductSelect();
       renderUnitOptions();
       renderProductList();
+      renderEditProductList();
       renderLogs();
       renderGoalInputs();
       renderGoalPreview();
@@ -2165,6 +2224,39 @@
           </div>
         </div>
       `).join('');
+    }
+
+
+    function renderEditProductList() {
+      if (!els.editProductList) return;
+      const query = (els.editProductSearch ? els.editProductSearch.value : '').trim().toLowerCase();
+      let products = state.products.slice().sort((a, b) => a.name.localeCompare(b.name, 'nl'));
+      if (query) {
+        products = products.filter(product => {
+          const haystack = `${product.name || ''} ${product.barcode || ''}`.toLowerCase();
+          return haystack.includes(query);
+        });
+      }
+      if (!products.length) {
+        els.editProductList.innerHTML = `<div class="empty">Geen producten gevonden.</div>`;
+        return;
+      }
+      els.editProductList.innerHTML = products.map(product => {
+        const servingText = normalizeServings(product).slice(0,2).map(s => `${escapeHtml(s.name)} ${pretty(s.grams, 0)}g`).join(' · ');
+        const meta = [`${pretty(product.kcal,0)} kcal/100g`, `P ${pretty(product.protein)}g`, `C ${pretty(product.carbs)}g`, `F ${pretty(product.fat)}g`, servingText].filter(Boolean).join(' · ');
+        return `
+          <div class="product-edit-item">
+            <div>
+              <div class="product-edit-name">${escapeHtml(product.name)}</div>
+              <div class="product-edit-meta">${meta}</div>
+            </div>
+            <div class="product-edit-actions">
+              <button class="secondary-btn" type="button" data-edit-product="${escapeHtml(product.id)}">Bewerk</button>
+              <button class="danger-btn" type="button" data-delete-product="${escapeHtml(product.id)}">Verwijder</button>
+            </div>
+          </div>
+        `;
+      }).join('');
     }
 
     function renderLogs() {
@@ -2798,29 +2890,7 @@ Regels:
       const result = validateProductForm();
       if (!result.valid) return;
 
-      // Check for comma usage in number inputs
-      const commaInputs = [
-        { el: '#product-kcal', label: 'Calorieën' },
-        { el: '#product-fat', label: 'Vetten' },
-        { el: '#product-saturated-fat', label: 'Verzadigde vetten' },
-        { el: '#product-carbs', label: 'Koolhydraten' },
-        { el: '#product-sugar', label: 'Suikers' },
-        { el: '#product-fiber', label: 'Vezels' },
-        { el: '#product-protein', label: 'Eiwitten' },
-        { el: '#product-salt', label: 'Zout' }
-      ];
-
-      const inputsWithComma = commaInputs
-        .filter(input => $(input.el).value.includes(','))
-        .map(input => input.label);
-
-      if (inputsWithComma.length > 0) {
-        const message = `Je hebt komma's gebruikt in: ${inputsWithComma.join(', ')}.\n\nOp veel telefoons werkt komma niet goed als decimaalteken. Het is beter een punt (.) te gebruiken.\n\nWil je evengoed doorgaan?`;
-        if (!confirm(message)) return;
-      }
-
-      const product = {
-        id: uid(),
+      const productData = {
         barcode: result.data.barcode,
         name: result.data.name,
         kcal: result.data.kcal,
@@ -2831,7 +2901,34 @@ Regels:
         fiber: result.data.fiber,
         protein: result.data.protein,
         salt: result.data.salt || 0,
-        servings: result.data.servings,
+        servings: result.data.servings
+      };
+
+      if (editingProductId) {
+        const index = state.products.findIndex(item => item.id === editingProductId);
+        if (index === -1) {
+          showToast('Product niet gevonden.');
+          return;
+        }
+        state.products[index] = {
+          ...state.products[index],
+          ...productData,
+          updatedAt: new Date().toISOString()
+        };
+        saveProducts();
+        const updatedId = editingProductId;
+        editingProductId = null;
+        $('#product-form').reset();
+        closeProductModal();
+        renderAll();
+        if (els.logProduct && els.logProduct.value === updatedId) selectLogProduct(updatedId, { focusAmount: false });
+        showToast('Product bijgewerkt.');
+        return;
+      }
+
+      const product = {
+        id: uid(),
+        ...productData,
         createdAt: new Date().toISOString()
       };
       state.products.push(product);
@@ -2941,13 +3038,62 @@ Regels:
       clearErrors(['logProductId', 'mealType', 'grams', 'logUnit']);
     }
 
-    function openProductModal() {
+    function setProductSubmitLabel(label) {
+      const submitBtn = document.querySelector('#product-form button[type="submit"]');
+      if (submitBtn) submitBtn.textContent = label;
+    }
+
+    function fillProductModal(product) {
+      $('#barcode').value = product.barcode || '';
+      $('#product-name').value = product.name || '';
+      $('#product-kcal').value = product.kcal != null ? String(product.kcal).replace('.', ',') : '';
+      $('#product-fat').value = product.fat != null ? String(product.fat).replace('.', ',') : '';
+      $('#product-saturated-fat').value = product.saturatedFat != null ? String(product.saturatedFat).replace('.', ',') : '';
+      $('#product-carbs').value = product.carbs != null ? String(product.carbs).replace('.', ',') : '';
+      $('#product-sugar').value = product.sugar != null ? String(product.sugar).replace('.', ',') : '';
+      $('#product-fiber').value = product.fiber != null ? String(product.fiber).replace('.', ',') : '';
+      $('#product-protein').value = product.protein != null ? String(product.protein).replace('.', ',') : '';
+      $('#product-salt').value = product.salt != null ? String(product.salt).replace('.', ',') : '';
+      $('#serving-name-1').value = '';
+      $('#serving-grams-1').value = '';
+      $('#serving-name-2').value = '';
+      $('#serving-grams-2').value = '';
+      const servings = normalizeServings(product);
+      if (servings[0]) {
+        $('#serving-name-1').value = servings[0].name;
+        $('#serving-grams-1').value = String(servings[0].grams).replace('.', ',');
+      }
+      if (servings[1]) {
+        $('#serving-name-2').value = servings[1].name;
+        $('#serving-grams-2').value = String(servings[1].grams).replace('.', ',');
+      }
+    }
+
+    function openProductModal(productId = null) {
+      clearErrors(['barcode', 'productName', 'productKcal', 'productFat', 'productSaturatedFat', 'productCarbs', 'productSugar', 'productFiber', 'productProtein', 'productSalt', 'servingName1', 'servingGrams1', 'servingName2', 'servingGrams2']);
+      setAutoFillStatus('Tip: scan eerst de barcode. Wordt het product niet gevonden, maak of upload dan een foto van de voedingswaarde-tabel.');
+      if (productId) {
+        const product = state.products.find(item => item.id === productId);
+        if (!product) return;
+        editingProductId = product.id;
+        $('#product-modal-title').textContent = 'Product bewerken';
+        setProductSubmitLabel('Wijzigingen opslaan');
+        fillProductModal(product);
+      } else {
+        editingProductId = null;
+        $('#product-form').reset();
+        $('#product-modal-title').textContent = 'Nieuw product toevoegen';
+        setProductSubmitLabel('Product opslaan');
+      }
       els.productModal.classList.add('open');
       setTimeout(() => $('#product-name').focus(), 0);
     }
 
     function closeProductModal() {
       els.productModal.classList.remove('open');
+      editingProductId = null;
+      $('#product-modal-title').textContent = 'Nieuw product toevoegen';
+      setProductSubmitLabel('Product opslaan');
       clearErrors(['barcode', 'productName', 'productKcal', 'productFat', 'productSaturatedFat', 'productCarbs', 'productSugar', 'productFiber', 'productProtein', 'productSalt', 'servingName1', 'servingGrams1', 'servingName2', 'servingGrams2']);
     }
 
@@ -3199,6 +3345,7 @@ Regels:
         setAutoFillStatus('OCR is niet gelukt. Probeer een scherpere foto met goed licht of vul handmatig in.');
       } finally {
         if (els.nutritionLabelFile) els.nutritionLabelFile.value = '';
+        if (els.nutritionLabelCameraFile) els.nutritionLabelCameraFile.value = '';
       }
     }
 
@@ -3478,8 +3625,9 @@ Regels:
       $('#prev-day').addEventListener('click', () => changeDay(-1));
       $('#next-day').addEventListener('click', () => changeDay(1));
       $('#today-btn').addEventListener('click', () => { state.currentDate = toDateKey(new Date()); renderAll(); });
-      $('#open-product-modal').addEventListener('click', openProductModal);
-      $('#open-product-modal-from-log').addEventListener('click', openProductModal);
+      $('#open-product-modal').addEventListener('click', () => openProductModal());
+      $('#open-product-modal-from-log').addEventListener('click', () => openProductModal());
+      $('#new-product-from-edit').addEventListener('click', () => openProductModal());
       $('#close-log-modal').addEventListener('click', closeLogModal);
       $('#close-meal-detail-modal').addEventListener('click', closeMealDetail);
       $('#close-copy-modal').addEventListener('click', closeCopyModal);
@@ -3513,12 +3661,19 @@ Regels:
       $('#scan-product-barcode').addEventListener('click', () => openBarcodeScanner('product-form'));
       $('#scan-log-barcode').addEventListener('click', () => openBarcodeScanner('log-form'));
       $('#lookup-openfoodfacts').addEventListener('click', () => lookupOpenFoodFactsByBarcode());
-      $('#scan-nutrition-label').addEventListener('click', () => els.nutritionLabelFile.click());
+      $('#scan-nutrition-label').addEventListener('click', () => els.nutritionLabelCameraFile && els.nutritionLabelCameraFile.click());
+      $('#upload-nutrition-label').addEventListener('click', () => els.nutritionLabelFile && els.nutritionLabelFile.click());
+      if (els.nutritionLabelCameraFile) {
+        els.nutritionLabelCameraFile.addEventListener('change', event => {
+          const file = event.target.files && event.target.files[0];
+          if (file) scanNutritionLabelFile(file);
+        });
+      }
       els.nutritionLabelFile.addEventListener('change', event => {
         const file = event.target.files && event.target.files[0];
         if (file) scanNutritionLabelFile(file);
       });
-      $('#reset-product-form').addEventListener('click', () => { $('#product-form').reset(); clearErrors(['barcode', 'productName', 'productKcal', 'productProtein', 'productCarbs', 'productFat', 'productSaturatedFat', 'productFiber', 'productSugar', 'productSalt', 'servingName1', 'servingGrams1', 'servingName2', 'servingGrams2']); });
+      $('#reset-product-form').addEventListener('click', () => { editingProductId = null; $('#product-form').reset(); $('#product-modal-title').textContent = 'Nieuw product toevoegen'; setProductSubmitLabel('Product opslaan'); clearErrors(['barcode', 'productName', 'productKcal', 'productProtein', 'productCarbs', 'productFat', 'productSaturatedFat', 'productFiber', 'productSugar', 'productSalt', 'servingName1', 'servingGrams1', 'servingName2', 'servingGrams2']); });
       $('#product-form').addEventListener('submit', addProduct);
       $('#log-form').addEventListener('submit', addLogEntry);
       $('#goals-form').addEventListener('submit', updateGoals);
@@ -3544,6 +3699,15 @@ Regels:
         const file = event.target.files && event.target.files[0];
         if (file) importDataFromFile(file);
       });
+      if (els.editProductSearch) els.editProductSearch.addEventListener('input', renderEditProductList);
+      if (els.editProductList) {
+        els.editProductList.addEventListener('click', (event) => {
+          const editBtn = event.target.closest('[data-edit-product]');
+          if (editBtn) { openProductModal(editBtn.dataset.editProduct); return; }
+          const deleteBtn = event.target.closest('[data-delete-product]');
+          if (deleteBtn) { deleteProduct(deleteBtn.dataset.deleteProduct); renderEditProductList(); }
+        });
+      }
       els.productSearch.addEventListener('input', renderProductList);
       els.logProductSearch.addEventListener('input', () => {
         clearLogProductSelection();
