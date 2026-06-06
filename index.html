@@ -1343,11 +1343,14 @@
           <div class="accordion-chevron">⌄</div>
         </summary>
         <div class="accordion-body stack">
-          <div class="split-note">Alles wordt opgeslagen in localStorage van je browser. Barcode-lookup gebruikt Open Food Facts en voedingslabelscan gebruikt OCR via Tesseract.js.</div>
+          <div class="split-note">Alles wordt opgeslagen in localStorage van je browser. Gebruik volledige backup voor jezelf. Gebruik producten export/import om alleen je productdatabase met iemand te delen, zonder daglogs of doelen.</div>
           <div class="actions-row">
-            <button class="secondary-btn" type="button" id="export-data">Export JSON</button>
-            <button class="secondary-btn" type="button" id="import-data">Import JSON</button>
+            <button class="secondary-btn" type="button" id="export-data">Maak volledige backup</button>
+            <button class="secondary-btn" type="button" id="import-data">Import volledige backup</button>
             <input id="import-file" type="file" accept="application/json" hidden />
+            <button class="secondary-btn" type="button" id="export-products">Exporteer alleen producten</button>
+            <button class="secondary-btn" type="button" id="import-products">Importeer alleen producten</button>
+            <input id="import-products-file" type="file" accept="application/json" hidden />
           </div>
         </div>
       </details>
@@ -1741,6 +1744,7 @@
       editProductList: $('#edit-product-list'),
       toast: $('#toast'),
       importFile: $('#import-file'),
+      importProductsFile: $('#import-products-file'),
       macroGramPreview: $('#macro-gram-preview')
     };
 
@@ -3652,6 +3656,107 @@ Regels:
       reader.readAsText(file);
     }
 
+
+    function normalizeProductIdentity(value) {
+      return String(value || '')
+        .trim()
+        .toLowerCase()
+        .replace(/\s+/g, ' ');
+    }
+
+    function normalizeImportedProduct(product) {
+      const servings = Array.isArray(product.servings)
+        ? product.servings
+            .filter(serving => serving && serving.name && Number(serving.grams) > 0)
+            .slice(0, 2)
+            .map(serving => ({ name: String(serving.name).trim(), grams: round(Number(serving.grams), 1) }))
+        : [];
+
+      return {
+        id: uid(),
+        barcode: normalizeBarcode(product.barcode || ''),
+        name: String(product.name || '').trim(),
+        kcal: round(Number(product.kcal) || 0, 2),
+        fat: round(Number(product.fat) || 0, 2),
+        saturatedFat: round(Number(product.saturatedFat) || 0, 2),
+        carbs: round(Number(product.carbs) || 0, 2),
+        sugar: round(Number(product.sugar) || 0, 2),
+        fiber: round(Number(product.fiber) || 0, 2),
+        protein: round(Number(product.protein) || 0, 2),
+        salt: round(Number(product.salt) || 0, 3),
+        servings,
+        importedAt: new Date().toISOString()
+      };
+    }
+
+    function productAlreadyExists(product, existingBarcodeSet, existingNameSet) {
+      const barcode = normalizeBarcode(product.barcode || '');
+      const name = normalizeProductIdentity(product.name);
+      if (barcode && existingBarcodeSet.has(barcode)) return true;
+      if (name && existingNameSet.has(name)) return true;
+      return false;
+    }
+
+    function exportProductsOnly() {
+      const payload = {
+        type: 'kcal-tracker-products-only',
+        exportedAt: new Date().toISOString(),
+        version: 1,
+        products: state.products
+      };
+      const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `kcal-tracker-products-${toDateKey(new Date())}.json`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+      showToast('Producten geëxporteerd. Je kunt dit bestand naar je vriend sturen.');
+    }
+
+    function importProductsOnlyFromFile(file) {
+      const reader = new FileReader();
+      reader.onload = () => {
+        try {
+          const payload = JSON.parse(String(reader.result));
+          const incomingProducts = Array.isArray(payload) ? payload : payload.products;
+          if (!Array.isArray(incomingProducts)) throw new Error('Geen producten gevonden');
+
+          const existingBarcodeSet = new Set(state.products.map(product => normalizeBarcode(product.barcode)).filter(Boolean));
+          const existingNameSet = new Set(state.products.map(product => normalizeProductIdentity(product.name)).filter(Boolean));
+
+          let added = 0;
+          let skipped = 0;
+          incomingProducts.forEach(rawProduct => {
+            const product = normalizeImportedProduct(rawProduct);
+            if (!product.name || product.kcal <= 0) {
+              skipped += 1;
+              return;
+            }
+            if (productAlreadyExists(product, existingBarcodeSet, existingNameSet)) {
+              skipped += 1;
+              return;
+            }
+            state.products.push(product);
+            if (product.barcode) existingBarcodeSet.add(product.barcode);
+            existingNameSet.add(normalizeProductIdentity(product.name));
+            added += 1;
+          });
+
+          saveProducts();
+          renderAll();
+          showToast(`${added} product(en) toegevoegd. ${skipped} overgeslagen.`);
+        } catch (error) {
+          showToast('Productimport mislukt: ongeldig JSON-bestand.');
+        } finally {
+          if (els.importProductsFile) els.importProductsFile.value = '';
+        }
+      };
+      reader.readAsText(file);
+    }
+
     const STANDARD_PRODUCTS = [
       { name: 'Appel', kcal: 52, fat: 0.2, saturatedFat: 0, carbs: 13.8, sugar: 10.4, fiber: 2.4, protein: 0.3, salt: 0, servings: [{ name: 'stuk', grams: 150 }] },
       { name: 'Peer', kcal: 57, fat: 0.1, saturatedFat: 0, carbs: 15.2, sugar: 9.8, fiber: 3.1, protein: 0.4, salt: 0, servings: [{ name: 'stuk', grams: 160 }] },
@@ -3842,6 +3947,14 @@ Regels:
         const file = event.target.files && event.target.files[0];
         if (file) importDataFromFile(file);
       });
+      $('#export-products').addEventListener('click', exportProductsOnly);
+      $('#import-products').addEventListener('click', () => els.importProductsFile && els.importProductsFile.click());
+      if (els.importProductsFile) {
+        els.importProductsFile.addEventListener('change', (event) => {
+          const file = event.target.files && event.target.files[0];
+          if (file) importProductsOnlyFromFile(file);
+        });
+      }
       if (els.editProductSearch) els.editProductSearch.addEventListener('input', renderEditProductList);
       if (els.editProductList) {
         els.editProductList.addEventListener('click', (event) => {
