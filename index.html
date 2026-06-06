@@ -1123,6 +1123,41 @@
       .product-edit-actions button { flex: 1; }
     }
 
+  
+
+    /* --- Maaltijd detail: compacte macro-samenvatting --- */
+    .meal-detail-summary {
+      display: grid;
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+    .meal-detail-summary-card {
+      border: 1px solid var(--border);
+      background: rgba(255,255,255,.045);
+      border-radius: 14px;
+      padding: 10px;
+      min-width: 0;
+      text-align: center;
+    }
+    .meal-detail-summary-value {
+      font-size: 17px;
+      font-weight: 900;
+      color: var(--accent);
+      letter-spacing: -.04em;
+      white-space: nowrap;
+    }
+    .meal-detail-summary-label {
+      margin-top: 2px;
+      font-size: 11px;
+      color: var(--muted-2);
+      white-space: nowrap;
+    }
+    @media (max-width: 560px) {
+      .meal-detail-summary { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .meal-detail-summary-card:first-child { grid-column: 1 / -1; }
+    }
+
   </style>
 </head>
 <body>
@@ -2308,7 +2343,15 @@
       const mealEntries = getSelectedMealEntries();
       const validIds = new Set(mealEntries.map(entry => entry.id));
       selectedMealLogIds = new Set([...selectedMealLogIds].filter(id => validIds.has(id)));
-      const kcalTotal = mealEntries.reduce((sum, entry) => sum + (Number(entry.kcal) || 0), 0);
+      const mealTotals = mealEntries.reduce((acc, entry) => {
+        acc.kcal += Number(entry.kcal) || 0;
+        acc.protein += Number(entry.protein) || 0;
+        acc.carbs += Number(entry.carbs) || 0;
+        acc.fat += Number(entry.fat) || 0;
+        acc.fiber += Number(entry.fiber) || 0;
+        return acc;
+      }, { kcal: 0, protein: 0, carbs: 0, fat: 0, fiber: 0 });
+      const kcalTotal = mealTotals.kcal;
       const allSelected = mealEntries.length > 0 && mealEntries.every(entry => selectedMealLogIds.has(entry.id));
       const selectedCount = selectedMealLogIds.size;
 
@@ -2321,6 +2364,31 @@
         els.mealDetailList.innerHTML = `<div class="meal-detail-empty">Nog niets in ${meal.label.toLowerCase()}. Klik op “Product loggen” om iets toe te voegen.</div>`;
         return;
       }
+
+      const summary = `
+        <div class="meal-detail-summary">
+          <div class="meal-detail-summary-card">
+            <div class="meal-detail-summary-value">${pretty(mealTotals.kcal, 0)}</div>
+            <div class="meal-detail-summary-label">kcal</div>
+          </div>
+          <div class="meal-detail-summary-card">
+            <div class="meal-detail-summary-value">${pretty(mealTotals.protein, 1)}g</div>
+            <div class="meal-detail-summary-label">eiwit</div>
+          </div>
+          <div class="meal-detail-summary-card">
+            <div class="meal-detail-summary-value">${pretty(mealTotals.carbs, 1)}g</div>
+            <div class="meal-detail-summary-label">koolhydraten</div>
+          </div>
+          <div class="meal-detail-summary-card">
+            <div class="meal-detail-summary-value">${pretty(mealTotals.fat, 1)}g</div>
+            <div class="meal-detail-summary-label">vet</div>
+          </div>
+          <div class="meal-detail-summary-card">
+            <div class="meal-detail-summary-value">${pretty(mealTotals.fiber, 1)}g</div>
+            <div class="meal-detail-summary-label">vezels</div>
+          </div>
+        </div>
+      `;
 
       const bulkbar = `
         <div class="meal-detail-bulkbar">
@@ -2386,7 +2454,7 @@
         `;
       }).join('');
 
-      els.mealDetailList.innerHTML = bulkbar + items;
+      els.mealDetailList.innerHTML = summary + bulkbar + items;
     }
 
     function openMealDetail(mealType) {
@@ -2940,6 +3008,23 @@ Regels:
       showToast('Product opgeslagen.');
     }
 
+
+    function clearLogFormForNextEntry(mealType) {
+      const meal = getMealMeta(mealType || els.logMeal.value || 'breakfast');
+      if (els.logProduct) els.logProduct.value = '';
+      if (els.logProductSearch) els.logProductSearch.value = '';
+      if (els.logGrams) els.logGrams.value = '';
+      if (els.logMeal) els.logMeal.value = meal.key;
+      if (els.logModalMealName) els.logModalMealName.textContent = meal.label;
+      hideProductResults();
+      renderUnitOptions();
+      clearErrors(['logProductId', 'mealType', 'grams', 'logUnit']);
+      updateLogPreview();
+      setTimeout(() => {
+        if (els.logProductSearch && els.logModal && els.logModal.classList.contains('open')) els.logProductSearch.focus();
+      }, 0);
+    }
+
     function addLogEntry(event) {
       event.preventDefault();
       const result = validateLogForm();
@@ -2965,13 +3050,14 @@ Regels:
       if (!state.logs[state.currentDate]) state.logs[state.currentDate] = [];
       state.logs[state.currentDate].push(entry);
       saveLogs();
-      $('#log-form').reset();
-      els.logMeal.value = result.mealType;
-      clearErrors(['logProductId', 'mealType', 'grams', 'logUnit']);
-      closeLogModal();
+
+      // Houd de popup open zodat je direct het volgende product kunt toevoegen.
+      const keepMeal = result.mealType;
+      clearLogFormForNextEntry(keepMeal);
       renderAll();
-      if (selectedMealDetail === result.mealType && els.mealDetailModal && els.mealDetailModal.classList.contains('open')) renderMealDetail();
-      showToast(`Toegevoegd aan ${mealMeta.label.toLowerCase()}.`);
+      if (selectedMealDetail === keepMeal && els.mealDetailModal && els.mealDetailModal.classList.contains('open')) renderMealDetail();
+      openLogModal(keepMeal);
+      showToast(`Toegevoegd aan ${mealMeta.label.toLowerCase()}. Je kunt direct verder loggen.`);
     }
 
     function updateGoals(event) {
