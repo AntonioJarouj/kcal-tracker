@@ -1111,6 +1111,104 @@
       .plus-btn { flex: 0 0 54px; }
     }
 
+  
+
+    /* --- compact maaltijd-detail + samenvatting --- */
+    .meal-summary-grid {
+      display: grid;
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+    .meal-summary-box {
+      border: 1px solid var(--border);
+      background: rgba(255,255,255,.04);
+      border-radius: 14px;
+      padding: 10px 8px;
+      text-align: center;
+      min-width: 0;
+    }
+    .meal-summary-value {
+      font-weight: 900;
+      color: var(--accent);
+      font-size: 16px;
+      letter-spacing: -.03em;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .meal-summary-label {
+      color: var(--muted-2);
+      font-size: 11px;
+      margin-top: 3px;
+      white-space: nowrap;
+    }
+    .meal-detail-item.compact {
+      padding: 11px 12px;
+      gap: 8px;
+    }
+    .meal-detail-row {
+      display: grid;
+      grid-template-columns: auto minmax(0,1fr) auto auto;
+      gap: 10px;
+      align-items: center;
+    }
+    .meal-detail-row .meal-select-check {
+      width: 24px;
+      height: 24px;
+      margin: 0;
+    }
+    .meal-detail-title-compact {
+      font-weight: 850;
+      font-size: 15px;
+      letter-spacing: -.02em;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .meal-detail-meta-compact {
+      margin-top: 3px;
+      color: var(--muted-2);
+      font-size: 12px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .meal-detail-kcal.compact-kcal {
+      font-size: 16px;
+      min-width: 70px;
+      text-align: right;
+    }
+    .edit-entry-btn {
+      min-height: 34px;
+      padding: 0 11px;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      background: rgba(255,255,255,.055);
+      color: var(--text);
+      font-size: 12px;
+      font-weight: 850;
+      white-space: nowrap;
+    }
+    .edit-entry-btn:hover { background: var(--surface-2); border-color: var(--border-strong); }
+    .meal-detail-edit-panel[hidden] { display: none !important; }
+    .meal-detail-edit-panel {
+      border-top: 1px solid var(--border);
+      padding-top: 10px;
+      margin-top: 2px;
+    }
+    .meal-detail-edit-panel .meal-detail-edit {
+      grid-template-columns: minmax(0,.85fr) minmax(0,1fr) auto auto;
+    }
+    @media (max-width: 560px) {
+      .meal-summary-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .meal-summary-box:first-child { grid-column: 1 / -1; }
+      .meal-detail-row { grid-template-columns: auto minmax(0,1fr) auto; }
+      .meal-detail-kcal.compact-kcal { min-width: auto; }
+      .edit-entry-btn { grid-column: 2 / -1; justify-self: end; margin-top: 2px; }
+      .meal-detail-edit-panel .meal-detail-edit { grid-template-columns: 1fr; }
+    }
+
   </style>
 </head>
 <body>
@@ -2371,13 +2469,20 @@
       const mealEntries = getSelectedMealEntries();
       const validIds = new Set(mealEntries.map(entry => entry.id));
       selectedMealLogIds = new Set([...selectedMealLogIds].filter(id => validIds.has(id)));
-      const kcalTotal = mealEntries.reduce((sum, entry) => sum + (Number(entry.kcal) || 0), 0);
+      const totals = mealEntries.reduce((acc, entry) => {
+        acc.kcal += Number(entry.kcal) || 0;
+        acc.protein += Number(entry.protein) || 0;
+        acc.carbs += Number(entry.carbs) || 0;
+        acc.fat += Number(entry.fat) || 0;
+        acc.fiber += Number(entry.fiber) || 0;
+        return acc;
+      }, { kcal: 0, protein: 0, carbs: 0, fat: 0, fiber: 0 });
       const allSelected = mealEntries.length > 0 && mealEntries.every(entry => selectedMealLogIds.has(entry.id));
       const selectedCount = selectedMealLogIds.size;
 
       els.mealDetailTitle.textContent = meal.label;
       els.mealDetailSubtitle.textContent = mealEntries.length
-        ? `${mealEntries.length} ${mealEntries.length === 1 ? 'item' : 'items'} • ${pretty(kcalTotal, 0)} kcal`
+        ? `${mealEntries.length} ${mealEntries.length === 1 ? 'item' : 'items'} • ${pretty(totals.kcal, 0)} kcal`
         : 'Nog niets gelogd';
 
       if (!mealEntries.length) {
@@ -2385,11 +2490,21 @@
         return;
       }
 
+      const mealSummary = `
+        <div class="meal-summary-grid" aria-label="Samenvatting van ${meal.label}">
+          <div class="meal-summary-box"><div class="meal-summary-value">${pretty(totals.kcal, 0)}</div><div class="meal-summary-label">kcal</div></div>
+          <div class="meal-summary-box"><div class="meal-summary-value">${pretty(totals.protein, 1)}g</div><div class="meal-summary-label">eiwit</div></div>
+          <div class="meal-summary-box"><div class="meal-summary-value">${pretty(totals.carbs, 1)}g</div><div class="meal-summary-label">koolhydraten</div></div>
+          <div class="meal-summary-box"><div class="meal-summary-value">${pretty(totals.fat, 1)}g</div><div class="meal-summary-label">vet</div></div>
+          <div class="meal-summary-box"><div class="meal-summary-value">${pretty(totals.fiber, 1)}g</div><div class="meal-summary-label">vezels</div></div>
+        </div>
+      `;
+
       const bulkbar = `
         <div class="meal-detail-bulkbar">
           <div class="bulk-left">
             <button class="select-all-btn" type="button" data-select-all-meal>${allSelected ? 'Deselecteer alles' : 'Selecteer alles'}</button>
-            <span class="selected-count">${selectedCount ? `${selectedCount} geselecteerd` : 'Selecteer producten om te kopiëren of verwijderen'}</span>
+            <span class="selected-count">${selectedCount ? `${selectedCount} geselecteerd` : 'Selecteer om te kopiëren of verwijderen'}</span>
           </div>
           <div class="bulk-actions">
             <button class="compact-btn copy" type="button" data-copy-selected ${selectedCount ? '' : 'disabled'}>Kopiëren</button>
@@ -2414,42 +2529,42 @@
         if (unitLabel !== 'gram' && !unitOptions.includes('selected')) {
           unitOptions += `<option value="${escapeHtml(currentUnitValue)}" selected>${escapeHtml(unitLabel)} (${pretty(entry.unitGrams || 1, 1)}g)</option>`;
         }
+        const amountText = unitLabel === 'gram'
+          ? `${pretty(entry.grams, 1)}g`
+          : `${pretty(amount, 2)} × ${escapeHtml(unitLabel)} (${pretty(entry.grams, 1)}g)`;
         return `
-          <div class="meal-detail-item ${isSelected ? 'is-selected' : ''}" data-entry-id="${escapeHtml(entry.id)}">
-            <div class="meal-detail-top with-check">
+          <div class="meal-detail-item compact ${isSelected ? 'is-selected' : ''}" data-entry-id="${escapeHtml(entry.id)}">
+            <div class="meal-detail-row">
               <input class="meal-select-check" type="checkbox" aria-label="Selecteer ${escapeHtml(entry.productName)}" data-toggle-log-selection="${escapeHtml(entry.id)}" ${isSelected ? 'checked' : ''} />
-              <div>
-                <div class="meal-detail-title">${escapeHtml(entry.productName)}</div>
-                <div class="meal-detail-meta">
-                  <span>${pretty(entry.grams, 1)}g totaal</span>
-                  <span>P ${pretty(entry.protein)}g</span>
-                  <span>C ${pretty(entry.carbs)}g</span>
-                  <span>F ${pretty(entry.fat)}g</span>
-                  <span>Vezels ${pretty(entry.fiber)}g</span>
+              <div class="meal-detail-main-compact">
+                <div class="meal-detail-title-compact">${escapeHtml(entry.productName)}</div>
+                <div class="meal-detail-meta-compact">${amountText} • P ${pretty(entry.protein)}g • C ${pretty(entry.carbs)}g • F ${pretty(entry.fat)}g • Vezels ${pretty(entry.fiber)}g</div>
+              </div>
+              <div class="meal-detail-kcal compact-kcal">${pretty(entry.kcal, 0)} kcal</div>
+              <button class="edit-entry-btn" type="button" data-toggle-edit="${escapeHtml(entry.id)}">Bewerk</button>
+            </div>
+            <div class="meal-detail-edit-panel" data-edit-panel="${escapeHtml(entry.id)}" hidden>
+              <div class="meal-detail-edit">
+                <div class="field">
+                  <label for="edit-amount-${escapeHtml(entry.id)}">Hoeveelheid</label>
+                  <input id="edit-amount-${escapeHtml(entry.id)}" type="text" inputmode="decimal" value="${pretty(amount, 2)}" data-edit-amount="${escapeHtml(entry.id)}" />
                 </div>
+                <div class="field">
+                  <label for="edit-unit-${escapeHtml(entry.id)}">Eenheid</label>
+                  <select id="edit-unit-${escapeHtml(entry.id)}" data-edit-unit="${escapeHtml(entry.id)}">
+                    ${unitOptions}
+                  </select>
+                </div>
+                <button class="primary-btn" type="button" data-save-entry="${escapeHtml(entry.id)}">Opslaan</button>
+                <button class="danger-btn" type="button" data-delete-log="${escapeHtml(entry.id)}">Verwijderen</button>
               </div>
-              <div class="meal-detail-kcal">${pretty(entry.kcal, 0)} kcal</div>
+              <div class="meal-detail-error" id="meal-detail-error-${escapeHtml(entry.id)}"></div>
             </div>
-            <div class="meal-detail-edit">
-              <div class="field">
-                <label for="edit-amount-${escapeHtml(entry.id)}">Hoeveelheid</label>
-                <input id="edit-amount-${escapeHtml(entry.id)}" type="text" inputmode="decimal" value="${pretty(amount, 2)}" data-edit-amount="${escapeHtml(entry.id)}" />
-              </div>
-              <div class="field">
-                <label for="edit-unit-${escapeHtml(entry.id)}">Eenheid</label>
-                <select id="edit-unit-${escapeHtml(entry.id)}" data-edit-unit="${escapeHtml(entry.id)}">
-                  ${unitOptions}
-                </select>
-              </div>
-              <button class="primary-btn" type="button" data-save-entry="${escapeHtml(entry.id)}">Opslaan</button>
-              <button class="danger-btn" type="button" data-delete-log="${escapeHtml(entry.id)}">Verwijderen</button>
-            </div>
-            <div class="meal-detail-error" id="meal-detail-error-${escapeHtml(entry.id)}"></div>
           </div>
         `;
       }).join('');
 
-      els.mealDetailList.innerHTML = bulkbar + items;
+      els.mealDetailList.innerHTML = mealSummary + bulkbar + items;
     }
 
     function openMealDetail(mealType) {
@@ -3977,6 +4092,16 @@
         const deleteSelected = event.target.closest('[data-delete-selected]');
         if (deleteSelected) {
           deleteSelectedMealLogs();
+          return;
+        }
+        const editToggle = event.target.closest('[data-toggle-edit]');
+        if (editToggle) {
+          const panel = document.querySelector(`[data-edit-panel="${CSS.escape(editToggle.dataset.toggleEdit)}"]`);
+          if (panel) {
+            const isHidden = panel.hasAttribute('hidden');
+            panel.toggleAttribute('hidden', !isHidden);
+            editToggle.textContent = isHidden ? 'Sluit' : 'Bewerk';
+          }
           return;
         }
         const saveBtn = event.target.closest('[data-save-entry]');
