@@ -320,11 +320,9 @@
     }
     .modal-backdrop.open { display: flex; }
     #meal-detail-modal { z-index: 60; }
-    #copy-modal { z-index: 90; }
-    #ai-scan-modal { z-index: 95; }
-    #log-modal { z-index: 100; }
-    #product-modal { z-index: 120; }
-    #scanner-modal { z-index: 140; }
+    #log-modal { z-index: 80; }
+    #product-modal { z-index: 100; }
+    #scanner-modal { z-index: 120; }
     .modal {
       width: min(760px, 100%);
       max-height: min(88vh, 820px);
@@ -957,256 +955,94 @@
       .product-results { max-height: 285px; }
     }
 
-
-    /* --- producten bewerken --- */
-    .product-edit-toolbar {
-      display: flex;
-      gap: 10px;
-      align-items: center;
-      flex-wrap: wrap;
-      margin-bottom: 14px;
-    }
-    .product-edit-search {
-      flex: 1;
-      min-width: 220px;
-      border: 1px solid var(--border);
-      background: rgba(0,0,0,.22);
-      color: var(--text);
-      border-radius: 999px;
-      min-height: 42px;
-      padding: 0 14px;
-      outline: none;
-    }
-    .product-edit-search:focus {
-      border-color: rgba(239,204,122,.55);
-      background: rgba(0,0,0,.28);
-    }
-    .product-edit-list { display: grid; gap: 10px; }
-    .product-edit-card {
-      border: 1px solid var(--border);
-      background: rgba(255,255,255,.04);
-      border-radius: 16px;
-      padding: 14px;
-      display: grid;
-      grid-template-columns: minmax(0,1fr) auto;
-      gap: 12px;
-      align-items: center;
-    }
-    .product-edit-title {
-      font-weight: 850;
-      letter-spacing: -.02em;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
-    .product-edit-meta {
-      color: var(--muted-2);
-      font-size: 12px;
-      margin-top: 6px;
-      display: flex;
-      gap: 7px;
-      flex-wrap: wrap;
-    }
-    .product-edit-actions {
-      display: flex;
-      gap: 8px;
-      align-items: center;
-      flex-wrap: wrap;
-      justify-content: flex-end;
-    }
-    @media (max-width: 640px) {
-      .product-edit-card { grid-template-columns: 1fr; }
-      .product-edit-actions { justify-content: stretch; }
-      .product-edit-actions button { flex: 1; }
-      .product-edit-search { min-width: 100%; }
-    }
-
-
-    /* --- AI maaltijdscan --- */
-    .ai-scan-grid { display: grid; gap: 14px; }
-    .ai-config-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-    .ai-file-row { display: flex; gap: 10px; align-items: stretch; flex-wrap: wrap; }
-    .ai-preview {
-      display: none;
-      width: 100%;
-      max-height: 260px;
-      object-fit: contain;
-      border: 1px solid var(--border);
-      border-radius: 16px;
-      background: rgba(0,0,0,.22);
-    }
-    .ai-preview.show { display: block; }
-    .ai-status {
-      min-height: 20px;
-      color: var(--muted);
-      font-size: 13px;
-      line-height: 1.45;
-    }
-    .ai-results { display: grid; gap: 12px; }
-    .ai-result-card {
-      border: 1px solid var(--border);
-      background: rgba(255,255,255,.04);
-      border-radius: 16px;
-      padding: 14px;
-      display: grid;
-      gap: 12px;
-    }
-    .ai-result-head {
-      display: grid;
-      grid-template-columns: auto 1fr;
-      gap: 10px;
-      align-items: start;
-    }
-    .ai-result-check { width: 24px; height: 24px; accent-color: var(--accent); margin-top: 2px; }
-    .ai-result-title { font-weight: 850; letter-spacing: -.02em; }
-    .ai-result-note { margin-top: 4px; color: var(--muted-2); font-size: 12px; line-height: 1.35; }
-    .ai-result-fields { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
-    .ai-result-fields .field input {
-      min-height: 40px;
-      border-radius: 12px;
-    }
-    .ai-warning {
-      border: 1px solid rgba(239,204,122,.22);
-      background: rgba(239,204,122,.07);
-      color: rgba(246,240,232,.80);
-      padding: 12px 14px;
-      border-radius: 14px;
-      font-size: 13px;
-      line-height: 1.45;
-    }
-    @media (max-width: 640px) {
-      .ai-config-grid { grid-template-columns: 1fr; }
-      .ai-result-fields { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-    }
-
   
 
-    /* --- AI scan zichtbaar op maaltijdkaarten --- */
-    .meal-actions {
+    /* --- Vraag AI flow: prompt kopiëren + JSON plakken --- */
+    .meal-card-actions {
       display: flex;
       align-items: center;
       gap: 8px;
       flex-wrap: wrap;
       justify-content: flex-end;
     }
-    .ai-meal-btn {
-      min-height: 44px;
-      padding: 0 13px;
+    .ask-ai-btn {
+      min-height: 40px;
+      padding: 0 12px;
       border-radius: 999px;
-      border: 1px solid rgba(183,144,255,.35);
+      border: 1px solid rgba(183,144,255,.32);
       background: rgba(183,144,255,.10);
       color: var(--accent-2);
       font-size: 13px;
       font-weight: 850;
       white-space: nowrap;
     }
-    .ai-meal-btn:hover { background: rgba(183,144,255,.16); }
-    @media (max-width: 640px) {
-      .meal-actions {
-        grid-column: 1 / -1;
-        width: 100%;
-        justify-content: flex-end;
-      }
-      .ai-meal-btn { flex: 1; }
-      .plus-btn { flex: 0 0 54px; }
+    .ask-ai-btn:hover { background: rgba(183,144,255,.16); }
+    .ai-prompt-box {
+      border: 1px solid var(--border);
+      background: rgba(0,0,0,.24);
+      border-radius: 16px;
+      padding: 14px;
+      max-height: 240px;
+      overflow: auto;
+      color: rgba(246,240,232,.82);
+      font-size: 12px;
+      line-height: 1.55;
+      white-space: pre-wrap;
+      user-select: text;
     }
-
-  
-
-    /* --- compact maaltijd-detail + samenvatting --- */
-    .meal-summary-grid {
-      display: grid;
-      grid-template-columns: repeat(5, minmax(0, 1fr));
-      gap: 8px;
-      margin-bottom: 12px;
+    .ai-json-area {
+      width: 100%;
+      min-height: 150px;
+      resize: vertical;
+      border: 1px solid var(--border);
+      background: rgba(0,0,0,.22);
+      color: var(--text);
+      border-radius: 16px;
+      padding: 12px;
+      outline: none;
+      font: inherit;
+      font-size: 13px;
+      line-height: 1.45;
     }
-    .meal-summary-box {
+    .ai-json-area:focus { border-color: rgba(239,204,122,.55); background: rgba(0,0,0,.28); }
+    .ai-preview-list { display: grid; gap: 12px; }
+    .ai-preview-item {
       border: 1px solid var(--border);
       background: rgba(255,255,255,.04);
-      border-radius: 14px;
-      padding: 10px 8px;
-      text-align: center;
-      min-width: 0;
-    }
-    .meal-summary-value {
-      font-weight: 900;
-      color: var(--accent);
-      font-size: 16px;
-      letter-spacing: -.03em;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
-    .meal-summary-label {
-      color: var(--muted-2);
-      font-size: 11px;
-      margin-top: 3px;
-      white-space: nowrap;
-    }
-    .meal-detail-item.compact {
-      padding: 11px 12px;
-      gap: 8px;
-    }
-    .meal-detail-row {
+      border-radius: 16px;
+      padding: 12px;
       display: grid;
-      grid-template-columns: auto minmax(0,1fr) auto auto;
       gap: 10px;
+    }
+    .ai-preview-top {
+      display: flex;
+      justify-content: space-between;
       align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
     }
-    .meal-detail-row .meal-select-check {
-      width: 24px;
-      height: 24px;
-      margin: 0;
+    .ai-preview-title { font-weight: 850; }
+    .ai-preview-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0,1fr));
+      gap: 10px;
     }
-    .meal-detail-title-compact {
-      font-weight: 850;
-      font-size: 15px;
-      letter-spacing: -.02em;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
-    .meal-detail-meta-compact {
-      margin-top: 3px;
-      color: var(--muted-2);
-      font-size: 12px;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
-    .meal-detail-kcal.compact-kcal {
-      font-size: 16px;
-      min-width: 70px;
-      text-align: right;
-    }
-    .edit-entry-btn {
-      min-height: 34px;
-      padding: 0 11px;
-      border-radius: 999px;
+    .ai-preview-grid label { display: grid; gap: 5px; font-size: 11px; color: var(--muted); font-weight: 750; }
+    .ai-preview-grid input {
+      width: 100%;
       border: 1px solid var(--border);
-      background: rgba(255,255,255,.055);
+      background: rgba(0,0,0,.22);
       color: var(--text);
-      font-size: 12px;
-      font-weight: 850;
-      white-space: nowrap;
+      border-radius: 12px;
+      min-height: 38px;
+      padding: 0 10px;
+      outline: none;
     }
-    .edit-entry-btn:hover { background: var(--surface-2); border-color: var(--border-strong); }
-    .meal-detail-edit-panel[hidden] { display: none !important; }
-    .meal-detail-edit-panel {
-      border-top: 1px solid var(--border);
-      padding-top: 10px;
-      margin-top: 2px;
-    }
-    .meal-detail-edit-panel .meal-detail-edit {
-      grid-template-columns: minmax(0,.85fr) minmax(0,1fr) auto auto;
-    }
-    @media (max-width: 560px) {
-      .meal-summary-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-      .meal-summary-box:first-child { grid-column: 1 / -1; }
-      .meal-detail-row { grid-template-columns: auto minmax(0,1fr) auto; }
-      .meal-detail-kcal.compact-kcal { min-width: auto; }
-      .edit-entry-btn { grid-column: 2 / -1; justify-self: end; margin-top: 2px; }
-      .meal-detail-edit-panel .meal-detail-edit { grid-template-columns: 1fr; }
+    .ai-import-error { color: var(--danger); font-size: 13px; min-height: 18px; }
+    @media (max-width: 640px) {
+      .meal-card-actions { grid-column: 1 / -1; justify-self: stretch; display: grid; grid-template-columns: 1fr auto; }
+      .ask-ai-btn { width: 100%; }
+      .ai-preview-grid { grid-template-columns: repeat(2, minmax(0,1fr)); }
     }
 
   </style>
@@ -1365,26 +1201,6 @@
         </div>
       </details>
 
-      <details class="accordion-card" id="product-edit-card">
-        <summary>
-          <div>
-            <div class="accordion-title">Producten bewerken</div>
-            <div class="accordion-sub">Zoek, wijzig of verwijder bestaande producten</div>
-          </div>
-          <div class="accordion-chevron">⌄</div>
-        </summary>
-        <div class="accordion-body">
-          <div class="split-note" style="margin-bottom: 14px;">
-            Hier kun je bestaande producten aanpassen. Nieuwe logs gebruiken daarna de aangepaste waarden. Oude daglogs blijven bewaard als snapshot.
-          </div>
-          <div class="product-edit-toolbar">
-            <input class="product-edit-search" id="product-edit-search" type="search" placeholder="Zoek product, barcode of portie..." />
-            <button class="primary-btn" type="button" id="open-new-product-from-edit">Nieuw product</button>
-          </div>
-          <div class="product-edit-list" id="product-edit-list"></div>
-        </div>
-      </details>
-
       <details class="accordion-card">
         <summary>
           <div>
@@ -1394,24 +1210,11 @@
           <div class="accordion-chevron">⌄</div>
         </summary>
         <div class="accordion-body stack">
-          <div class="split-note">Alles wordt opgeslagen in localStorage van je browser. Gebruik “Producten delen” om alleen je productdatabase naar iemand te sturen. Gebruik “Volledige backup” alleen voor jezelf, want daarin zitten ook je daglogs en doelen.</div>
-          <div class="split-note">
-            <strong>Producten delen</strong><br>
-            Exporteert alleen producten, barcodes, porties en voedingswaarden. Geen persoonlijke logs.
-          </div>
+          <div class="split-note">Alles wordt opgeslagen in localStorage van je browser. Barcode-lookup gebruikt Open Food Facts en voedingslabelscan gebruikt OCR via Tesseract.js.</div>
           <div class="actions-row">
-            <button class="secondary-btn" type="button" id="export-products">Export producten</button>
-            <button class="secondary-btn" type="button" id="import-products">Import producten</button>
-            <input id="import-products-file" type="file" accept="application/json" hidden />
-          </div>
-          <div class="split-note">
-            <strong>Volledige backup</strong><br>
-            Exporteert producten, daglogs en doelen. Handig als je van telefoon wisselt of een reservekopie wilt maken.
-          </div>
-          <div class="actions-row">
-            <button class="secondary-btn" type="button" id="export-backup">Export backup</button>
-            <button class="secondary-btn" type="button" id="import-backup">Import backup</button>
-            <input id="import-backup-file" type="file" accept="application/json" hidden />
+            <button class="secondary-btn" type="button" id="export-data">Export JSON</button>
+            <button class="secondary-btn" type="button" id="import-data">Import JSON</button>
+            <input id="import-file" type="file" accept="application/json" hidden />
           </div>
         </div>
       </details>
@@ -1492,7 +1295,7 @@
           <div class="selected-meal-pill" id="meal-detail-subtitle">0 items</div>
         </div>
         <div class="modal-actions-top">
-          <button class="secondary-btn" id="ai-scan-from-meal-detail" type="button">AI scan</button>
+          <button class="ask-ai-btn" id="ask-ai-from-meal-detail" type="button">Vraag AI</button>
           <button class="secondary-btn" id="add-from-meal-detail" type="button">Product loggen</button>
           <button class="icon-btn" id="close-meal-detail-modal" type="button" aria-label="Sluiten">×</button>
         </div>
@@ -1541,53 +1344,35 @@
     </div>
   </div>
 
-  <div class="modal-backdrop" id="ai-scan-modal" role="dialog" aria-modal="true" aria-labelledby="ai-scan-title">
+  <div class="modal-backdrop" id="ask-ai-modal" role="dialog" aria-modal="true" aria-labelledby="ask-ai-modal-title">
     <div class="modal log-modal">
       <div class="modal-head">
         <div>
-          <div class="eyebrow">AI maaltijdscan</div>
-          <h2 id="ai-scan-title">Maaltijd schatten</h2>
-          <div class="selected-meal-pill" id="ai-scan-meal-name">Ontbijt</div>
+          <div class="eyebrow">Vraag AI</div>
+          <h2 id="ask-ai-modal-title">Maaltijd laten schatten</h2>
+          <div class="selected-meal-pill" id="ask-ai-meal-name">Ontbijt</div>
         </div>
-        <button class="icon-btn" id="close-ai-scan-modal" type="button" aria-label="Sluiten">×</button>
+        <button class="icon-btn" id="close-ask-ai-modal" type="button" aria-label="Sluiten">×</button>
       </div>
-      <div class="modal-body">
-        <div class="ai-scan-grid">
-          <div class="ai-warning">
-            AI scan is alleen bedoeld als ruwe schatting voor eten dat lastig te loggen is, zoals huisgemaakt Syrisch/Arabisch eten. Controleer altijd zelf de portie, olie, saus, vlees en rijst voordat je opslaat.
-          </div>
-          <div class="ai-config-grid">
-            <div class="field" data-field="aiEndpoint">
-              <label for="ai-ollama-url">Ollama API URL</label>
-              <input id="ai-ollama-url" type="text" placeholder="bijv. http://192.168.178.207:11434" />
-              <div class="error" id="error-aiEndpoint"></div>
-            </div>
-            <div class="field" data-field="aiModel">
-              <label for="ai-model">Vision model</label>
-              <input id="ai-model" type="text" placeholder="bijv. llava:latest" />
-              <div class="error" id="error-aiModel"></div>
-            </div>
-          </div>
-          <div class="field" data-field="aiMealType">
-            <label for="ai-meal-type">Toevoegen aan maaltijd</label>
-            <select id="ai-meal-type">
-              <option value="breakfast">Ontbijt</option>
-              <option value="lunch">Lunch</option>
-              <option value="dinner">Diner</option>
-              <option value="snacks">Tussendoortjes</option>
-            </select>
-            <div class="error" id="error-aiMealType"></div>
-          </div>
-          <div class="ai-file-row">
-            <button class="secondary-btn" type="button" id="choose-ai-meal-photo">Foto kiezen/maken</button>
-            <button class="primary-btn" type="button" id="analyze-ai-meal-photo">Analyseer maaltijd</button>
-            <input id="ai-meal-photo" type="file" accept="image/*" capture="environment" hidden />
-          </div>
-          <img id="ai-meal-preview" class="ai-preview" alt="Voorbeeld van maaltijd foto" />
-          <div class="ai-status" id="ai-scan-status">Kies een duidelijke foto van je bord. Zorg dat de portie goed zichtbaar is.</div>
-          <div class="ai-results" id="ai-results"></div>
-          <button class="primary-btn" type="button" id="add-ai-results" style="display:none;width:100%;">Geselecteerde schatting toevoegen</button>
+      <div class="modal-body stack">
+        <div class="split-note">
+          Gebruik dit wanneer je eten niet goed handmatig kunt tracken. Kopieer de vaste prompt, upload zelf een foto bij je AI-chat en voeg eventueel extra context toe, zoals portiegrootte, gram, saus of olie. Plak daarna alleen de JSON terug in deze app.
         </div>
+        <div class="actions-row">
+          <button class="primary-btn" id="copy-ai-prompt" type="button">Kopieer vaste prompt</button>
+          <button class="secondary-btn" id="clear-ai-json" type="button">Leegmaken</button>
+        </div>
+        <div>
+          <label class="tiny" for="ai-prompt-preview">Vaste prompt</label>
+          <div class="ai-prompt-box" id="ai-prompt-preview"></div>
+        </div>
+        <div>
+          <label class="tiny" for="ai-json-input">Plak hier de JSON van AI</label>
+          <textarea id="ai-json-input" class="ai-json-area" spellcheck="false" placeholder='Plak hier de JSON, bijvoorbeeld: { "items": [...] }'></textarea>
+          <div class="ai-import-error" id="ai-import-error"></div>
+        </div>
+        <div class="ai-preview-list" id="ai-preview-list"></div>
+        <button class="primary-btn" id="add-ai-estimate" type="button" style="width:100%;" disabled>Voeg AI-schatting toe aan maaltijd</button>
       </div>
     </div>
   </div>
@@ -1688,7 +1473,7 @@
             </div>
           </div>
           <div class="actions-row" style="margin-top: 6px;">
-            <button class="primary-btn" type="submit" id="product-submit-btn">Product opslaan</button>
+            <button class="primary-btn" type="submit">Product opslaan</button>
             <button class="secondary-btn" type="button" id="reset-product-form">Leegmaken</button>
           </div>
         </form>
@@ -1736,8 +1521,7 @@
     const STORAGE_KEYS = {
       products: 'kcal_tracker_products_v2',
       logs: 'kcal_tracker_logs_v2',
-      goals: 'kcal_tracker_goals_v2',
-      aiSettings: 'kcal_tracker_ai_settings_v1'
+      goals: 'kcal_tracker_goals_v2'
     };
 
     const DEFAULT_GOALS = { kcal: 2750, protein: 227, carbs: 275, fat: 83, fiber: 30, proteinPct: 33, carbsPct: 40, fatPct: 27 };
@@ -1769,9 +1553,8 @@
 
     let selectedMealDetail = null;
     let selectedMealLogIds = new Set();
-    let editingProductId = null;
-    let aiMealImageBase64 = null;
-    let aiMealProposals = [];
+    let selectedAskAiMeal = null;
+    let parsedAiItems = [];
 
     const $ = (selector) => document.querySelector(selector);
     const $$ = (selector) => Array.from(document.querySelectorAll(selector));
@@ -1786,10 +1569,6 @@
       logList: $('#log-list'),
       productList: $('#product-list'),
       productSearch: $('#product-search'),
-      productEditSearch: $('#product-edit-search'),
-      productEditList: $('#product-edit-list'),
-      productModalTitle: $('#product-modal-title'),
-      productSubmitBtn: $('#product-submit-btn'),
       logProduct: $('#log-product'),
       logProductSearch: $('#log-product-search'),
       logProductResults: $('#log-product-results'),
@@ -1807,16 +1586,13 @@
       copyModalSubtitle: $('#copy-modal-subtitle'),
       copyDate: $('#copy-date'),
       copyMeal: $('#copy-meal'),
-      aiScanModal: $('#ai-scan-modal'),
-      aiScanMealName: $('#ai-scan-meal-name'),
-      aiMealType: $('#ai-meal-type'),
-      aiOllamaUrl: $('#ai-ollama-url'),
-      aiModel: $('#ai-model'),
-      aiMealPhoto: $('#ai-meal-photo'),
-      aiMealPreview: $('#ai-meal-preview'),
-      aiScanStatus: $('#ai-scan-status'),
-      aiResults: $('#ai-results'),
-      addAiResults: $('#add-ai-results'),
+      askAiModal: $('#ask-ai-modal'),
+      askAiMealName: $('#ask-ai-meal-name'),
+      aiPromptPreview: $('#ai-prompt-preview'),
+      aiJsonInput: $('#ai-json-input'),
+      aiImportError: $('#ai-import-error'),
+      aiPreviewList: $('#ai-preview-list'),
+      addAiEstimate: $('#add-ai-estimate'),
       productModal: $('#product-modal'),
       scannerModal: $('#scanner-modal'),
       scannerVideo: $('#scanner-video'),
@@ -1825,8 +1601,7 @@
       autoFillStatus: $('#auto-fill-status'),
       nutritionLabelFile: $('#nutrition-label-file'),
       toast: $('#toast'),
-      importProductsFile: $('#import-products-file'),
-      importBackupFile: $('#import-backup-file'),
+      importFile: $('#import-file'),
       macroGramPreview: $('#macro-gram-preview')
     };
 
@@ -2183,7 +1958,6 @@
       renderProductSelect();
       renderUnitOptions();
       renderProductList();
-      renderProductEditList();
       renderLogs();
       renderGoalInputs();
       renderGoalPreview();
@@ -2347,79 +2121,6 @@
       `).join('');
     }
 
-    function renderProductEditList() {
-      if (!els.productEditList) return;
-      const query = (els.productEditSearch ? els.productEditSearch.value.trim().toLowerCase() : '');
-      let products = state.products.slice().sort((a, b) => a.name.localeCompare(b.name, 'nl'));
-      if (query) {
-        products = products.filter(product => productSearchText(product).includes(query));
-      }
-      if (!products.length) {
-        els.productEditList.innerHTML = `<div class="empty">${state.products.length ? 'Geen producten gevonden.' : 'Nog geen producten toegevoegd.'}</div>`;
-        return;
-      }
-      els.productEditList.innerHTML = products.map(product => {
-        const servings = normalizeServings(product).map(serving => `${escapeHtml(serving.name)} = ${pretty(serving.grams, 1)}g`).join(' · ');
-        const meta = [
-          product.barcode ? `Barcode: ${escapeHtml(product.barcode)}` : 'Geen barcode',
-          `${pretty(product.kcal, 0)} kcal/100g`,
-          `P ${pretty(product.protein)}g`,
-          `C ${pretty(product.carbs)}g`,
-          `F ${pretty(product.fat)}g`,
-          servings
-        ].filter(Boolean).join(' · ');
-        return `
-          <div class="product-edit-card">
-            <div>
-              <div class="product-edit-title">${escapeHtml(product.name)}</div>
-              <div class="product-edit-meta">${meta}</div>
-            </div>
-            <div class="product-edit-actions">
-              <button class="secondary-btn" type="button" data-edit-product="${escapeHtml(product.id)}">Bewerk</button>
-              <button class="danger-btn" type="button" data-delete-product="${escapeHtml(product.id)}">Verwijder</button>
-            </div>
-          </div>
-        `;
-      }).join('');
-    }
-
-    function fillProductFormForEdit(product) {
-      $('#barcode').value = product.barcode || '';
-      $('#product-name').value = product.name || '';
-      setInputValue('#product-kcal', numberOrBlank(product.kcal, 1));
-      setInputValue('#product-fat', numberOrBlank(product.fat, 2));
-      setInputValue('#product-saturated-fat', numberOrBlank(product.saturatedFat, 2));
-      setInputValue('#product-carbs', numberOrBlank(product.carbs, 2));
-      setInputValue('#product-sugar', numberOrBlank(product.sugar, 2));
-      setInputValue('#product-fiber', numberOrBlank(product.fiber, 2));
-      setInputValue('#product-protein', numberOrBlank(product.protein, 2));
-      setInputValue('#product-salt', numberOrBlank(product.salt, 3));
-      const servings = normalizeServings(product);
-      $('#serving-name-1').value = servings[0] ? servings[0].name : '';
-      $('#serving-grams-1').value = servings[0] ? pretty(servings[0].grams, 1) : '';
-      $('#serving-name-2').value = servings[1] ? servings[1].name : '';
-      $('#serving-grams-2').value = servings[1] ? pretty(servings[1].grams, 1) : '';
-    }
-
-    function setProductModalMode(mode, product = null) {
-      const isEdit = mode === 'edit';
-      editingProductId = isEdit && product ? product.id : null;
-      if (els.productModalTitle) els.productModalTitle.textContent = isEdit ? 'Product bewerken' : 'Nieuw product toevoegen';
-      if (els.productSubmitBtn) els.productSubmitBtn.textContent = isEdit ? 'Wijzigingen opslaan' : 'Product opslaan';
-      setAutoFillStatus(isEdit ? 'Pas de waarden aan en klik op “Wijzigingen opslaan”.' : 'Tip: scan eerst de barcode. Wordt het product niet gevonden, maak dan een foto van de voedingswaarde-tabel.');
-    }
-
-    function editProduct(productId) {
-      const product = state.products.find(item => item.id === productId);
-      if (!product) return;
-      $('#product-form').reset();
-      clearErrors(['barcode', 'productName', 'productKcal', 'productFat', 'productSaturatedFat', 'productCarbs', 'productSugar', 'productFiber', 'productProtein', 'productSalt', 'servingName1', 'servingGrams1', 'servingName2', 'servingGrams2']);
-      setProductModalMode('edit', product);
-      fillProductFormForEdit(product);
-      els.productModal.classList.add('open');
-      setTimeout(() => $('#product-name').focus(), 0);
-    }
-
     function renderLogs() {
       const mealUi = {
         breakfast: { icon: '☕' },
@@ -2446,8 +2147,8 @@
               <div class="meal-card-meta">${meta}</div>
               <div class="meal-card-preview ${names.length ? '' : 'empty-line'}">${escapeHtml(preview)}</div>
             </div>
-            <div class="meal-actions">
-              <button class="ai-meal-btn" type="button" data-ai-meal-scan="${meal.key}">AI scan</button>
+            <div class="meal-card-actions">
+              <button class="ask-ai-btn" type="button" data-ask-ai-meal="${meal.key}">Vraag AI</button>
               <button class="plus-btn" type="button" aria-label="Voeg product toe aan ${meal.label}" data-quick-meal="${meal.key}">+</button>
             </div>
           </div>
@@ -2469,20 +2170,13 @@
       const mealEntries = getSelectedMealEntries();
       const validIds = new Set(mealEntries.map(entry => entry.id));
       selectedMealLogIds = new Set([...selectedMealLogIds].filter(id => validIds.has(id)));
-      const totals = mealEntries.reduce((acc, entry) => {
-        acc.kcal += Number(entry.kcal) || 0;
-        acc.protein += Number(entry.protein) || 0;
-        acc.carbs += Number(entry.carbs) || 0;
-        acc.fat += Number(entry.fat) || 0;
-        acc.fiber += Number(entry.fiber) || 0;
-        return acc;
-      }, { kcal: 0, protein: 0, carbs: 0, fat: 0, fiber: 0 });
+      const kcalTotal = mealEntries.reduce((sum, entry) => sum + (Number(entry.kcal) || 0), 0);
       const allSelected = mealEntries.length > 0 && mealEntries.every(entry => selectedMealLogIds.has(entry.id));
       const selectedCount = selectedMealLogIds.size;
 
       els.mealDetailTitle.textContent = meal.label;
       els.mealDetailSubtitle.textContent = mealEntries.length
-        ? `${mealEntries.length} ${mealEntries.length === 1 ? 'item' : 'items'} • ${pretty(totals.kcal, 0)} kcal`
+        ? `${mealEntries.length} ${mealEntries.length === 1 ? 'item' : 'items'} • ${pretty(kcalTotal, 0)} kcal`
         : 'Nog niets gelogd';
 
       if (!mealEntries.length) {
@@ -2490,21 +2184,11 @@
         return;
       }
 
-      const mealSummary = `
-        <div class="meal-summary-grid" aria-label="Samenvatting van ${meal.label}">
-          <div class="meal-summary-box"><div class="meal-summary-value">${pretty(totals.kcal, 0)}</div><div class="meal-summary-label">kcal</div></div>
-          <div class="meal-summary-box"><div class="meal-summary-value">${pretty(totals.protein, 1)}g</div><div class="meal-summary-label">eiwit</div></div>
-          <div class="meal-summary-box"><div class="meal-summary-value">${pretty(totals.carbs, 1)}g</div><div class="meal-summary-label">koolhydraten</div></div>
-          <div class="meal-summary-box"><div class="meal-summary-value">${pretty(totals.fat, 1)}g</div><div class="meal-summary-label">vet</div></div>
-          <div class="meal-summary-box"><div class="meal-summary-value">${pretty(totals.fiber, 1)}g</div><div class="meal-summary-label">vezels</div></div>
-        </div>
-      `;
-
       const bulkbar = `
         <div class="meal-detail-bulkbar">
           <div class="bulk-left">
             <button class="select-all-btn" type="button" data-select-all-meal>${allSelected ? 'Deselecteer alles' : 'Selecteer alles'}</button>
-            <span class="selected-count">${selectedCount ? `${selectedCount} geselecteerd` : 'Selecteer om te kopiëren of verwijderen'}</span>
+            <span class="selected-count">${selectedCount ? `${selectedCount} geselecteerd` : 'Selecteer producten om te kopiëren of verwijderen'}</span>
           </div>
           <div class="bulk-actions">
             <button class="compact-btn copy" type="button" data-copy-selected ${selectedCount ? '' : 'disabled'}>Kopiëren</button>
@@ -2529,42 +2213,42 @@
         if (unitLabel !== 'gram' && !unitOptions.includes('selected')) {
           unitOptions += `<option value="${escapeHtml(currentUnitValue)}" selected>${escapeHtml(unitLabel)} (${pretty(entry.unitGrams || 1, 1)}g)</option>`;
         }
-        const amountText = unitLabel === 'gram'
-          ? `${pretty(entry.grams, 1)}g`
-          : `${pretty(amount, 2)} × ${escapeHtml(unitLabel)} (${pretty(entry.grams, 1)}g)`;
         return `
-          <div class="meal-detail-item compact ${isSelected ? 'is-selected' : ''}" data-entry-id="${escapeHtml(entry.id)}">
-            <div class="meal-detail-row">
+          <div class="meal-detail-item ${isSelected ? 'is-selected' : ''}" data-entry-id="${escapeHtml(entry.id)}">
+            <div class="meal-detail-top with-check">
               <input class="meal-select-check" type="checkbox" aria-label="Selecteer ${escapeHtml(entry.productName)}" data-toggle-log-selection="${escapeHtml(entry.id)}" ${isSelected ? 'checked' : ''} />
-              <div class="meal-detail-main-compact">
-                <div class="meal-detail-title-compact">${escapeHtml(entry.productName)}</div>
-                <div class="meal-detail-meta-compact">${amountText} • P ${pretty(entry.protein)}g • C ${pretty(entry.carbs)}g • F ${pretty(entry.fat)}g • Vezels ${pretty(entry.fiber)}g</div>
-              </div>
-              <div class="meal-detail-kcal compact-kcal">${pretty(entry.kcal, 0)} kcal</div>
-              <button class="edit-entry-btn" type="button" data-toggle-edit="${escapeHtml(entry.id)}">Bewerk</button>
-            </div>
-            <div class="meal-detail-edit-panel" data-edit-panel="${escapeHtml(entry.id)}" hidden>
-              <div class="meal-detail-edit">
-                <div class="field">
-                  <label for="edit-amount-${escapeHtml(entry.id)}">Hoeveelheid</label>
-                  <input id="edit-amount-${escapeHtml(entry.id)}" type="text" inputmode="decimal" value="${pretty(amount, 2)}" data-edit-amount="${escapeHtml(entry.id)}" />
+              <div>
+                <div class="meal-detail-title">${escapeHtml(entry.productName)}</div>
+                <div class="meal-detail-meta">
+                  <span>${pretty(entry.grams, 1)}g totaal</span>
+                  <span>P ${pretty(entry.protein)}g</span>
+                  <span>C ${pretty(entry.carbs)}g</span>
+                  <span>F ${pretty(entry.fat)}g</span>
+                  <span>Vezels ${pretty(entry.fiber)}g</span>
                 </div>
-                <div class="field">
-                  <label for="edit-unit-${escapeHtml(entry.id)}">Eenheid</label>
-                  <select id="edit-unit-${escapeHtml(entry.id)}" data-edit-unit="${escapeHtml(entry.id)}">
-                    ${unitOptions}
-                  </select>
-                </div>
-                <button class="primary-btn" type="button" data-save-entry="${escapeHtml(entry.id)}">Opslaan</button>
-                <button class="danger-btn" type="button" data-delete-log="${escapeHtml(entry.id)}">Verwijderen</button>
               </div>
-              <div class="meal-detail-error" id="meal-detail-error-${escapeHtml(entry.id)}"></div>
+              <div class="meal-detail-kcal">${pretty(entry.kcal, 0)} kcal</div>
             </div>
+            <div class="meal-detail-edit">
+              <div class="field">
+                <label for="edit-amount-${escapeHtml(entry.id)}">Hoeveelheid</label>
+                <input id="edit-amount-${escapeHtml(entry.id)}" type="text" inputmode="decimal" value="${pretty(amount, 2)}" data-edit-amount="${escapeHtml(entry.id)}" />
+              </div>
+              <div class="field">
+                <label for="edit-unit-${escapeHtml(entry.id)}">Eenheid</label>
+                <select id="edit-unit-${escapeHtml(entry.id)}" data-edit-unit="${escapeHtml(entry.id)}">
+                  ${unitOptions}
+                </select>
+              </div>
+              <button class="primary-btn" type="button" data-save-entry="${escapeHtml(entry.id)}">Opslaan</button>
+              <button class="danger-btn" type="button" data-delete-log="${escapeHtml(entry.id)}">Verwijderen</button>
+            </div>
+            <div class="meal-detail-error" id="meal-detail-error-${escapeHtml(entry.id)}"></div>
           </div>
         `;
       }).join('');
 
-      els.mealDetailList.innerHTML = mealSummary + bulkbar + items;
+      els.mealDetailList.innerHTML = bulkbar + items;
     }
 
     function openMealDetail(mealType) {
@@ -2603,7 +2287,6 @@
       els.copyMeal.value = meal.key;
       els.copyModalSubtitle.textContent = `${entries.length} ${entries.length === 1 ? 'item' : 'items'} geselecteerd`;
       els.copyModal.classList.add('open');
-      setTimeout(() => els.copyDate.focus(), 0);
     }
 
     function closeCopyModal() {
@@ -2764,6 +2447,229 @@
       showToast('Hoeveelheid aangepast.');
     }
 
+    function getAiPromptText() {
+      return `Je bent een voedingsdeskundige gespecialiseerd in het schatten van calorieën en macro’s uit foto’s van eten. Je bent extra sterk in Syrische, Arabische, Turkse, Libanese en Midden-Oosterse gerechten, maar je kunt ook Europese, Aziatische, Amerikaanse gerechten, desserts, snacks en restaurantmaaltijden inschatten.
+
+Taak:
+1. Analyseer de foto van mijn maaltijd.
+2. Gebruik extra context als ik die meegeef, bijvoorbeeld gram, portie, olie, saus, rijst, brood of vleeshoeveelheid.
+3. Maak een realistische voedingsschatting. Wees niet overdreven laag; tel olie, sauzen, noten, kaas, brood, rijst en vlees realistisch mee.
+4. Als je onzeker bent, kies een redelijke middenwaarde en vermeld onzekerheid in de notitie.
+5. Geef uitsluitend geldige JSON terug. Geen uitleg buiten JSON. Geen markdown. Geen codeblok.
+
+JSON-formaat exact zo:
+{
+  "meal_name": "korte naam van de maaltijd",
+  "confidence": "low | medium | high",
+  "items": [
+    {
+      "name": "naam van onderdeel of gerecht",
+      "grams": 0,
+      "kcal": 0,
+      "protein": 0,
+      "carbs": 0,
+      "fat": 0,
+      "fiber": 0,
+      "note": "korte reden of onzekerheid"
+    }
+  ],
+  "total": {
+    "kcal": 0,
+    "protein": 0,
+    "carbs": 0,
+    "fat": 0,
+    "fiber": 0
+  },
+  "warning": "Controleer portie, olie en saus handmatig."
+}
+
+Regels:
+- Alle waarden zijn voor de hoeveelheid eten op de foto, niet per 100g.
+- Gebruik getallen zonder eenheden in de JSON.
+- Splits de maaltijd op in logische onderdelen als dat nuttig is, bijvoorbeeld rijst, kip, saus, salade, brood.
+- Als splitsen niet betrouwbaar is, maak één item met de volledige maaltijd.
+- Bij Syrisch/Arabisch eten: denk aan olie, boter/ghee, tahini, yoghurt, noten, rijst, bulgur, brood, gehakt, lamsvlees, kip, hummus, baba ghanoush, fattoush, tabbouleh, yalanji/warak enab, kibbeh, maqluba, molokhia, shawarma, falafel, foul, manakish, baklava en vergelijkbare gerechten.`;
+    }
+
+    function openAskAiModal(mealType = 'breakfast') {
+      const meal = getMealMeta(mealType);
+      selectedAskAiMeal = meal.key;
+      if (els.askAiMealName) els.askAiMealName.textContent = meal.label;
+      if (els.aiPromptPreview) els.aiPromptPreview.textContent = getAiPromptText();
+      if (els.aiJsonInput) els.aiJsonInput.value = '';
+      parsedAiItems = [];
+      renderAiPreview();
+      setAiError('');
+      els.askAiModal.classList.add('open');
+      setTimeout(() => els.aiJsonInput && els.aiJsonInput.focus(), 0);
+    }
+
+    function closeAskAiModal() {
+      els.askAiModal.classList.remove('open');
+      setAiError('');
+    }
+
+    function setAiError(message) {
+      if (els.aiImportError) els.aiImportError.textContent = message || '';
+    }
+
+    async function copyAiPrompt() {
+      const prompt = getAiPromptText();
+      try {
+        await navigator.clipboard.writeText(prompt);
+        showToast('Prompt gekopieerd. Upload nu je foto bij AI en plak daarna de JSON terug.');
+      } catch (error) {
+        showToast('Kopiëren lukte niet. Selecteer de prompt handmatig.');
+      }
+    }
+
+    function extractJsonText(value) {
+      let text = String(value || '').trim();
+      text = text.replace(/^```(?:json)?/i, '').replace(/```$/i, '').trim();
+      const firstObject = text.indexOf('{');
+      const lastObject = text.lastIndexOf('}');
+      const firstArray = text.indexOf('[');
+      const lastArray = text.lastIndexOf(']');
+      if (firstObject !== -1 && lastObject !== -1 && lastObject > firstObject) return text.slice(firstObject, lastObject + 1);
+      if (firstArray !== -1 && lastArray !== -1 && lastArray > firstArray) return text.slice(firstArray, lastArray + 1);
+      return text;
+    }
+
+    function normalizeAiNumber(value) {
+      if (value == null || value === '') return 0;
+      const raw = String(value).trim().replace(',', '.').replace(/[^0-9.]/g, '');
+      const n = Number(raw);
+      return Number.isFinite(n) && n >= 0 ? n : 0;
+    }
+
+    function parseAiResponse(rawValue) {
+      const jsonText = extractJsonText(rawValue);
+      const parsed = JSON.parse(jsonText);
+      const items = Array.isArray(parsed) ? parsed : parsed.items;
+      if (!Array.isArray(items) || !items.length) throw new Error('Geen items gevonden');
+      return items.map((item, index) => ({
+        id: uid(),
+        name: String(item.name || item.productName || item.meal_name || `AI item ${index + 1}`).trim(),
+        grams: round(normalizeAiNumber(item.grams ?? item.estimated_grams ?? item.amount), 1),
+        kcal: round(normalizeAiNumber(item.kcal ?? item.calories), 1),
+        protein: round(normalizeAiNumber(item.protein), 1),
+        carbs: round(normalizeAiNumber(item.carbs ?? item.carbohydrates), 1),
+        fat: round(normalizeAiNumber(item.fat), 1),
+        fiber: round(normalizeAiNumber(item.fiber), 1),
+        note: String(item.note || item.warning || '').trim()
+      })).filter(item => item.name && (item.kcal > 0 || item.grams > 0));
+    }
+
+    function parseAndRenderAiJson() {
+      const raw = els.aiJsonInput ? els.aiJsonInput.value : '';
+      if (!raw.trim()) {
+        parsedAiItems = [];
+        renderAiPreview();
+        setAiError('');
+        return;
+      }
+      try {
+        parsedAiItems = parseAiResponse(raw);
+        if (!parsedAiItems.length) throw new Error('Geen bruikbare items');
+        setAiError('');
+        renderAiPreview();
+      } catch (error) {
+        parsedAiItems = [];
+        renderAiPreview();
+        setAiError('JSON niet herkend. Plak alleen geldige JSON terug, zonder extra tekst.');
+      }
+    }
+
+    function renderAiPreview() {
+      if (!els.aiPreviewList) return;
+      if (!parsedAiItems.length) {
+        els.aiPreviewList.innerHTML = '<div class="empty">Nog geen AI-items. Plak de JSON hierboven om de velden automatisch te vullen.</div>';
+        if (els.addAiEstimate) els.addAiEstimate.disabled = true;
+        return;
+      }
+      els.aiPreviewList.innerHTML = parsedAiItems.map((item, index) => `
+        <div class="ai-preview-item" data-ai-preview-index="${index}">
+          <div class="ai-preview-top">
+            <label style="display:flex;align-items:center;gap:8px;color:var(--muted);font-size:13px;font-weight:800;">
+              <input type="checkbox" data-ai-include="${index}" checked /> meenemen
+            </label>
+            <div class="ai-preview-title">${escapeHtml(item.name)}</div>
+          </div>
+          <div class="ai-preview-grid">
+            <label>Naam<input type="text" data-ai-field="name" data-ai-index="${index}" value="${escapeHtml(item.name)}" /></label>
+            <label>Gram<input type="text" inputmode="decimal" data-ai-field="grams" data-ai-index="${index}" value="${pretty(item.grams, 1)}" /></label>
+            <label>Kcal<input type="text" inputmode="decimal" data-ai-field="kcal" data-ai-index="${index}" value="${pretty(item.kcal, 1)}" /></label>
+            <label>Eiwit<input type="text" inputmode="decimal" data-ai-field="protein" data-ai-index="${index}" value="${pretty(item.protein, 1)}" /></label>
+            <label>Koolhydraten<input type="text" inputmode="decimal" data-ai-field="carbs" data-ai-index="${index}" value="${pretty(item.carbs, 1)}" /></label>
+            <label>Vet<input type="text" inputmode="decimal" data-ai-field="fat" data-ai-index="${index}" value="${pretty(item.fat, 1)}" /></label>
+            <label>Vezels<input type="text" inputmode="decimal" data-ai-field="fiber" data-ai-index="${index}" value="${pretty(item.fiber, 1)}" /></label>
+          </div>
+          ${item.note ? `<div class="tiny">${escapeHtml(item.note)}</div>` : ''}
+        </div>
+      `).join('');
+      if (els.addAiEstimate) els.addAiEstimate.disabled = false;
+    }
+
+    function readAiPreviewItemsFromDom() {
+      return Array.from(document.querySelectorAll('[data-ai-preview-index]')).map(row => {
+        const index = Number(row.dataset.aiPreviewIndex);
+        const include = row.querySelector(`[data-ai-include="${index}"]`);
+        const getField = (field) => {
+          const input = row.querySelector(`[data-ai-field="${field}"]`);
+          return input ? input.value : '';
+        };
+        return {
+          include: include ? include.checked : true,
+          name: String(getField('name') || '').trim(),
+          grams: round(normalizeAiNumber(getField('grams')), 1),
+          kcal: round(normalizeAiNumber(getField('kcal')), 1),
+          protein: round(normalizeAiNumber(getField('protein')), 1),
+          carbs: round(normalizeAiNumber(getField('carbs')), 1),
+          fat: round(normalizeAiNumber(getField('fat')), 1),
+          fiber: round(normalizeAiNumber(getField('fiber')), 1)
+        };
+      }).filter(item => item.include && item.name && item.kcal > 0);
+    }
+
+    function addAiEstimateToLog() {
+      const meal = getMealMeta(selectedAskAiMeal || selectedMealDetail || 'breakfast');
+      const items = readAiPreviewItemsFromDom();
+      if (!items.length) {
+        setAiError('Er zijn geen geldige items geselecteerd. Controleer naam en kcal.');
+        return;
+      }
+      if (!state.logs[state.currentDate]) state.logs[state.currentDate] = [];
+      const now = new Date().toISOString();
+      items.forEach(item => {
+        state.logs[state.currentDate].push({
+          id: uid(),
+          productId: '',
+          productName: `AI: ${item.name}`,
+          mealType: meal.key,
+          mealLabel: meal.label,
+          amount: item.grams || 1,
+          unitLabel: item.grams ? 'gram' : 'schatting',
+          unitGrams: 1,
+          grams: item.grams || 0,
+          kcal: item.kcal,
+          protein: item.protein,
+          carbs: item.carbs,
+          fat: item.fat,
+          fiber: item.fiber,
+          sugar: 0,
+          saturatedFat: 0,
+          salt: 0,
+          isAiEstimate: true,
+          createdAt: now
+        });
+      });
+      saveLogs();
+      closeAskAiModal();
+      renderAll();
+      if (selectedMealDetail === meal.key && els.mealDetailModal && els.mealDetailModal.classList.contains('open')) renderMealDetail();
+      showToast(`${items.length} AI-schatting(en) toegevoegd aan ${meal.label.toLowerCase()}.`);
+    }
+
     function renderUnitOptions() {
       if (!els.logUnit) return;
       const previous = els.logUnit.value;
@@ -2834,9 +2740,29 @@
       const result = validateProductForm();
       if (!result.valid) return;
 
-      const now = new Date().toISOString();
-      const existingProduct = editingProductId ? state.products.find(item => item.id === editingProductId) : null;
-      const productData = {
+      // Check for comma usage in number inputs
+      const commaInputs = [
+        { el: '#product-kcal', label: 'Calorieën' },
+        { el: '#product-fat', label: 'Vetten' },
+        { el: '#product-saturated-fat', label: 'Verzadigde vetten' },
+        { el: '#product-carbs', label: 'Koolhydraten' },
+        { el: '#product-sugar', label: 'Suikers' },
+        { el: '#product-fiber', label: 'Vezels' },
+        { el: '#product-protein', label: 'Eiwitten' },
+        { el: '#product-salt', label: 'Zout' }
+      ];
+
+      const inputsWithComma = commaInputs
+        .filter(input => $(input.el).value.includes(','))
+        .map(input => input.label);
+
+      if (inputsWithComma.length > 0) {
+        const message = `Je hebt komma's gebruikt in: ${inputsWithComma.join(', ')}.\n\nOp veel telefoons werkt komma niet goed als decimaalteken. Het is beter een punt (.) te gebruiken.\n\nWil je evengoed doorgaan?`;
+        if (!confirm(message)) return;
+      }
+
+      const product = {
+        id: uid(),
         barcode: result.data.barcode,
         name: result.data.name,
         kcal: result.data.kcal,
@@ -2847,24 +2773,8 @@
         fiber: result.data.fiber,
         protein: result.data.protein,
         salt: result.data.salt || 0,
-        servings: result.data.servings
-      };
-
-      if (existingProduct) {
-        Object.assign(existingProduct, productData, { updatedAt: now });
-        saveProducts();
-        $('#product-form').reset();
-        closeProductModal();
-        renderAll();
-        if (els.logProduct.value === existingProduct.id) selectLogProduct(existingProduct.id, { focusAmount: false });
-        showToast('Product bijgewerkt.');
-        return;
-      }
-
-      const product = {
-        id: uid(),
-        ...productData,
-        createdAt: now
+        servings: result.data.servings,
+        createdAt: new Date().toISOString()
       };
       state.products.push(product);
       saveProducts();
@@ -2873,24 +2783,6 @@
       renderAll();
       selectLogProduct(product.id, { focusAmount: false });
       showToast('Product opgeslagen.');
-    }
-
-    function resetLogFormForNextItem(mealType) {
-      const meal = getMealMeta(mealType || els.logMeal.value || 'breakfast');
-      $('#log-form').reset();
-      els.logProduct.value = '';
-      if (els.logProductSearch) els.logProductSearch.value = '';
-      els.logMeal.value = meal.key;
-      els.logModalMealName.textContent = meal.label;
-      hideProductResults();
-      renderUnitOptions();
-      clearErrors(['logProductId', 'mealType', 'grams', 'logUnit']);
-      updateLogPreview();
-      setTimeout(() => {
-        if (els.logModal.classList.contains('open') && els.logProductSearch) {
-          els.logProductSearch.focus();
-        }
-      }, 0);
     }
 
     function addLogEntry(event) {
@@ -2918,10 +2810,13 @@
       if (!state.logs[state.currentDate]) state.logs[state.currentDate] = [];
       state.logs[state.currentDate].push(entry);
       saveLogs();
+      $('#log-form').reset();
+      els.logMeal.value = result.mealType;
+      clearErrors(['logProductId', 'mealType', 'grams', 'logUnit']);
+      closeLogModal();
       renderAll();
-      resetLogFormForNextItem(result.mealType);
       if (selectedMealDetail === result.mealType && els.mealDetailModal && els.mealDetailModal.classList.contains('open')) renderMealDetail();
-      showToast(`Toegevoegd aan ${mealMeta.label.toLowerCase()}. Je kunt meteen het volgende product zoeken.`);
+      showToast(`Toegevoegd aan ${mealMeta.label.toLowerCase()}.`);
     }
 
     function updateGoals(event) {
@@ -2988,19 +2883,13 @@
       clearErrors(['logProductId', 'mealType', 'grams', 'logUnit']);
     }
 
-    function openProductModal(options = {}) {
-      const { reset = true } = options;
-      if (reset) $('#product-form').reset();
-      setProductModalMode('create');
-      clearErrors(['barcode', 'productName', 'productKcal', 'productFat', 'productSaturatedFat', 'productCarbs', 'productSugar', 'productFiber', 'productProtein', 'productSalt', 'servingName1', 'servingGrams1', 'servingName2', 'servingGrams2']);
+    function openProductModal() {
       els.productModal.classList.add('open');
       setTimeout(() => $('#product-name').focus(), 0);
     }
 
     function closeProductModal() {
       els.productModal.classList.remove('open');
-      editingProductId = null;
-      setProductModalMode('create');
       clearErrors(['barcode', 'productName', 'productKcal', 'productFat', 'productSaturatedFat', 'productCarbs', 'productSugar', 'productFiber', 'productProtein', 'productSalt', 'servingName1', 'servingGrams1', 'servingName2', 'servingGrams2']);
     }
 
@@ -3060,182 +2949,48 @@
 
     function parseDutchNumber(value) {
       if (value == null) return null;
-      let raw = String(value).trim();
-
-      // Herstel decimale komma's/punten vóór we een getal matchen:
-      // "0,5" / "0, 5" / "0. 5" => "0.5"
-      raw = raw.replace(/(\d)\s*[,\.]\s*(\d)/g, '$1.$2');
-
-      // OCR splitst soms "0,5" naar "0 5" of "0,18" naar "0 18".
-      // Alleen corrigeren als de volledige waarde zo is, niet midden in een zin.
-      raw = raw.replace(/^0\s+(\d{1,3})$/g, (_, dec) => `0.${dec}`);
-
-      raw = raw.replace(/,/g, '.');
-      const match = raw.match(/\d+(?:\.\d+)?/);
-      if (!match) return null;
-      const n = Number(match[0]);
+      const normalized = String(value).replace(',', '.').replace(/[^0-9.]/g, '');
+      const n = Number(normalized);
       return Number.isFinite(n) ? n : null;
     }
 
-    function normalizeOcrNutritionText(rawText) {
-      return String(rawText || '')
-        .toLowerCase()
-        .replace(/\u00a0/g, ' ')
-        .replace(/[|]/g, ' ')
-        .replace(/[–—]/g, '-')
-        .replace(/(\d)\s*[,\.]\s*(\d)/g, '$1.$2')
-        .replace(/\b0\s+(\d{1,3})\s*g\b/gi, '0.$1 g')
-        .replace(/,/g, '.')
-        .replace(/\s+/g, ' ')
-        .trim();
-    }
-
-    function normalizeOcrLine(line) {
-      return String(line || '')
-        .toLowerCase()
-        .replace(/\u00a0/g, ' ')
-        .replace(/[|]/g, ' ')
-        .replace(/[–—]/g, '-')
-        // Komma-decimalen normaliseren VOORDAT spaties worden samengevouwen.
-        .replace(/(\d)\s*[,\.]\s*(\d)/g, '$1.$2')
-        // OCR-gesplitste decimalen: "0 5 g" => "0.5 g" en "0 18 g" => "0.18 g".
-        .replace(/\b0\s+(\d{1,3})\s*g\b/gi, '0.$1 g')
-        .replace(/,/g, '.')
-        .replace(/\s+/g, ' ')
-        .trim();
-    }
-
-    function numberBeforeGramFromLine(line) {
-      const normalized = normalizeOcrLine(line);
-      const matches = Array.from(normalized.matchAll(/(\d+(?:\.\d+)?)\s*g\b/gi));
-      if (!matches.length) return null;
-      const n = Number(matches[matches.length - 1][1]);
-      return Number.isFinite(n) ? n : null;
-    }
-
-    function labelRegexForKind(kind) {
-      const map = {
-        fat: /\bvet(?:ten)?\b/i,
-        saturatedFat: /(?:verzadigd|verzadigde|verzadigde\s+vet(?:ten|zuren)?)/i,
-        carbs: /koolhydraten/i,
-        sugar: /suikers/i,
-        fiber: /voedingsvezel|voedingsvezels|vezels/i,
-        protein: /eiwitten|eiwit|prote[iï]nen/i,
-        salt: /\bzout\b/i
-      };
-      return map[kind] || null;
-    }
-
-    function valueSegmentAfterLabel(line, kind) {
-      const normalized = normalizeOcrLine(line);
-      const labelRegex = labelRegexForKind(kind);
-      if (!labelRegex) return normalized;
-
-      const labelMatch = normalized.match(labelRegex);
-      if (!labelMatch) return normalized;
-
-      let segment = normalized.slice(labelMatch.index + labelMatch[0].length);
-
-      // Als OCR meerdere rijen op één regel plakt, knippen we af bij de volgende macro-label.
-      // Zo wordt "suikers 0 g voedingsvezel 0 g eiwitten 20 g" niet gelezen als suikers = 20.
-      const otherLabels = [
-        /\bvet(?:ten)?\b/i,
-        /verzadigd/i,
-        /koolhydraten/i,
-        /suikers/i,
-        /voedingsvezel|voedingsvezels|vezels/i,
-        /eiwitten|eiwit|prote[iï]nen/i,
-        /\bzout\b/i
-      ].filter(regex => String(regex) !== String(labelRegex));
-
-      let cutAt = segment.length;
-      for (const regex of otherLabels) {
-        const m = segment.match(regex);
-        if (m && m.index > 0 && m.index < cutAt) cutAt = m.index;
-      }
-      return segment.slice(0, cutAt).trim();
-    }
-
-    function kcalFromLines(lines, text) {
-      for (const line of lines) {
-        const normalized = normalizeOcrLine(line);
-        if (!/energie|kcal/.test(normalized)) continue;
-        const kcalMatch = normalized.match(/(\d+(?:\.\d+)?)\s*kcal/);
-        if (kcalMatch) return parseDutchNumber(kcalMatch[1]);
-        const parenMatch = normalized.match(/\((\d+(?:\.\d+)?)\s*kcal\)/);
-        if (parenMatch) return parseDutchNumber(parenMatch[1]);
-      }
-      const fallback = text.match(/(\d+(?:\.\d+)?)\s*kcal/i);
-      return fallback ? parseDutchNumber(fallback[1]) : '';
-    }
-
-    function valueFromNutritionLines(lines, matcher, options = {}) {
-      for (let i = 0; i < lines.length; i++) {
-        const line = normalizeOcrLine(lines[i]);
-        if (!matcher(line)) continue;
-
-        const segment = options.kind ? valueSegmentAfterLabel(line, options.kind) : line;
-        let n = numberBeforeGramFromLine(segment);
-
-        // Soms OCR splitst tabel: label op ene regel, waarde op volgende regel.
-        // Alleen volgende regel gebruiken als die bijna alleen een gramwaarde bevat.
-        if (n == null && lines[i + 1]) {
-          const nextLine = normalizeOcrLine(lines[i + 1]);
-          if (/^\d+(?:\.\d+)?\s*g\s*$/.test(nextLine)) n = numberBeforeGramFromLine(nextLine);
+    function matchNumber(text, patterns) {
+      for (const pattern of patterns) {
+        const match = text.match(pattern);
+        if (match && match[1] != null) {
+          const n = parseDutchNumber(match[1]);
+          if (n != null) return n;
         }
-
-        if (n == null) continue;
-
-        // Zout op labels is vaak 0,18. Als OCR daar 18 van maakt, corrigeren we voorzichtig.
-        if (options.kind === 'salt' && n > 10 && n < 100 && Number.isInteger(n)) n = n / 100;
-        return n;
       }
       return '';
     }
 
-    function sanitizeOcrNutritionData(data) {
-      const fixed = { ...data };
-
-      // Saturated fat cannot normally be higher than total fat. If OCR lost a comma,
-      // 52 with total fat 12 is probably 5.2.
-      if (fixed.saturatedFat !== '' && fixed.fat !== '' && fixed.saturatedFat > fixed.fat) {
-        const divided = fixed.saturatedFat / 10;
-        fixed.saturatedFat = divided <= fixed.fat ? round(divided, 2) : '';
-      }
-
-      // Sugar is part of carbs. If it is higher, OCR probably grabbed the protein value.
-      if (fixed.sugar !== '' && fixed.carbs !== '' && fixed.sugar > fixed.carbs) fixed.sugar = '';
-
-      // Fiber values above 30 g/100g are suspicious for normal products in OCR mode.
-      // More importantly: if it equals protein and there was no clear fiber line, leave it blank.
-      if (fixed.fiber !== '' && fixed.fiber > 30) fixed.fiber = '';
-
-      return fixed;
-    }
-
     function parseNutritionLabelText(rawText) {
       const original = String(rawText || '');
-      const text = normalizeOcrNutritionText(original);
+      const text = original
+        .toLowerCase()
+        .replace(/\s+/g, ' ')
+        .replace(/,/g, '.');
       const lines = original.split(/\r?\n/).map(line => line.trim()).filter(Boolean);
-      const normalizedLines = lines.map(normalizeOcrLine);
-      const nameLine = lines.find(line => /^[A-ZÀ-Ÿ0-9 \-]{4,}$/.test(line) && !/voedingswaarde|ingred|soort|energie|kcal|vet|koolhydraten|eiwit|zout/i.test(line));
+      const nameLine = lines.find(line => /^[A-ZÀ-Ÿ0-9 \-]{4,}$/.test(line) && !/voedingswaarde|ingred/i.test(line));
       const totalGramsMatch = text.match(/(?:^|\s)([0-9]+(?:\.[0-9]+)?)\s*g\s*(?:e|\/|$)/i);
       const portionMatch = text.match(/portie\s*\(?\s*([0-9]+(?:\.[0-9]+)?)\s*g\)?/i);
 
-      let data = {
+      const data = {
         name: nameLine ? nameLine.toLowerCase().replace(/\b\w/g, c => c.toUpperCase()) : '',
-        kcal: kcalFromLines(lines, text),
-        fat: valueFromNutritionLines(lines, line => /^(?:.*\s)?vet(?:ten)?\b/.test(line) && !/verzadigd|onverzadigd|vetzuur|vetzuren/.test(line)),
-        saturatedFat: valueFromNutritionLines(lines, line => /verzadigd/.test(line)),
-        carbs: valueFromNutritionLines(lines, line => /koolhydraten/.test(line)),
-        sugar: valueFromNutritionLines(lines, line => /suikers/.test(line)),
-        fiber: valueFromNutritionLines(lines, line => /voedingsvezel|voedingsvezels|vezels/.test(line)),
-        protein: valueFromNutritionLines(lines, line => /eiwitten|eiwit|prote[iï]nen/.test(line)),
-        salt: valueFromNutritionLines(lines, line => /\bzout\b/.test(line), { kind: 'salt' }),
+        kcal: matchNumber(text, [
+          /(?:energie|energy)[^0-9]{0,30}[0-9]+\s*kj\s*\/\s*([0-9]+(?:\.[0-9]+)?)\s*kcal/i,
+          /([0-9]+(?:\.[0-9]+)?)\s*kcal/i
+        ]),
+        fat: matchNumber(text, [/vetten?\s+([0-9]+(?:\.[0-9]+)?)\s*g/i]),
+        saturatedFat: matchNumber(text, [/(?:verzadigde\s*(?:vetzuren|vetten)?|waarvan\s+verzadigde)[^0-9]{0,25}([0-9]+(?:\.[0-9]+)?)\s*g/i]),
+        carbs: matchNumber(text, [/koolhydraten\s+([0-9]+(?:\.[0-9]+)?)\s*g/i]),
+        sugar: matchNumber(text, [/(?:waarvan\s+suikers|suikers)\s+([0-9]+(?:\.[0-9]+)?)\s*g/i]),
+        fiber: matchNumber(text, [/(?:vezels|voedingsvezels)\s+([0-9]+(?:\.[0-9]+)?)\s*g/i]),
+        protein: matchNumber(text, [/(?:eiwitten|prote[iï]nen)\s+([0-9]+(?:\.[0-9]+)?)\s*g/i]),
+        salt: matchNumber(text, [/zout\s+([0-9]+(?:\.[0-9]+)?)\s*g/i]),
         servings: []
       };
-
-      data = sanitizeOcrNutritionData(data);
       if (portionMatch) data.servings.push({ name: 'portie', grams: round(Number(portionMatch[1]), 1) });
       if (totalGramsMatch) data.servings.push({ name: 'verpakking', grams: round(Number(totalGramsMatch[1]), 1) });
       return data;
@@ -3283,213 +3038,6 @@
       } finally {
         if (els.nutritionLabelFile) els.nutritionLabelFile.value = '';
       }
-    }
-
-    function getAiSettings() {
-      try {
-        return {
-          endpoint: '',
-          model: 'llava:latest',
-          ...(JSON.parse(localStorage.getItem(STORAGE_KEYS.aiSettings)) || {})
-        };
-      } catch (error) {
-        return { endpoint: '', model: 'llava:latest' };
-      }
-    }
-
-    function saveAiSettings() {
-      const settings = {
-        endpoint: String(els.aiOllamaUrl.value || '').trim().replace(/\/$/, ''),
-        model: String(els.aiModel.value || '').trim()
-      };
-      localStorage.setItem(STORAGE_KEYS.aiSettings, JSON.stringify(settings));
-      return settings;
-    }
-
-    function openAiScanModal(mealType = 'breakfast') {
-      const meal = getMealMeta(mealType);
-      const settings = getAiSettings();
-      els.aiMealType.value = meal.key;
-      els.aiScanMealName.textContent = meal.label;
-      els.aiOllamaUrl.value = settings.endpoint;
-      els.aiModel.value = settings.model;
-      aiMealImageBase64 = null;
-      aiMealProposals = [];
-      if (els.aiMealPhoto) els.aiMealPhoto.value = '';
-      if (els.aiMealPreview) {
-        els.aiMealPreview.src = '';
-        els.aiMealPreview.classList.remove('show');
-      }
-      els.aiResults.innerHTML = '';
-      els.addAiResults.style.display = 'none';
-      els.aiScanStatus.textContent = 'Kies een duidelijke foto van je bord. Zorg dat de portie goed zichtbaar is.';
-      clearErrors(['aiEndpoint', 'aiModel', 'aiMealType']);
-      els.aiScanModal.classList.add('open');
-    }
-
-    function closeAiScanModal() {
-      els.aiScanModal.classList.remove('open');
-      clearErrors(['aiEndpoint', 'aiModel', 'aiMealType']);
-    }
-
-    function readImageFileAsBase64(file) {
-      return new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = () => {
-          const dataUrl = String(reader.result || '');
-          const base64 = dataUrl.includes(',') ? dataUrl.split(',')[1] : dataUrl;
-          resolve({ dataUrl, base64 });
-        };
-        reader.onerror = reject;
-        reader.readAsDataURL(file);
-      });
-    }
-
-    function safeJsonFromModelResponse(text) {
-      const raw = String(text || '').trim();
-      try { return JSON.parse(raw); } catch (error) {}
-      const match = raw.match(/\{[\s\S]*\}/);
-      if (match) {
-        try { return JSON.parse(match[0]); } catch (error) {}
-      }
-      throw new Error('AI gaf geen geldige JSON terug');
-    }
-
-    function normalizeAiProposal(item, index) {
-      const name = String(item.name || item.product_name || `AI schatting ${index + 1}`).trim();
-      return {
-        id: uid(),
-        selected: true,
-        name,
-        grams: round(Number(item.estimated_grams ?? item.grams ?? item.weight_g ?? 100) || 100, 1),
-        kcal: round(Number(item.kcal ?? item.calories ?? 0) || 0, 1),
-        protein: round(Number(item.protein ?? item.eiwit ?? 0) || 0, 1),
-        carbs: round(Number(item.carbs ?? item.koolhydraten ?? 0) || 0, 1),
-        fat: round(Number(item.fat ?? item.vet ?? 0) || 0, 1),
-        fiber: round(Number(item.fiber ?? item.vezels ?? 0) || 0, 1),
-        confidence: String(item.confidence || item.zekerheid || 'laag').toLowerCase(),
-        notes: String(item.notes || item.note || item.warning || '').trim()
-      };
-    }
-
-    function renderAiResults() {
-      if (!aiMealProposals.length) {
-        els.aiResults.innerHTML = '';
-        els.addAiResults.style.display = 'none';
-        return;
-      }
-      els.aiResults.innerHTML = aiMealProposals.map(item => `
-        <div class="ai-result-card" data-ai-id="${escapeHtml(item.id)}">
-          <div class="ai-result-head">
-            <input class="ai-result-check" type="checkbox" data-ai-select="${escapeHtml(item.id)}" ${item.selected ? 'checked' : ''} />
-            <div>
-              <div class="ai-result-title">${escapeHtml(item.name)}</div>
-              <div class="ai-result-note">Zekerheid: ${escapeHtml(item.confidence)}${item.notes ? ` • ${escapeHtml(item.notes)}` : ''}</div>
-            </div>
-          </div>
-          <div class="ai-result-fields">
-            <div class="field"><label>Naam</label><input type="text" value="${escapeHtml(item.name)}" data-ai-field="name" data-ai-id="${escapeHtml(item.id)}" /></div>
-            <div class="field"><label>Gram</label><input type="text" inputmode="decimal" value="${pretty(item.grams, 1)}" data-ai-field="grams" data-ai-id="${escapeHtml(item.id)}" /></div>
-            <div class="field"><label>Kcal</label><input type="text" inputmode="decimal" value="${pretty(item.kcal, 1)}" data-ai-field="kcal" data-ai-id="${escapeHtml(item.id)}" /></div>
-            <div class="field"><label>Eiwit</label><input type="text" inputmode="decimal" value="${pretty(item.protein, 1)}" data-ai-field="protein" data-ai-id="${escapeHtml(item.id)}" /></div>
-            <div class="field"><label>Koolhydraten</label><input type="text" inputmode="decimal" value="${pretty(item.carbs, 1)}" data-ai-field="carbs" data-ai-id="${escapeHtml(item.id)}" /></div>
-            <div class="field"><label>Vet</label><input type="text" inputmode="decimal" value="${pretty(item.fat, 1)}" data-ai-field="fat" data-ai-id="${escapeHtml(item.id)}" /></div>
-            <div class="field"><label>Vezels</label><input type="text" inputmode="decimal" value="${pretty(item.fiber, 1)}" data-ai-field="fiber" data-ai-id="${escapeHtml(item.id)}" /></div>
-          </div>
-        </div>
-      `).join('');
-      els.addAiResults.style.display = 'block';
-    }
-
-    async function analyzeAiMealPhoto() {
-      clearErrors(['aiEndpoint', 'aiModel', 'aiMealType']);
-      const settings = saveAiSettings();
-      if (!settings.endpoint) {
-        setFieldError('aiEndpoint', 'Vul je Ollama API URL in, bijvoorbeeld http://192.168.178.207:11434.');
-        return;
-      }
-      if (!settings.model) {
-        setFieldError('aiModel', 'Vul een vision-model in, bijvoorbeeld llava:latest.');
-        return;
-      }
-      if (!aiMealImageBase64) {
-        els.aiScanStatus.textContent = 'Kies eerst een foto van je maaltijd.';
-        return;
-      }
-      if (!MEAL_TYPES.some(meal => meal.key === els.aiMealType.value)) {
-        setFieldError('aiMealType', 'Kies een geldige maaltijd.');
-        return;
-      }
-
-      const prompt = `Je bent een voedingslog-assistent. Analyseer de foto van een maaltijd en geef GEEN uitleg, alleen geldige JSON. Maak een voorzichtige schatting. Splits de maaltijd in logbare onderdelen. Houd rekening met Arabisch/Syrisch eten zoals rijst, kip, vlees, hummus, fattoush, baba ghanoush, yalanji, kibbeh, molokhia, maqluba, brood, saus en olie. Als je onzeker bent, zet confidence op low en noteer wat gecontroleerd moet worden. Gebruik kcal en macro's voor de zichtbare portie, niet per 100g. JSON-formaat exact: {"meal_name":"string","items":[{"name":"string","estimated_grams":number,"kcal":number,"protein":number,"carbs":number,"fat":number,"fiber":number,"confidence":"low|medium|high","notes":"string"}],"warning":"string"}`;
-
-      els.aiScanStatus.textContent = 'AI analyseert je maaltijd via Ollama. Dit kan even duren...';
-      els.addAiResults.style.display = 'none';
-      try {
-        const response = await fetch(`${settings.endpoint}/api/generate`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            model: settings.model,
-            prompt,
-            images: [aiMealImageBase64],
-            stream: false,
-            format: 'json'
-          })
-        });
-        if (!response.ok) throw new Error(`Ollama fout ${response.status}`);
-        const data = await response.json();
-        const parsed = safeJsonFromModelResponse(data.response || data.message || data);
-        const items = Array.isArray(parsed.items) ? parsed.items : [];
-        if (!items.length) throw new Error('Geen items gevonden');
-        aiMealProposals = items.map(normalizeAiProposal).filter(item => item.kcal > 0 || item.grams > 0);
-        renderAiResults();
-        els.aiScanStatus.textContent = `${aiMealProposals.length} schatting(en) gevonden. Controleer alles en pas waar nodig aan voordat je toevoegt.`;
-        if (parsed.warning) showToast(String(parsed.warning).slice(0, 120));
-      } catch (error) {
-        els.aiScanStatus.textContent = 'AI scan is niet gelukt. Controleer of Ollama draait, of je URL klopt, of je browser de verbinding toestaat. Via GitHub Pages kan http naar je lokale server soms geblokkeerd worden.';
-      }
-    }
-
-    function addAiResultsToLog() {
-      const meal = getMealMeta(els.aiMealType.value || selectedMealDetail || 'snacks');
-      const selected = aiMealProposals.filter(item => item.selected);
-      if (!selected.length) {
-        showToast('Selecteer minstens één AI-schatting.');
-        return;
-      }
-      if (!state.logs[state.currentDate]) state.logs[state.currentDate] = [];
-      const now = new Date().toISOString();
-      selected.forEach(item => {
-        state.logs[state.currentDate].push({
-          id: uid(),
-          productId: '',
-          productName: `AI: ${item.name}`,
-          mealType: meal.key,
-          mealLabel: meal.label,
-          amount: round(item.grams, 1),
-          unitLabel: 'gram',
-          unitGrams: 1,
-          grams: round(item.grams, 1),
-          kcal: round(item.kcal, 1),
-          protein: round(item.protein, 1),
-          carbs: round(item.carbs, 1),
-          fat: round(item.fat, 1),
-          fiber: round(item.fiber, 1),
-          sugar: 0,
-          saturatedFat: 0,
-          salt: 0,
-          source: 'ollama-ai-meal-scan',
-          aiConfidence: item.confidence,
-          aiNotes: item.notes,
-          createdAt: now
-        });
-      });
-      saveLogs();
-      closeAiScanModal();
-      renderAll();
-      if (selectedMealDetail === meal.key && els.mealDetailModal.classList.contains('open')) renderMealDetail();
-      showToast(`${selected.length} AI-schatting(en) toegevoegd aan ${meal.label.toLowerCase()}.`);
     }
 
     async function loadZxingScanner() {
@@ -3646,106 +3194,26 @@
       showToast.timer = setTimeout(() => els.toast.classList.remove('show'), 2200);
     }
 
-    function downloadJson(filename, payload) {
+    function exportData() {
+      const payload = {
+        exportedAt: new Date().toISOString(),
+        version: 4,
+        products: state.products,
+        logs: state.logs,
+        goals: state.goals
+      };
       const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = filename;
+      a.download = `kcal-tracker-export-${toDateKey(new Date())}.json`;
       document.body.appendChild(a);
       a.click();
       a.remove();
       URL.revokeObjectURL(url);
     }
 
-    function normalizeImportedProduct(product) {
-      return {
-        id: product.id || uid(),
-        barcode: product.barcode || '',
-        name: product.name || 'Naamloos product',
-        kcal: Number(product.kcal) || 0,
-        fat: Number(product.fat) || 0,
-        saturatedFat: Number(product.saturatedFat) || 0,
-        carbs: Number(product.carbs) || 0,
-        sugar: Number(product.sugar) || 0,
-        fiber: Number(product.fiber) || 0,
-        protein: Number(product.protein) || 0,
-        salt: Number(product.salt) || 0,
-        servings: normalizeServings(product),
-        createdAt: product.createdAt || new Date().toISOString()
-      };
-    }
-
-    function productMergeKey(product) {
-      const barcode = normalizeBarcode(product.barcode);
-      if (barcode) return `barcode:${barcode}`;
-      return `name:${String(product.name || '').trim().toLowerCase()}`;
-    }
-
-    function exportProductsOnly() {
-      const payload = {
-        exportedAt: new Date().toISOString(),
-        type: 'kcal-tracker-products',
-        version: 5,
-        products: state.products
-      };
-      downloadJson(`kcal-tracker-products-${toDateKey(new Date())}.json`, payload);
-      showToast('Producten geëxporteerd.');
-    }
-
-    function importProductsFromFile(file) {
-      const reader = new FileReader();
-      reader.onload = () => {
-        try {
-          const payload = JSON.parse(String(reader.result));
-          const importedProducts = Array.isArray(payload.products) ? payload.products : null;
-          if (!importedProducts) throw new Error('Geen producten gevonden');
-
-          const existingByKey = new Map(state.products.map(product => [productMergeKey(product), product]));
-          let added = 0;
-          let updated = 0;
-
-          importedProducts.map(normalizeImportedProduct).forEach(product => {
-            if (!product.name || product.kcal <= 0) return;
-            const key = productMergeKey(product);
-            const existing = existingByKey.get(key);
-            if (existing) {
-              Object.assign(existing, { ...product, id: existing.id });
-              updated += 1;
-            } else {
-              product.id = uid();
-              state.products.push(product);
-              existingByKey.set(key, product);
-              added += 1;
-            }
-          });
-
-          saveProducts();
-          renderAll();
-          showToast(`Producten geïmporteerd: ${added} nieuw, ${updated} bijgewerkt.`);
-        } catch (error) {
-          showToast('Import producten mislukt: ongeldig JSON-bestand.');
-        } finally {
-          els.importProductsFile.value = '';
-        }
-      };
-      reader.readAsText(file);
-    }
-
-    function exportFullBackup() {
-      const payload = {
-        exportedAt: new Date().toISOString(),
-        type: 'kcal-tracker-full-backup',
-        version: 5,
-        products: state.products,
-        logs: state.logs,
-        goals: state.goals
-      };
-      downloadJson(`kcal-tracker-backup-${toDateKey(new Date())}.json`, payload);
-      showToast('Volledige backup geëxporteerd.');
-    }
-
-    function importFullBackupFromFile(file) {
+    function importDataFromFile(file) {
       const reader = new FileReader();
       reader.onload = () => {
         try {
@@ -3753,9 +3221,17 @@
           if (!payload || !Array.isArray(payload.products) || typeof payload.logs !== 'object' || typeof payload.goals !== 'object') {
             throw new Error('Ongeldig importbestand');
           }
-
-          state.products = payload.products.map(normalizeImportedProduct);
+          
+          // Ensure backward compatibility by adding missing fields with defaults
+          state.products = payload.products.map(product => ({
+            ...product,
+            saturatedFat: product.saturatedFat || 0,
+            sugar: product.sugar || 0,
+            salt: product.salt || 0
+          }));
+          
           state.logs = payload.logs;
+          // Ensure backward compatibility for log entries
           Object.keys(state.logs).forEach(dateKey => {
             state.logs[dateKey] = state.logs[dateKey].map(entry => ({
               ...entry,
@@ -3764,24 +3240,18 @@
               salt: entry.salt || 0
             }));
           });
-
+          
           state.goals = { ...DEFAULT_GOALS, ...payload.goals };
-          state.goals = calculateMacroGoals(
-            state.goals.kcal,
-            state.goals.carbsPct ?? DEFAULT_GOALS.carbsPct,
-            state.goals.proteinPct ?? DEFAULT_GOALS.proteinPct,
-            state.goals.fatPct ?? DEFAULT_GOALS.fatPct,
-            state.goals.fiber
-          );
+          state.goals = calculateMacroGoals(state.goals.kcal, state.goals.carbsPct ?? DEFAULT_GOALS.carbsPct, state.goals.proteinPct ?? DEFAULT_GOALS.proteinPct, state.goals.fatPct ?? DEFAULT_GOALS.fatPct, state.goals.fiber);
           saveProducts();
           saveLogs();
           saveGoals();
           renderAll();
-          showToast('Volledige backup geïmporteerd.');
+          showToast('Data geïmporteerd.');
         } catch (error) {
-          showToast('Import backup mislukt: ongeldig JSON-bestand.');
+          showToast('Import mislukt: ongeldig JSON-bestand.');
         } finally {
-          els.importBackupFile.value = '';
+          els.importFile.value = '';
         }
       };
       reader.readAsText(file);
@@ -3794,67 +3264,12 @@
       { name: 'Aardbeien', kcal: 32, fat: 0.3, saturatedFat: 0, carbs: 7.7, sugar: 4.9, fiber: 2.0, protein: 0.7, salt: 0, servings: [{ name: 'portie', grams: 100 }] },
       { name: 'Blauwe bessen', kcal: 57, fat: 0.3, saturatedFat: 0, carbs: 14.5, sugar: 10.0, fiber: 2.4, protein: 0.7, salt: 0, servings: [{ name: 'portie', grams: 100 }] },
       { name: 'Frambozen', kcal: 52, fat: 0.7, saturatedFat: 0, carbs: 11.9, sugar: 4.4, fiber: 6.5, protein: 1.2, salt: 0, servings: [{ name: 'portie', grams: 100 }] },
-      { name: 'Bramen', kcal: 43, fat: 0.5, saturatedFat: 0, carbs: 10.2, sugar: 4.9, fiber: 5.3, protein: 1.4, salt: 0, servings: [{ name: 'portie', grams: 100 }] },
       { name: 'Mango', kcal: 60, fat: 0.4, saturatedFat: 0.1, carbs: 15.0, sugar: 13.7, fiber: 1.6, protein: 0.8, salt: 0, servings: [{ name: 'portie', grams: 125 }] },
       { name: 'Sinaasappel', kcal: 47, fat: 0.1, saturatedFat: 0, carbs: 11.8, sugar: 9.4, fiber: 2.4, protein: 0.9, salt: 0, servings: [{ name: 'stuk', grams: 130 }] },
-      { name: 'Mandarijn', kcal: 53, fat: 0.3, saturatedFat: 0, carbs: 13.3, sugar: 10.6, fiber: 1.8, protein: 0.8, salt: 0, servings: [{ name: 'stuk', grams: 80 }] },
       { name: 'Kiwi', kcal: 61, fat: 0.5, saturatedFat: 0, carbs: 14.7, sugar: 9.0, fiber: 3.0, protein: 1.1, salt: 0, servings: [{ name: 'stuk', grams: 75 }] },
       { name: 'Druiven', kcal: 69, fat: 0.2, saturatedFat: 0, carbs: 18.1, sugar: 15.5, fiber: 0.9, protein: 0.7, salt: 0, servings: [{ name: 'portie', grams: 100 }] },
       { name: 'Watermeloen', kcal: 30, fat: 0.2, saturatedFat: 0, carbs: 7.6, sugar: 6.2, fiber: 0.4, protein: 0.6, salt: 0, servings: [{ name: 'portie', grams: 150 }] },
-      { name: 'Meloen', kcal: 34, fat: 0.2, saturatedFat: 0.1, carbs: 8.2, sugar: 7.9, fiber: 0.9, protein: 0.8, salt: 0, servings: [{ name: 'portie', grams: 150 }] },
       { name: 'Ananas', kcal: 50, fat: 0.1, saturatedFat: 0, carbs: 13.1, sugar: 9.9, fiber: 1.4, protein: 0.5, salt: 0, servings: [{ name: 'portie', grams: 100 }] },
-      { name: 'Perzik', kcal: 39, fat: 0.3, saturatedFat: 0, carbs: 9.5, sugar: 8.4, fiber: 1.5, protein: 0.9, salt: 0, servings: [{ name: 'stuk', grams: 150 }] },
-      { name: 'Nectarine', kcal: 44, fat: 0.3, saturatedFat: 0, carbs: 10.6, sugar: 7.9, fiber: 1.7, protein: 1.1, salt: 0, servings: [{ name: 'stuk', grams: 140 }] },
-      { name: 'Pruim', kcal: 46, fat: 0.3, saturatedFat: 0, carbs: 11.4, sugar: 9.9, fiber: 1.4, protein: 0.7, salt: 0, servings: [{ name: 'stuk', grams: 65 }] },
-      { name: 'Abrikoos', kcal: 48, fat: 0.4, saturatedFat: 0, carbs: 11.1, sugar: 9.2, fiber: 2.0, protein: 1.4, salt: 0, servings: [{ name: 'stuk', grams: 35 }] },
-      { name: 'Kersen', kcal: 63, fat: 0.2, saturatedFat: 0, carbs: 16.0, sugar: 12.8, fiber: 2.1, protein: 1.1, salt: 0, servings: [{ name: 'portie', grams: 100 }] },
-      { name: 'Granaatappel', kcal: 83, fat: 1.2, saturatedFat: 0.1, carbs: 18.7, sugar: 13.7, fiber: 4.0, protein: 1.7, salt: 0, servings: [{ name: 'portie', grams: 100 }] },
-      { name: 'Grapefruit', kcal: 42, fat: 0.1, saturatedFat: 0, carbs: 10.7, sugar: 6.9, fiber: 1.6, protein: 0.8, salt: 0, servings: [{ name: 'halve', grams: 120 }] },
-      { name: 'Citroen', kcal: 29, fat: 0.3, saturatedFat: 0, carbs: 9.3, sugar: 2.5, fiber: 2.8, protein: 1.1, salt: 0, servings: [{ name: 'stuk', grams: 60 }] },
-      { name: 'Limoen', kcal: 30, fat: 0.2, saturatedFat: 0, carbs: 10.5, sugar: 1.7, fiber: 2.8, protein: 0.7, salt: 0, servings: [{ name: 'stuk', grams: 50 }] },
-      { name: 'Avocado', kcal: 160, fat: 14.7, saturatedFat: 2.1, carbs: 8.5, sugar: 0.7, fiber: 6.7, protein: 2.0, salt: 0.02, servings: [{ name: 'halve', grams: 75 }, { name: 'stuk', grams: 150 }] },
-      { name: 'Dadels', kcal: 282, fat: 0.4, saturatedFat: 0, carbs: 75.0, sugar: 63.0, fiber: 8.0, protein: 2.5, salt: 0, servings: [{ name: 'stuk', grams: 7 }, { name: 'portie', grams: 30 }] },
-      { name: 'Vijgen vers', kcal: 74, fat: 0.3, saturatedFat: 0, carbs: 19.2, sugar: 16.3, fiber: 2.9, protein: 0.8, salt: 0, servings: [{ name: 'stuk', grams: 50 }] },
-      { name: 'Rozijnen', kcal: 299, fat: 0.5, saturatedFat: 0.1, carbs: 79.2, sugar: 59.2, fiber: 3.7, protein: 3.1, salt: 0.03, servings: [{ name: 'eetlepel', grams: 10 }, { name: 'portie', grams: 30 }] },
-      { name: 'Komkommer', kcal: 15, fat: 0.1, saturatedFat: 0, carbs: 3.6, sugar: 1.7, fiber: 0.5, protein: 0.7, salt: 0, servings: [{ name: 'stuk', grams: 300 }, { name: 'portie', grams: 100 }] },
-      { name: 'Tomaat', kcal: 18, fat: 0.2, saturatedFat: 0, carbs: 3.9, sugar: 2.6, fiber: 1.2, protein: 0.9, salt: 0.01, servings: [{ name: 'stuk', grams: 120 }, { name: 'portie', grams: 100 }] },
-      { name: 'Cherrytomaten', kcal: 18, fat: 0.2, saturatedFat: 0, carbs: 3.9, sugar: 2.6, fiber: 1.2, protein: 0.9, salt: 0.01, servings: [{ name: 'portie', grams: 100 }] },
-      { name: 'Paprika rood', kcal: 31, fat: 0.3, saturatedFat: 0, carbs: 6.0, sugar: 4.2, fiber: 2.1, protein: 1.0, salt: 0, servings: [{ name: 'stuk', grams: 150 }, { name: 'portie', grams: 100 }] },
-      { name: 'Paprika geel', kcal: 27, fat: 0.2, saturatedFat: 0, carbs: 6.3, sugar: 4.2, fiber: 0.9, protein: 1.0, salt: 0, servings: [{ name: 'stuk', grams: 150 }, { name: 'portie', grams: 100 }] },
-      { name: 'Paprika groen', kcal: 20, fat: 0.2, saturatedFat: 0, carbs: 4.6, sugar: 2.4, fiber: 1.7, protein: 0.9, salt: 0, servings: [{ name: 'stuk', grams: 150 }, { name: 'portie', grams: 100 }] },
-      { name: 'Wortel', kcal: 41, fat: 0.2, saturatedFat: 0, carbs: 9.6, sugar: 4.7, fiber: 2.8, protein: 0.9, salt: 0.07, servings: [{ name: 'stuk', grams: 60 }, { name: 'portie', grams: 100 }] },
-      { name: 'Ui', kcal: 40, fat: 0.1, saturatedFat: 0, carbs: 9.3, sugar: 4.2, fiber: 1.7, protein: 1.1, salt: 0, servings: [{ name: 'stuk', grams: 100 }] },
-      { name: 'Rode ui', kcal: 40, fat: 0.1, saturatedFat: 0, carbs: 9.3, sugar: 4.2, fiber: 1.7, protein: 1.1, salt: 0, servings: [{ name: 'stuk', grams: 100 }] },
-      { name: 'Knoflook', kcal: 149, fat: 0.5, saturatedFat: 0.1, carbs: 33.1, sugar: 1.0, fiber: 2.1, protein: 6.4, salt: 0.02, servings: [{ name: 'teen', grams: 3 }] },
-      { name: 'Sla', kcal: 15, fat: 0.2, saturatedFat: 0, carbs: 2.9, sugar: 0.8, fiber: 1.3, protein: 1.4, salt: 0.03, servings: [{ name: 'portie', grams: 50 }] },
-      { name: 'IJsbergsla', kcal: 14, fat: 0.1, saturatedFat: 0, carbs: 3.0, sugar: 2.0, fiber: 1.2, protein: 0.9, salt: 0.01, servings: [{ name: 'portie', grams: 50 }] },
-      { name: 'Spinazie', kcal: 23, fat: 0.4, saturatedFat: 0.1, carbs: 3.6, sugar: 0.4, fiber: 2.2, protein: 2.9, salt: 0.08, servings: [{ name: 'portie', grams: 100 }] },
-      { name: 'Rucola', kcal: 25, fat: 0.7, saturatedFat: 0.1, carbs: 3.7, sugar: 2.1, fiber: 1.6, protein: 2.6, salt: 0.07, servings: [{ name: 'portie', grams: 40 }] },
-      { name: 'Broccoli', kcal: 34, fat: 0.4, saturatedFat: 0.1, carbs: 6.6, sugar: 1.7, fiber: 2.6, protein: 2.8, salt: 0.03, servings: [{ name: 'portie', grams: 150 }, { name: 'stronk', grams: 300 }] },
-      { name: 'Bloemkool', kcal: 25, fat: 0.3, saturatedFat: 0.1, carbs: 5.0, sugar: 1.9, fiber: 2.0, protein: 1.9, salt: 0.03, servings: [{ name: 'portie', grams: 150 }] },
-      { name: 'Courgette', kcal: 17, fat: 0.3, saturatedFat: 0.1, carbs: 3.1, sugar: 2.5, fiber: 1.0, protein: 1.2, salt: 0.01, servings: [{ name: 'stuk', grams: 200 }, { name: 'portie', grams: 100 }] },
-      { name: 'Aubergine', kcal: 25, fat: 0.2, saturatedFat: 0, carbs: 5.9, sugar: 3.5, fiber: 3.0, protein: 1.0, salt: 0, servings: [{ name: 'stuk', grams: 300 }, { name: 'portie', grams: 100 }] },
-      { name: 'Champignons', kcal: 22, fat: 0.3, saturatedFat: 0.1, carbs: 3.3, sugar: 2.0, fiber: 1.0, protein: 3.1, salt: 0.01, servings: [{ name: 'portie', grams: 100 }] },
-      { name: 'Sperziebonen', kcal: 31, fat: 0.1, saturatedFat: 0, carbs: 7.0, sugar: 3.3, fiber: 3.4, protein: 1.8, salt: 0.01, servings: [{ name: 'portie', grams: 150 }] },
-      { name: 'Doperwten', kcal: 81, fat: 0.4, saturatedFat: 0.1, carbs: 14.5, sugar: 5.7, fiber: 5.1, protein: 5.4, salt: 0.01, servings: [{ name: 'portie', grams: 100 }] },
-      { name: 'Mais', kcal: 86, fat: 1.2, saturatedFat: 0.2, carbs: 19.0, sugar: 6.3, fiber: 2.7, protein: 3.2, salt: 0.02, servings: [{ name: 'portie', grams: 100 }] },
-      { name: 'Aardappel gekookt', kcal: 87, fat: 0.1, saturatedFat: 0, carbs: 20.1, sugar: 0.9, fiber: 1.8, protein: 1.9, salt: 0.01, servings: [{ name: 'stuk', grams: 150 }, { name: 'portie', grams: 200 }] },
-      { name: 'Zoete aardappel', kcal: 86, fat: 0.1, saturatedFat: 0, carbs: 20.1, sugar: 4.2, fiber: 3.0, protein: 1.6, salt: 0.06, servings: [{ name: 'stuk', grams: 130 }, { name: 'portie', grams: 200 }] },
-      { name: 'Pompoen', kcal: 26, fat: 0.1, saturatedFat: 0.1, carbs: 6.5, sugar: 2.8, fiber: 0.5, protein: 1.0, salt: 0.01, servings: [{ name: 'portie', grams: 150 }] },
-      { name: 'Bietjes', kcal: 43, fat: 0.2, saturatedFat: 0, carbs: 10.0, sugar: 6.8, fiber: 2.8, protein: 1.6, salt: 0.08, servings: [{ name: 'portie', grams: 100 }] },
-      { name: 'Radijs', kcal: 16, fat: 0.1, saturatedFat: 0, carbs: 3.4, sugar: 1.9, fiber: 1.6, protein: 0.7, salt: 0.04, servings: [{ name: 'stuk', grams: 10 }, { name: 'portie', grams: 100 }] },
-      { name: 'Bleekselderij', kcal: 16, fat: 0.2, saturatedFat: 0, carbs: 3.0, sugar: 1.3, fiber: 1.6, protein: 0.7, salt: 0.08, servings: [{ name: 'stengel', grams: 40 }] },
-      { name: 'Prei', kcal: 61, fat: 0.3, saturatedFat: 0, carbs: 14.2, sugar: 3.9, fiber: 1.8, protein: 1.5, salt: 0.02, servings: [{ name: 'portie', grams: 100 }] },
-      { name: 'Kool wit', kcal: 25, fat: 0.1, saturatedFat: 0, carbs: 5.8, sugar: 3.2, fiber: 2.5, protein: 1.3, salt: 0.02, servings: [{ name: 'portie', grams: 100 }] },
-      { name: 'Rode kool', kcal: 31, fat: 0.2, saturatedFat: 0, carbs: 7.4, sugar: 3.8, fiber: 2.1, protein: 1.4, salt: 0.03, servings: [{ name: 'portie', grams: 100 }] },
-      { name: 'Spruitjes', kcal: 43, fat: 0.3, saturatedFat: 0.1, carbs: 9.0, sugar: 2.2, fiber: 3.8, protein: 3.4, salt: 0.03, servings: [{ name: 'portie', grams: 150 }] },
-      { name: 'Asperges', kcal: 20, fat: 0.1, saturatedFat: 0, carbs: 3.9, sugar: 1.9, fiber: 2.1, protein: 2.2, salt: 0.02, servings: [{ name: 'portie', grams: 100 }] },
-      { name: 'Olijven groen', kcal: 145, fat: 15.3, saturatedFat: 2.0, carbs: 3.8, sugar: 0.5, fiber: 3.3, protein: 1.0, salt: 3.1, servings: [{ name: 'stuk', grams: 4 }, { name: 'portie', grams: 30 }] },
-      { name: 'Augurk', kcal: 12, fat: 0.2, saturatedFat: 0, carbs: 2.3, sugar: 1.1, fiber: 1.2, protein: 0.5, salt: 1.2, servings: [{ name: 'stuk', grams: 35 }] },
-      { name: 'Kikkererwten gekookt', kcal: 164, fat: 2.6, saturatedFat: 0.3, carbs: 27.4, sugar: 4.8, fiber: 7.6, protein: 8.9, salt: 0.01, servings: [{ name: 'portie', grams: 100 }] },
-      { name: 'Linzen gekookt', kcal: 116, fat: 0.4, saturatedFat: 0.1, carbs: 20.1, sugar: 1.8, fiber: 7.9, protein: 9.0, salt: 0.02, servings: [{ name: 'portie', grams: 100 }] },
-      { name: 'Kidneybonen gekookt', kcal: 127, fat: 0.5, saturatedFat: 0.1, carbs: 22.8, sugar: 0.3, fiber: 6.4, protein: 8.7, salt: 0.01, servings: [{ name: 'portie', grams: 100 }] },
-      { name: 'Witte bonen gekookt', kcal: 139, fat: 0.4, saturatedFat: 0.1, carbs: 25.1, sugar: 0.3, fiber: 6.3, protein: 9.7, salt: 0.01, servings: [{ name: 'portie', grams: 100 }] },
       { name: 'Ei rauw', kcal: 143, fat: 9.5, saturatedFat: 3.1, carbs: 0.7, sugar: 0.4, fiber: 0, protein: 12.6, salt: 0.36, servings: [{ name: 'stuk', grams: 50 }] },
       { name: 'Ei gekookt', kcal: 155, fat: 10.6, saturatedFat: 3.3, carbs: 1.1, sugar: 1.1, fiber: 0, protein: 12.6, salt: 0.31, servings: [{ name: 'stuk', grams: 50 }] },
       { name: 'Ei gebakken', kcal: 196, fat: 15.3, saturatedFat: 4.3, carbs: 0.8, sugar: 0.4, fiber: 0, protein: 13.6, salt: 0.37, servings: [{ name: 'stuk', grams: 50 }] },
@@ -3864,9 +3279,7 @@
       { name: 'Pinda’s', kcal: 567, fat: 49.2, saturatedFat: 6.3, carbs: 16.1, sugar: 4.7, fiber: 8.5, protein: 25.8, salt: 0, servings: [{ name: 'handje', grams: 30 }] },
       { name: 'Hazelnoten', kcal: 628, fat: 60.8, saturatedFat: 4.5, carbs: 16.7, sugar: 4.3, fiber: 9.7, protein: 15.0, salt: 0, servings: [{ name: 'handje', grams: 30 }] },
       { name: 'Pistachenoten', kcal: 560, fat: 45.3, saturatedFat: 5.9, carbs: 27.2, sugar: 7.7, fiber: 10.6, protein: 20.2, salt: 0, servings: [{ name: 'handje', grams: 30 }] },
-      { name: 'Pecannoten', kcal: 691, fat: 72.0, saturatedFat: 6.2, carbs: 13.9, sugar: 4.0, fiber: 9.6, protein: 9.2, salt: 0, servings: [{ name: 'handje', grams: 30 }] },
-      { name: 'Macadamianoten', kcal: 718, fat: 75.8, saturatedFat: 12.1, carbs: 13.8, sugar: 4.6, fiber: 8.6, protein: 7.9, salt: 0, servings: [{ name: 'handje', grams: 30 }] },
-      { name: 'Paranoten', kcal: 659, fat: 67.1, saturatedFat: 16.1, carbs: 11.7, sugar: 2.3, fiber: 7.5, protein: 14.3, salt: 0, servings: [{ name: 'stuk', grams: 5 }, { name: 'handje', grams: 30 }] }
+      { name: 'Pecannoten', kcal: 691, fat: 72.0, saturatedFat: 6.2, carbs: 13.9, sugar: 4.0, fiber: 9.6, protein: 9.2, salt: 0, servings: [{ name: 'handje', grams: 30 }] }
     ];
 
     function syncStandardProducts() {
@@ -3903,55 +3316,24 @@
       $('#prev-day').addEventListener('click', () => changeDay(-1));
       $('#next-day').addEventListener('click', () => changeDay(1));
       $('#today-btn').addEventListener('click', () => { state.currentDate = toDateKey(new Date()); renderAll(); });
-      $('#open-product-modal').addEventListener('click', () => openProductModal());
-      $('#open-product-modal-from-log').addEventListener('click', () => openProductModal());
+      $('#open-product-modal').addEventListener('click', openProductModal);
+      $('#open-product-modal-from-log').addEventListener('click', openProductModal);
       $('#close-log-modal').addEventListener('click', closeLogModal);
       $('#close-meal-detail-modal').addEventListener('click', closeMealDetail);
       $('#close-copy-modal').addEventListener('click', closeCopyModal);
+      $('#close-ask-ai-modal').addEventListener('click', closeAskAiModal);
+      $('#copy-ai-prompt').addEventListener('click', copyAiPrompt);
+      $('#clear-ai-json').addEventListener('click', () => { els.aiJsonInput.value = ''; parsedAiItems = []; setAiError(''); renderAiPreview(); });
+      $('#add-ai-estimate').addEventListener('click', addAiEstimateToLog);
+      els.aiJsonInput.addEventListener('input', parseAndRenderAiJson);
       $('#copy-form').addEventListener('submit', copySelectedLogs);
+      $('#ask-ai-from-meal-detail').addEventListener('click', () => {
+        openAskAiModal(selectedMealDetail || 'breakfast');
+      });
       $('#add-from-meal-detail').addEventListener('click', () => {
         const meal = selectedMealDetail || 'breakfast';
         closeMealDetail();
         openLogModal(meal);
-      });
-      $('#ai-scan-from-meal-detail').addEventListener('click', () => {
-        const meal = selectedMealDetail || 'breakfast';
-        openAiScanModal(meal);
-      });
-      $('#close-ai-scan-modal').addEventListener('click', closeAiScanModal);
-      $('#choose-ai-meal-photo').addEventListener('click', () => els.aiMealPhoto.click());
-      els.aiMealPhoto.addEventListener('change', async (event) => {
-        const file = event.target.files && event.target.files[0];
-        if (!file) return;
-        const image = await readImageFileAsBase64(file);
-        aiMealImageBase64 = image.base64;
-        els.aiMealPreview.src = image.dataUrl;
-        els.aiMealPreview.classList.add('show');
-        els.aiScanStatus.textContent = 'Foto gekozen. Klik op “Analyseer maaltijd”.';
-      });
-      $('#analyze-ai-meal-photo').addEventListener('click', analyzeAiMealPhoto);
-      $('#add-ai-results').addEventListener('click', addAiResultsToLog);
-      els.aiMealType.addEventListener('change', () => {
-        els.aiScanMealName.textContent = getMealMeta(els.aiMealType.value).label;
-      });
-      els.aiResults.addEventListener('change', (event) => {
-        const check = event.target.closest('[data-ai-select]');
-        if (check) {
-          const item = aiMealProposals.find(p => p.id === check.dataset.aiSelect);
-          if (item) item.selected = check.checked;
-          return;
-        }
-        const field = event.target.closest('[data-ai-field]');
-        if (field) {
-          const item = aiMealProposals.find(p => p.id === field.dataset.aiId);
-          if (!item) return;
-          const key = field.dataset.aiField;
-          if (key === 'name') item.name = field.value.trim() || item.name;
-          else {
-            const parsed = parsePositiveNumber(field.value, key, { allowZero: key !== 'grams' });
-            if (parsed.ok) item[key] = round(parsed.value, key === 'kcal' ? 1 : 1);
-          }
-        }
       });
       $('#close-product-modal').addEventListener('click', closeProductModal);
       $('#close-scanner-modal').addEventListener('click', () => stopBarcodeScanner());
@@ -3974,7 +3356,7 @@
         const file = event.target.files && event.target.files[0];
         if (file) scanNutritionLabelFile(file);
       });
-      $('#reset-product-form').addEventListener('click', () => { $('#product-form').reset(); setProductModalMode('create'); clearErrors(['barcode', 'productName', 'productKcal', 'productProtein', 'productCarbs', 'productFat', 'productSaturatedFat', 'productFiber', 'productSugar', 'productSalt', 'servingName1', 'servingGrams1', 'servingName2', 'servingGrams2']); });
+      $('#reset-product-form').addEventListener('click', () => { $('#product-form').reset(); clearErrors(['barcode', 'productName', 'productKcal', 'productProtein', 'productCarbs', 'productFat', 'productSaturatedFat', 'productFiber', 'productSugar', 'productSalt', 'servingName1', 'servingGrams1', 'servingName2', 'servingGrams2']); });
       $('#product-form').addEventListener('submit', addProduct);
       $('#log-form').addEventListener('submit', addLogEntry);
       $('#goals-form').addEventListener('submit', updateGoals);
@@ -3994,22 +3376,13 @@
         updateLogPreview();
       });
       $('#clear-day').addEventListener('click', clearDay);
-      $('#export-products').addEventListener('click', exportProductsOnly);
-      $('#import-products').addEventListener('click', () => els.importProductsFile.click());
-      els.importProductsFile.addEventListener('change', (event) => {
+      $('#export-data').addEventListener('click', exportData);
+      $('#import-data').addEventListener('click', () => els.importFile.click());
+      els.importFile.addEventListener('change', (event) => {
         const file = event.target.files && event.target.files[0];
-        if (file) importProductsFromFile(file);
-      });
-      $('#export-backup').addEventListener('click', exportFullBackup);
-      $('#import-backup').addEventListener('click', () => els.importBackupFile.click());
-      els.importBackupFile.addEventListener('change', (event) => {
-        const file = event.target.files && event.target.files[0];
-        if (file) importFullBackupFromFile(file);
+        if (file) importDataFromFile(file);
       });
       els.productSearch.addEventListener('input', renderProductList);
-      if (els.productEditSearch) els.productEditSearch.addEventListener('input', renderProductEditList);
-      const openNewProductFromEdit = document.getElementById('open-new-product-from-edit');
-      if (openNewProductFromEdit) openNewProductFromEdit.addEventListener('click', () => openProductModal());
       els.logProductSearch.addEventListener('input', () => {
         clearLogProductSelection();
         renderProductSearchResults();
@@ -4030,26 +3403,15 @@
         updateLogPreview();
       });
       els.logGrams.addEventListener('input', () => { setFieldError('grams', ''); updateLogPreview(); });
-      if (els.productEditList) {
-        els.productEditList.addEventListener('click', (event) => {
-          const editBtn = event.target.closest('[data-edit-product]');
-          if (editBtn) {
-            editProduct(editBtn.dataset.editProduct);
-            return;
-          }
-          const deleteBtn = event.target.closest('[data-delete-product]');
-          if (deleteBtn) deleteProduct(deleteBtn.dataset.deleteProduct);
-        });
-      }
       els.productList.addEventListener('click', (event) => {
         const btn = event.target.closest('[data-delete-product]');
         if (btn) deleteProduct(btn.dataset.deleteProduct);
       });
       els.logList.addEventListener('click', (event) => {
-        const aiMealBtn = event.target.closest('[data-ai-meal-scan]');
-        if (aiMealBtn) {
+        const askAiBtn = event.target.closest('[data-ask-ai-meal]');
+        if (askAiBtn) {
           event.stopPropagation();
-          openAiScanModal(aiMealBtn.dataset.aiMealScan);
+          openAskAiModal(askAiBtn.dataset.askAiMeal);
           return;
         }
         const quickMealBtn = event.target.closest('[data-quick-meal]');
@@ -4094,16 +3456,6 @@
           deleteSelectedMealLogs();
           return;
         }
-        const editToggle = event.target.closest('[data-toggle-edit]');
-        if (editToggle) {
-          const panel = document.querySelector(`[data-edit-panel="${CSS.escape(editToggle.dataset.toggleEdit)}"]`);
-          if (panel) {
-            const isHidden = panel.hasAttribute('hidden');
-            panel.toggleAttribute('hidden', !isHidden);
-            editToggle.textContent = isHidden ? 'Sluit' : 'Bewerk';
-          }
-          return;
-        }
         const saveBtn = event.target.closest('[data-save-entry]');
         if (saveBtn) {
           updateLogEntryAmount(saveBtn.dataset.saveEntry);
@@ -4130,8 +3482,8 @@
       els.copyModal.addEventListener('click', (event) => {
         if (event.target === els.copyModal) closeCopyModal();
       });
-      els.aiScanModal.addEventListener('click', (event) => {
-        if (event.target === els.aiScanModal) closeAiScanModal();
+      els.askAiModal.addEventListener('click', (event) => {
+        if (event.target === els.askAiModal) closeAskAiModal();
       });
       els.productModal.addEventListener('click', (event) => {
         if (event.target === els.productModal) closeProductModal();
@@ -4143,8 +3495,8 @@
         if (event.key !== 'Escape') return;
         if (els.scannerModal.classList.contains('open')) stopBarcodeScanner();
         else if (els.productModal.classList.contains('open')) closeProductModal();
+        else if (els.askAiModal.classList.contains('open')) closeAskAiModal();
         else if (els.logModal.classList.contains('open')) closeLogModal();
-        else if (els.aiScanModal.classList.contains('open')) closeAiScanModal();
         else if (els.mealDetailModal.classList.contains('open')) closeMealDetail();
       });
       $$('input[inputmode="decimal"]').forEach(input => {
