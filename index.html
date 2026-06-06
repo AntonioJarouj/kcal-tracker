@@ -2525,7 +2525,19 @@ Regels:
 
     function extractJsonText(value) {
       let text = String(value || '').trim();
+
+      // AI-apps en iPhone toetsenborden maken soms “slimme” aanhalingstekens.
+      // Officiële JSON accepteert alleen gewone dubbele quotes. Daarom normaliseren
+      // we dit eerst, zodat geplakte AI-output vaker direct werkt.
+      text = text
+        .replace(/[\u201c\u201d\u201e\u201f]/g, '"')
+        .replace(/[\u2018\u2019\u201a\u201b]/g, "'")
+        .replace(/\u00a0/g, ' ')
+        .trim();
+
+      // Ondersteun ook output in een markdown codeblok.
       text = text.replace(/^```(?:json)?/i, '').replace(/```$/i, '').trim();
+
       const firstObject = text.indexOf('{');
       const lastObject = text.lastIndexOf('}');
       const firstArray = text.indexOf('[');
@@ -2576,7 +2588,7 @@ Regels:
       } catch (error) {
         parsedAiItems = [];
         renderAiPreview();
-        setAiError('JSON niet herkend. Plak alleen geldige JSON terug, zonder extra tekst.');
+        setAiError('JSON niet herkend. Plak de AI-output opnieuw. Slimme quotes worden nu ondersteund, maar de structuur moet wel { items: [...] } bevatten.');
       }
     }
 
