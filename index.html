@@ -1158,6 +1158,108 @@
       .meal-detail-summary-card:first-child { grid-column: 1 / -1; }
     }
 
+
+    /* --- watertracker --- */
+    .water-card {
+      margin-top: 18px;
+    }
+    .water-tracker-box {
+      border: 1px solid var(--border);
+      background: rgba(255,255,255,.05);
+      border-radius: 22px;
+      padding: 18px;
+      display: grid;
+      gap: 16px;
+    }
+    .water-main {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 16px;
+      align-items: center;
+    }
+    .water-title {
+      font-size: 18px;
+      font-weight: 900;
+      letter-spacing: -.03em;
+    }
+    .water-value {
+      margin-top: 6px;
+      font-size: clamp(34px, 8vw, 54px);
+      font-weight: 950;
+      letter-spacing: -.06em;
+      color: var(--text);
+    }
+    .water-goal {
+      margin-top: 2px;
+      color: var(--muted);
+      font-size: 13px;
+    }
+    .water-progress-wrap {
+      display: grid;
+      gap: 8px;
+    }
+    .water-progress-track {
+      height: 11px;
+      border-radius: 999px;
+      overflow: hidden;
+      background: rgba(255,255,255,.08);
+      border: 1px solid var(--border);
+    }
+    .water-progress-fill {
+      height: 100%;
+      width: 0%;
+      border-radius: inherit;
+      background: linear-gradient(90deg, #78b8ff, #9fe9ff);
+      transition: width .25s ease;
+    }
+    .water-bottles {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+    .water-bottle {
+      width: 46px;
+      height: 66px;
+      border-radius: 11px 11px 8px 8px;
+      border: 1px solid rgba(159,233,255,.55);
+      background: linear-gradient(180deg, rgba(159,233,255,.34), rgba(120,184,255,.16));
+      position: relative;
+      display: grid;
+      place-items: center;
+      color: #111218;
+      font-weight: 950;
+      box-shadow: inset 0 -14px 0 rgba(120,184,255,.25);
+    }
+    .water-bottle::before {
+      content: '';
+      position: absolute;
+      top: -8px;
+      width: 22px;
+      height: 10px;
+      border-radius: 5px 5px 2px 2px;
+      background: var(--accent-2);
+    }
+    .water-bottle.filled {
+      background: linear-gradient(180deg, #b9f3ff, #78b8ff);
+      box-shadow: inset 0 -16px 0 rgba(40,130,220,.28);
+    }
+    .water-actions {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 10px;
+    }
+    .water-small {
+      font-size: 12px;
+      color: var(--muted-2);
+      text-align: center;
+    }
+    @media (max-width: 640px) {
+      .water-main { grid-template-columns: 1fr; text-align: center; }
+      .water-actions { grid-template-columns: repeat(2, minmax(0,1fr)); }
+      .water-bottles { gap: 10px; }
+    }
+
   </style>
 </head>
 <body>
@@ -1258,6 +1360,38 @@
           <div class="meal-list" id="log-list"></div>
           <div class="day-clear-bottom">
             <button class="danger-btn" type="button" id="clear-day">Dag leegmaken</button>
+          </div>
+        </div>
+      </article>
+
+      <article class="card water-card" id="water-card">
+        <div class="card-pad">
+          <div class="section-head">
+            <div>
+              <div class="eyebrow">Hydratatie</div>
+              <h2>Watertracker</h2>
+            </div>
+            <button class="text-link-btn" type="button" id="water-reset">Reset</button>
+          </div>
+          <div class="water-tracker-box">
+            <div class="water-main">
+              <div>
+                <div class="water-title">Water</div>
+                <div class="water-value" id="water-value">0,00 L</div>
+                <div class="water-goal" id="water-goal-label">Doel: 4,00 L</div>
+              </div>
+              <div class="water-bottles" id="water-bottles" aria-label="Water voortgang"></div>
+            </div>
+            <div class="water-progress-wrap">
+              <div class="water-progress-track"><div class="water-progress-fill" id="water-progress-fill"></div></div>
+              <div class="water-small" id="water-status">Nog 4,00 L tot je doel.</div>
+            </div>
+            <div class="water-actions">
+              <button class="secondary-btn" type="button" data-water-add="250">+250 ml</button>
+              <button class="secondary-btn" type="button" data-water-add="500">+500 ml</button>
+              <button class="secondary-btn" type="button" data-water-add="750">+750 ml</button>
+              <button class="danger-btn" type="button" data-water-add="-250">-250 ml</button>
+            </div>
           </div>
         </div>
       </article>
@@ -1492,18 +1626,14 @@
       </div>
       <div class="modal-body stack">
         <div class="split-note">
-          Gebruik dit wanneer je eten niet goed handmatig kunt tracken. Kopieer de vaste prompt, upload zelf een foto bij je AI-chat en voeg eventueel extra context toe, zoals portiegrootte, gram, saus of olie. Plak daarna alleen de JSON terug in deze app.
+          Gebruik dit wanneer je eten niet goed handmatig kunt tracken. Klik op “Ga naar de AI”, upload daar je foto en voeg eventueel extra context toe, zoals portiegrootte, gram, saus of olie. Plak daarna alleen de JSON terug in deze app.
         </div>
         <div class="actions-row">
-          <button class="primary-btn" id="copy-ai-prompt" type="button">Kopieer vaste prompt</button>
-          <button class="secondary-btn" id="clear-ai-json" type="button">Leegmaken</button>
+          <a class="primary-btn" id="open-food-ai" href="https://chatgpt.com/g/g-6a255d32c35c8191a893a003a7d6392c-voedingsfoto-analist" target="_blank" rel="noopener" style="display:inline-flex;align-items:center;text-decoration:none;">Ga naar de AI</a>
+          <button class="secondary-btn" id="clear-ai-json" type="button">JSON leegmaken</button>
         </div>
         <div>
-          <label class="tiny" for="ai-prompt-preview">Vaste prompt</label>
-          <div class="ai-prompt-box" id="ai-prompt-preview"></div>
-        </div>
-        <div>
-          <label class="tiny" for="ai-json-input">Plak hier de JSON van AI</label>
+          <label class="tiny" for="ai-json-input">Plak hier de JSON van de AI</label>
           <textarea id="ai-json-input" class="ai-json-area" spellcheck="false" placeholder='Plak hier de JSON, bijvoorbeeld: { "items": [...] }'></textarea>
           <div class="ai-import-error" id="ai-import-error"></div>
         </div>
@@ -1659,7 +1789,8 @@
     const STORAGE_KEYS = {
       products: 'kcal_tracker_products_v2',
       logs: 'kcal_tracker_logs_v2',
-      goals: 'kcal_tracker_goals_v2'
+      goals: 'kcal_tracker_goals_v2',
+      water: 'kcal_tracker_water_v1'
     };
 
     const DEFAULT_GOALS = { kcal: 2750, protein: 227, carbs: 275, fat: 83, fiber: 30, proteinPct: 33, carbsPct: 40, fatPct: 27 };
@@ -1675,7 +1806,8 @@
       currentDate: toDateKey(new Date()),
       products: [],
       logs: {},
-      goals: { ...DEFAULT_GOALS }
+      goals: { ...DEFAULT_GOALS },
+      water: {}
     };
 
     const scannerState = {
@@ -1745,7 +1877,12 @@
       toast: $('#toast'),
       importFile: $('#import-file'),
       importProductsFile: $('#import-products-file'),
-      macroGramPreview: $('#macro-gram-preview')
+      macroGramPreview: $('#macro-gram-preview'),
+      waterValue: $('#water-value'),
+      waterGoalLabel: $('#water-goal-label'),
+      waterProgressFill: $('#water-progress-fill'),
+      waterStatus: $('#water-status'),
+      waterBottles: $('#water-bottles')
     };
 
     function toDateKey(date) {
@@ -1853,6 +1990,7 @@
         }));
         
         state.logs = JSON.parse(localStorage.getItem(STORAGE_KEYS.logs)) || {};
+        state.water = JSON.parse(localStorage.getItem(STORAGE_KEYS.water)) || {};
         // Ensure backward compatibility for log entries
         Object.keys(state.logs).forEach(dateKey => {
           state.logs[dateKey] = state.logs[dateKey].map(entry => ({
@@ -1878,6 +2016,7 @@
     function saveProducts() { localStorage.setItem(STORAGE_KEYS.products, JSON.stringify(state.products)); }
     function saveLogs() { localStorage.setItem(STORAGE_KEYS.logs, JSON.stringify(state.logs)); }
     function saveGoals() { localStorage.setItem(STORAGE_KEYS.goals, JSON.stringify(state.goals)); }
+    function saveWater() { localStorage.setItem(STORAGE_KEYS.water, JSON.stringify(state.water)); }
 
     function getDayLogs() {
       return state.logs[state.currentDate] || [];
@@ -2095,9 +2234,60 @@
       };
     }
 
+
+    function getWaterMlForDay(dateKey = state.currentDate) {
+      const value = Number(state.water && state.water[dateKey]);
+      return Number.isFinite(value) && value > 0 ? value : 0;
+    }
+
+    function getWaterGoalMl() {
+      return 4000;
+    }
+
+    function renderWaterTracker() {
+      if (!els.waterValue || !els.waterProgressFill || !els.waterBottles) return;
+      const ml = getWaterMlForDay();
+      const goal = getWaterGoalMl();
+      const liters = ml / 1000;
+      const goalLiters = goal / 1000;
+      const pct = Math.min((ml / goal) * 100, 100);
+      const remaining = Math.max(goal - ml, 0) / 1000;
+      els.waterValue.textContent = `${pretty(liters, 2)} L`;
+      if (els.waterGoalLabel) els.waterGoalLabel.textContent = `Doel: ${pretty(goalLiters, 2)} L`;
+      els.waterProgressFill.style.width = `${pct}%`;
+      if (els.waterStatus) {
+        els.waterStatus.textContent = ml >= goal ? 'Waterdoel gehaald.' : `Nog ${pretty(remaining, 2)} L tot je doel.`;
+      }
+      const bottleCount = 4;
+      const filled = Math.min(Math.floor((ml / goal) * bottleCount), bottleCount);
+      els.waterBottles.innerHTML = Array.from({ length: bottleCount }).map((_, index) => {
+        const isFilled = index < filled;
+        return `<button class="water-bottle ${isFilled ? 'filled' : ''}" type="button" data-water-add="500" aria-label="Voeg 500 ml water toe">${index === 0 && !ml ? '+' : ''}</button>`;
+      }).join('');
+    }
+
+    function changeWater(amountMl) {
+      const current = getWaterMlForDay();
+      const next = Math.max(0, round(current + Number(amountMl || 0), 0));
+      state.water[state.currentDate] = next;
+      saveWater();
+      renderWaterTracker();
+      showToast(next === 0 ? 'Water gereset.' : `Water: ${pretty(next / 1000, 2)} L`);
+    }
+
+    function resetWater() {
+      if (getWaterMlForDay() <= 0) return;
+      if (!confirm('Water van deze dag resetten?')) return;
+      state.water[state.currentDate] = 0;
+      saveWater();
+      renderWaterTracker();
+      showToast('Water gereset.');
+    }
+
     function renderAll() {
       renderDate();
       renderDashboard();
+      renderWaterTracker();
       renderProductSelect();
       renderUnitOptions();
       renderProductList();
@@ -3596,10 +3786,11 @@ Regels:
     function exportData() {
       const payload = {
         exportedAt: new Date().toISOString(),
-        version: 4,
+        version: 5,
         products: state.products,
         logs: state.logs,
-        goals: state.goals
+        goals: state.goals,
+        water: state.water
       };
       const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
       const url = URL.createObjectURL(blob);
@@ -3640,11 +3831,13 @@ Regels:
             }));
           });
           
+          state.water = (payload.water && typeof payload.water === 'object') ? payload.water : {};
           state.goals = { ...DEFAULT_GOALS, ...payload.goals };
           state.goals = calculateMacroGoals(state.goals.kcal, state.goals.carbsPct ?? DEFAULT_GOALS.carbsPct, state.goals.proteinPct ?? DEFAULT_GOALS.proteinPct, state.goals.fatPct ?? DEFAULT_GOALS.fatPct, state.goals.fiber);
           saveProducts();
           saveLogs();
           saveGoals();
+          saveWater();
           renderAll();
           showToast('Data geïmporteerd.');
         } catch (error) {
@@ -3880,7 +4073,8 @@ Regels:
       $('#close-meal-detail-modal').addEventListener('click', closeMealDetail);
       $('#close-copy-modal').addEventListener('click', closeCopyModal);
       $('#close-ask-ai-modal').addEventListener('click', closeAskAiModal);
-      $('#copy-ai-prompt').addEventListener('click', copyAiPrompt);
+      const foodAiLink = $('#open-food-ai');
+      if (foodAiLink) foodAiLink.addEventListener('click', () => showToast('AI geopend. Plak daarna de JSON terug in deze app.'));
       $('#clear-ai-json').addEventListener('click', () => { els.aiJsonInput.value = ''; parsedAiItems = []; setAiError(''); renderAiPreview(); });
       $('#add-ai-estimate').addEventListener('click', addAiEstimateToLog);
       els.aiJsonInput.addEventListener('input', parseAndRenderAiJson);
@@ -3941,6 +4135,14 @@ Regels:
         updateLogPreview();
       });
       $('#clear-day').addEventListener('click', clearDay);
+      document.addEventListener('click', (event) => {
+        const waterBtn = event.target.closest('[data-water-add]');
+        if (!waterBtn) return;
+        const amount = Number(waterBtn.dataset.waterAdd);
+        if (Number.isFinite(amount)) changeWater(amount);
+      });
+      const waterResetBtn = document.getElementById('water-reset');
+      if (waterResetBtn) waterResetBtn.addEventListener('click', resetWater);
       $('#export-data').addEventListener('click', exportData);
       $('#import-data').addEventListener('click', () => els.importFile.click());
       els.importFile.addEventListener('change', (event) => {
