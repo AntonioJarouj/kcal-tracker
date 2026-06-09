@@ -3122,21 +3122,44 @@ Regels:
       return Number.isFinite(n) && n >= 0 ? n : 0;
     }
 
+    function pickAiValue(item, keys) {
+      for (const key of keys) {
+        if (item && item[key] != null && item[key] !== '') return item[key];
+      }
+      return 0;
+    }
+
     function parseAiResponse(rawValue) {
       const jsonText = extractJsonText(rawValue);
       const parsed = JSON.parse(jsonText);
-      const items = Array.isArray(parsed) ? parsed : parsed.items;
+      let items = Array.isArray(parsed) ? parsed : parsed.items;
+
+      // Extra fallback: als een AI alleen een totaal teruggeeft, maak er toch één logbaar item van.
+      if ((!Array.isArray(items) || !items.length) && parsed && parsed.total) {
+        items = [{
+          name: parsed.meal_name || parsed.name || 'AI maaltijdschatting',
+          grams: parsed.total.grams || parsed.total.estimated_weight_g || parsed.estimated_weight_g || 0,
+          kcal: parsed.total.kcal || parsed.total.calories_kcal || parsed.total.calories || 0,
+          protein: parsed.total.protein || parsed.total.protein_g || 0,
+          carbs: parsed.total.carbs || parsed.total.carbohydrates_g || parsed.total.carbohydrates || 0,
+          fat: parsed.total.fat || parsed.total.fat_g || 0,
+          fiber: parsed.total.fiber || parsed.total.fiber_g || 0,
+          note: parsed.warning || parsed.note || ''
+        }];
+      }
+
       if (!Array.isArray(items) || !items.length) throw new Error('Geen items gevonden');
+
       return items.map((item, index) => ({
         id: uid(),
-        name: String(item.name || item.productName || item.meal_name || `AI item ${index + 1}`).trim(),
-        grams: round(normalizeAiNumber(item.grams ?? item.estimated_grams ?? item.amount), 1),
-        kcal: round(normalizeAiNumber(item.kcal ?? item.calories), 1),
-        protein: round(normalizeAiNumber(item.protein), 1),
-        carbs: round(normalizeAiNumber(item.carbs ?? item.carbohydrates), 1),
-        fat: round(normalizeAiNumber(item.fat), 1),
-        fiber: round(normalizeAiNumber(item.fiber), 1),
-        note: String(item.note || item.warning || '').trim()
+        name: String(pickAiValue(item, ['name', 'productName', 'product_name', 'meal_name']) || `AI item ${index + 1}`).trim(),
+        grams: round(normalizeAiNumber(pickAiValue(item, ['grams', 'gram', 'weight_g', 'estimated_weight_g', 'estimated_grams', 'amount_g', 'amount'])), 1),
+        kcal: round(normalizeAiNumber(pickAiValue(item, ['kcal', 'calories_kcal', 'calories', 'energy_kcal'])), 1),
+        protein: round(normalizeAiNumber(pickAiValue(item, ['protein', 'protein_g', 'proteins', 'eiwit', 'eiwitten'])), 1),
+        carbs: round(normalizeAiNumber(pickAiValue(item, ['carbs', 'carbs_g', 'carbohydrates', 'carbohydrates_g', 'koolhydraten'])), 1),
+        fat: round(normalizeAiNumber(pickAiValue(item, ['fat', 'fat_g', 'fats', 'vet', 'vetten'])), 1),
+        fiber: round(normalizeAiNumber(pickAiValue(item, ['fiber', 'fiber_g', 'fibre', 'fibre_g', 'vezels'])), 1),
+        note: String(pickAiValue(item, ['note', 'notes', 'warning', 'reason']) || '').trim()
       })).filter(item => item.name && (item.kcal > 0 || item.grams > 0));
     }
 
@@ -3156,7 +3179,7 @@ Regels:
       } catch (error) {
         parsedAiItems = [];
         renderAiPreview();
-        setAiError('JSON niet herkend. Plak de AI-output opnieuw. Slimme quotes worden nu ondersteund, maar de structuur moet wel { items: [...] } bevatten.');
+        setAiError('JSON niet herkend. Plak de AI-output opnieuw. De app ondersteunt nu ook keys zoals estimated_weight_g, calories_kcal, protein_g, carbohydrates_g, fat_g en fiber_g.');
       }
     }
 
