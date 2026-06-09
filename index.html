@@ -1314,6 +1314,35 @@
     .meal-detail-item.is-editing .meal-detail-edit {
       display: grid;
     }
+    .replace-product-box {
+      grid-column: 1 / -1;
+      border: 1px solid var(--border);
+      background: rgba(255,255,255,.035);
+      border-radius: 14px;
+      padding: 10px;
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 10px;
+      align-items: end;
+    }
+    .replace-product-box label {
+      display: grid;
+      gap: 6px;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 800;
+    }
+    .replace-product-box select {
+      width: 100%;
+      border: 1px solid var(--border);
+      background: rgba(0,0,0,.22);
+      color: var(--text);
+      border-radius: 13px;
+      min-height: 42px;
+      padding: 0 12px;
+      outline: none;
+    }
+    .replace-product-box select option { background: #15161d; color: var(--text); }
     .meal-detail-bulkbar {
       padding: 10px;
       gap: 8px;
@@ -1338,7 +1367,8 @@
         grid-column: 3 / 4;
         grid-row: 1 / 3;
       }
-      .meal-detail-meta span:nth-child(n+4) { display: none; }
+      .replace-product-box { grid-template-columns: 1fr; }
+      .replace-product-box .secondary-btn { width: 100%; }
       .modal-body { padding: 14px; }
     }
 
@@ -2481,6 +2511,7 @@
           `P ${pretty(product.protein)}g`,
           `C ${pretty(product.carbs)}g`,
           `F ${pretty(product.fat)}g`,
+          `Vezels ${pretty(product.fiber)}g`,
           servings
         ].filter(Boolean).join(' · ');
         return `
@@ -2696,6 +2727,11 @@
         if (unitLabel !== 'gram' && !unitOptions.includes('selected')) {
           unitOptions += `<option value="${escapeHtml(currentUnitValue)}" selected>${escapeHtml(unitLabel)} (${pretty(entry.unitGrams || 1, 1)}g)</option>`;
         }
+        const replaceOptions = state.products
+          .slice()
+          .sort((a, b) => a.name.localeCompare(b.name, 'nl'))
+          .map(productOption => `<option value="${escapeHtml(productOption.id)}" ${productOption.id === entry.productId ? 'selected' : ''}>${escapeHtml(productOption.name)} - ${pretty(productOption.kcal, 0)} kcal/100g</option>`)
+          .join('');
         return `
           <div class="meal-detail-item ${isSelected ? 'is-selected' : ''} ${expandedMealEditIds.has(entry.id) ? 'is-editing' : ''}" data-entry-id="${escapeHtml(entry.id)}">
             <div class="meal-detail-top with-check">
@@ -2714,6 +2750,14 @@
               <button class="edit-entry-btn" type="button" data-toggle-entry-edit="${escapeHtml(entry.id)}" aria-label="Bewerk ${escapeHtml(entry.productName)}">✎</button>
             </div>
             <div class="meal-detail-edit">
+              <div class="replace-product-box">
+                <label for="replace-product-${escapeHtml(entry.id)}">Product vervangen
+                  <select id="replace-product-${escapeHtml(entry.id)}" data-replace-product-select="${escapeHtml(entry.id)}">
+                    ${replaceOptions}
+                  </select>
+                </label>
+                <button class="secondary-btn" type="button" data-replace-product="${escapeHtml(entry.id)}">Vervang product</button>
+              </div>
               <div class="field">
                 <label for="edit-amount-${escapeHtml(entry.id)}">Hoeveelheid</label>
                 <input id="edit-amount-${escapeHtml(entry.id)}" type="text" inputmode="decimal" value="${pretty(amount, 2)}" data-edit-amount="${escapeHtml(entry.id)}" />
@@ -2867,6 +2911,45 @@
       if (errorEl) errorEl.textContent = '';
       const amount = unit.label === 'gram' ? entry.grams : (entry.grams / unit.grams);
       input.value = pretty(amount, 2);
+    }
+
+    function replaceLogEntryProduct(logId) {
+      const select = document.querySelector(`[data-replace-product-select="${CSS.escape(logId)}"]`);
+      const errorEl = document.getElementById(`meal-detail-error-${logId}`);
+      if (errorEl) errorEl.textContent = '';
+      const newProductId = select ? select.value : '';
+      const product = state.products.find(item => item.id === newProductId);
+      if (!product) {
+        if (errorEl) errorEl.textContent = 'Kies een geldig product om te vervangen.';
+        return;
+      }
+
+      const entries = getDayLogs();
+      const entry = entries.find(item => item.id === logId);
+      if (!entry) return;
+
+      const grams = Number(entry.grams) > 0 ? Number(entry.grams) : 100;
+      const values = calculateEntry(product, grams);
+      entry.productId = product.id;
+      entry.productName = product.name;
+      entry.amount = round(grams, 1);
+      entry.unitLabel = 'gram';
+      entry.unitGrams = 1;
+      entry.grams = round(grams, 1);
+      entry.kcal = values.kcal;
+      entry.protein = values.protein;
+      entry.carbs = values.carbs;
+      entry.fat = values.fat;
+      entry.fiber = values.fiber;
+      entry.sugar = product.sugar ? round((product.sugar || 0) * (grams / 100), 1) : 0;
+      entry.saturatedFat = product.saturatedFat ? round((product.saturatedFat || 0) * (grams / 100), 1) : 0;
+      entry.salt = product.salt ? round((product.salt || 0) * (grams / 100), 2) : 0;
+      entry.updatedAt = new Date().toISOString();
+
+      saveLogs();
+      renderAll();
+      renderMealDetail();
+      showToast('Product vervangen. Controleer eventueel de hoeveelheid.');
     }
 
     function updateLogEntryAmount(logId) {
@@ -3229,7 +3312,7 @@ Regels:
       const amountText = unit.type === 'gram'
         ? `${pretty(grams, 1)}g`
         : `${pretty(amount.value, 1)} × ${unit.label} (${pretty(grams, 1)}g)`;
-      els.logPreview.value = `${mealLabel} • ${amountText} • ${pretty(calc.kcal, 0)} kcal | P ${pretty(calc.protein)}g | C ${pretty(calc.carbs)}g | F ${pretty(calc.fat)}g`;
+      els.logPreview.value = `${mealLabel} • ${amountText} • ${pretty(calc.kcal, 0)} kcal | P ${pretty(calc.protein)}g | C ${pretty(calc.carbs)}g | F ${pretty(calc.fat)}g | Vezels ${pretty(calc.fiber)}g`;
     }
 
     function addProduct(event) {
@@ -4331,6 +4414,11 @@ Regels:
         const deleteSelected = event.target.closest('[data-delete-selected]');
         if (deleteSelected) {
           deleteSelectedMealLogs();
+          return;
+        }
+        const replaceBtn = event.target.closest('[data-replace-product]');
+        if (replaceBtn) {
+          replaceLogEntryProduct(replaceBtn.dataset.replaceProduct);
           return;
         }
         const saveBtn = event.target.closest('[data-save-entry]');
