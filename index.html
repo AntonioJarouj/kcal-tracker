@@ -1439,6 +1439,67 @@
       .modal-body { padding: 14px; }
     }
 
+
+
+    /* --- Recepten / batch maaltijden --- */
+    #recipe-modal { z-index: 110; }
+    .recipe-list { display: grid; gap: 10px; }
+    .recipe-item {
+      border: 1px solid var(--border);
+      background: rgba(255,255,255,.045);
+      border-radius: 16px;
+      padding: 12px;
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 12px;
+      align-items: center;
+    }
+    .recipe-name { font-weight: 850; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .recipe-meta { color: var(--muted-2); font-size: 12px; margin-top: 4px; line-height: 1.45; }
+    .recipe-ingredient-list { display: grid; gap: 12px; }
+    .recipe-ingredient-row {
+      border: 1px solid var(--border);
+      background: rgba(255,255,255,.035);
+      border-radius: 16px;
+      padding: 12px;
+      display: grid;
+      gap: 10px;
+    }
+    .recipe-ingredient-grid {
+      display: grid;
+      grid-template-columns: 1.35fr .7fr .95fr auto;
+      gap: 10px;
+      align-items: end;
+    }
+    .recipe-ingredient-grid input,
+    .recipe-ingredient-grid select {
+      width: 100%;
+      border: 1px solid var(--border);
+      background: rgba(0,0,0,.22);
+      color: var(--text);
+      border-radius: 13px;
+      min-height: 42px;
+      padding: 0 12px;
+      outline: none;
+    }
+    .recipe-ingredient-grid label { display: grid; gap: 6px; color: var(--muted); font-size: 12px; font-weight: 800; }
+    .recipe-preview {
+      border: 1px solid rgba(239,204,122,.20);
+      background: rgba(239,204,122,.07);
+      color: rgba(246,240,232,.86);
+      border-radius: 16px;
+      padding: 13px 14px;
+      font-size: 13px;
+      line-height: 1.55;
+      white-space: pre-line;
+    }
+    .recipe-row-note { color: var(--muted-2); font-size: 12px; line-height: 1.4; }
+    @media (max-width: 640px) {
+      .recipe-item { grid-template-columns: 1fr; }
+      .recipe-ingredient-grid { grid-template-columns: 1fr; }
+      .recipe-ingredient-grid .danger-btn { width: 100%; }
+    }
+
   </style>
 </head>
 <body>
@@ -1580,6 +1641,24 @@
         <input id="product-search" type="search" />
         <div id="product-list"></div>
       </div>
+
+
+      <details class="accordion-card" id="recipe-card">
+        <summary>
+          <div>
+            <div class="accordion-title">Recepten / maaltijden</div>
+            <div class="accordion-sub">Maak een grote batch en log later per gram of portie</div>
+          </div>
+          <div class="accordion-chevron">⌄</div>
+        </summary>
+        <div class="accordion-body stack">
+          <div class="split-note">Gebruik dit voor gerechten die je in één keer maakt, zoals overnight oats, pasta, rijstgerechten, molokhia, lasagne of mealprep. Voeg ingrediënten toe, vul het totale gewicht na bereiding in en de app maakt er automatisch een logbaar product van.</div>
+          <div class="actions-row">
+            <button class="primary-btn" type="button" id="open-recipe-modal">Nieuw recept maken</button>
+          </div>
+          <div class="recipe-list" id="recipe-list"></div>
+        </div>
+      </details>
 
       <details class="accordion-card" id="product-edit-card">
         <summary>
@@ -1822,6 +1901,55 @@
     </div>
   </div>
 
+
+  <div class="modal-backdrop" id="recipe-modal" role="dialog" aria-modal="true" aria-labelledby="recipe-modal-title">
+    <div class="modal">
+      <div class="modal-head">
+        <div>
+          <div class="eyebrow">Recept / maaltijd</div>
+          <h2 id="recipe-modal-title">Nieuw recept maken</h2>
+        </div>
+        <button class="icon-btn" id="close-recipe-modal" type="button" aria-label="Sluiten">×</button>
+      </div>
+      <div class="modal-body">
+        <form id="recipe-form" novalidate>
+          <div class="stack">
+            <div class="split-note">Maak je een grote bak? Voeg alle ingrediënten toe en weeg daarna het totale eindgewicht. Daarna kun je dit recept gewoon loggen per gram of per portie.</div>
+            <div class="form-grid">
+              <div class="field form-full" data-field="recipeName">
+                <label for="recipe-name">Naam recept</label>
+                <input id="recipe-name" name="recipeName" type="text" placeholder="bijv. Biscoff Overnight Weetabix" />
+                <div class="error" id="error-recipeName"></div>
+              </div>
+              <div class="field" data-field="recipeTotalWeight">
+                <label for="recipe-total-weight">Totaal gewicht na bereiding</label>
+                <input id="recipe-total-weight" name="recipeTotalWeight" type="text" inputmode="decimal" placeholder="bijv. 1200" />
+                <div class="error" id="error-recipeTotalWeight"></div>
+              </div>
+              <div class="field" data-field="recipePortionGrams">
+                <label for="recipe-portion-grams">Gram per portie <span class="tiny">optioneel</span></label>
+                <input id="recipe-portion-grams" name="recipePortionGrams" type="text" inputmode="decimal" placeholder="bijv. 300" />
+                <div class="error" id="error-recipePortionGrams"></div>
+              </div>
+            </div>
+            <div>
+              <div class="actions-row" style="justify-content:space-between;align-items:center;margin-bottom:10px;">
+                <h3>Ingrediënten</h3>
+                <button class="secondary-btn" id="add-recipe-ingredient" type="button">+ Ingrediënt</button>
+              </div>
+              <div class="recipe-ingredient-list" id="recipe-ingredient-list"></div>
+            </div>
+            <div class="recipe-preview" id="recipe-preview">Voeg ingrediënten toe om de berekening te zien.</div>
+            <div class="actions-row">
+              <button class="primary-btn" type="submit">Recept opslaan als product</button>
+              <button class="secondary-btn" type="button" id="reset-recipe-form">Leegmaken</button>
+            </div>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
   <div class="modal-backdrop" id="product-modal" role="dialog" aria-modal="true" aria-labelledby="product-modal-title">
     <div class="modal">
       <div class="modal-head">
@@ -2045,6 +2173,10 @@
       aiPreviewList: $('#ai-preview-list'),
       addAiEstimate: $('#add-ai-estimate'),
       productModal: $('#product-modal'),
+      recipeModal: $('#recipe-modal'),
+      recipeList: $('#recipe-list'),
+      recipeIngredientList: $('#recipe-ingredient-list'),
+      recipePreview: $('#recipe-preview'),
       scannerModal: $('#scanner-modal'),
       scannerVideo: $('#scanner-video'),
       scannerStatus: $('#scanner-status'),
@@ -2472,6 +2604,7 @@
       renderUnitOptions();
       renderProductList();
       renderEditProductList();
+      renderRecipeList();
       renderLogs();
       renderGoalInputs();
       renderGoalPreview();
@@ -3770,14 +3903,18 @@ Regels:
 
     function normalizeNutritionLine(line) {
       return normalizeNutritionOcrText(line).toLowerCase()
-        // veel voorkomende OCR-fouten op labels
-        .replace(/\bfata\b|\bfat\b|\bfett\b|\bvettenn\b/g, 'vet')
-        .replace(/\bverzadigde\s+vetzuren\b|\bverzadigd\b|\bverz\.?\s*vet\b/g, 'verzadigde vetten')
-        .replace(/\bkoolhydraten?\b|\bcarbohydrates?\b|\bcarbs?\b|\bkh\b/g, 'koolhydraten')
-        .replace(/\bsuikers?\b|\bsugars?\b/g, 'suikers')
-        .replace(/\bvoedingsvezels?\b|\bvezels?\b|\bfibers?\b|\bfibre\b/g, 'vezels')
-        .replace(/\beiwitten?\b|\bprote[iï]nen?\b|\bproteins?\b/g, 'eiwitten')
-        .replace(/\bsalt\b|\bsel\b/g, 'zout')
+        // veel voorkomende OCR-fouten en taalvarianten op voedingslabels
+        .replace(/fata|fat|fett|vettenn|total\s+fat|fats/g, 'vet')
+        .replace(/waarvan\s+verzadigde?\s*(?:vetten|vetzuren)?/g, 'verzadigde vetten')
+        .replace(/waarvan\s+verzadigd/g, 'verzadigde vetten')
+        .replace(/verz\.?\s*(?:vet|vetten|vetzuren)/g, 'verzadigde vetten')
+        .replace(/verzadigde?\s*(?:vetten|vetzuren)?/g, 'verzadigde vetten')
+        .replace(/saturated\s*(?:fat|fats)?|saturates|sat\.?\s*fat/g, 'verzadigde vetten')
+        .replace(/koolhydraten?|carbohydrates?|carbs?|carbo|kh/g, 'koolhydraten')
+        .replace(/waarvan\s+suikers?|suikers?|sugars?|of\s+which\s+sugars/g, 'suikers')
+        .replace(/voedingsvezels?|vezels?|fibers?|fibre|dietary\s+fiber/g, 'vezels')
+        .replace(/eiwitten?|prote[iï]nen?|proteins?|protein/g, 'eiwitten')
+        .replace(/salt|sel|sodium/g, 'zout')
         .trim();
     }
 
@@ -3793,44 +3930,71 @@ Regels:
       return Number.isFinite(n) ? n : null;
     }
 
+    function gramNumbers(segment) {
+      const normalized = normalizeNutritionOcrText(segment)
+        .replace(/(\d)(g)/gi, '$1 g')
+        .replace(/(\d)(mg)/gi, '$1 mg');
+      return Array.from(normalized.matchAll(/(\d+(?:\.\d+)?)\s*(g|mg)/gi))
+        .map(match => {
+          const value = Number(match[1]);
+          if (!Number.isFinite(value)) return null;
+          return match[2].toLowerCase() === 'mg' ? value / 1000 : value;
+        })
+        .filter(value => value != null);
+    }
+
     function firstGramNumber(segment) {
-      const normalized = normalizeNutritionOcrText(segment);
-      const matches = Array.from(normalized.matchAll(/(\d+(?:\.\d+)?)\s*g\b/gi));
-      if (!matches.length) return null;
-      const n = Number(matches[0][1]);
-      return Number.isFinite(n) ? n : null;
+      const values = gramNumbers(segment);
+      return values.length ? values[0] : null;
+    }
+
+    function firstKcalNumber(segment) {
+      const normalized = normalizeNutritionOcrText(segment).replace(/(\d)(kcal)/gi, '$1 kcal');
+      const match = normalized.match(/(\d+(?:\.\d+)?)\s*kcal/i);
+      return match ? parseDutchNumber(match[1]) : null;
     }
 
     function kcalFromOcrLines(lines, allText) {
-      for (const rawLine of lines) {
-        const line = normalizeNutritionLine(rawLine);
+      for (let i = 0; i < lines.length; i++) {
+        const line = normalizeNutritionLine(lines[i]);
         if (!/energie|energy|kcal/.test(line)) continue;
-        const kcalMatch = line.match(/(\d+(?:\.\d+)?)\s*kcal/);
-        if (kcalMatch) return parseDutchNumber(kcalMatch[1]);
+        const direct = firstKcalNumber(line);
+        if (direct != null) return direct;
+        // Sommige tabellen zetten de kJ-regel en kcal-regel onder elkaar.
+        if (lines[i + 1]) {
+          const next = normalizeNutritionLine(lines[i + 1]);
+          const nextKcal = firstKcalNumber(next);
+          if (nextKcal != null) return nextKcal;
+        }
       }
-      const fallback = normalizeNutritionOcrText(allText).match(/(\d+(?:\.\d+)?)\s*kcal/i);
-      return fallback ? parseDutchNumber(fallback[1]) : '';
+      const fallback = firstKcalNumber(allText);
+      return fallback != null ? fallback : '';
     }
 
     function lineHasKind(line, kind) {
       const l = normalizeNutritionLine(line);
       const rules = {
-        fat: /\bvet\b|\bvetten\b|\bfat\b|\bfata\b/i,
-        saturatedFat: /verzadigde\s+vetten|verzadigd|saturated/i,
-        carbs: /koolhydraten|carbohydrate|carbs/i,
-        sugar: /suikers|sugars/i,
-        fiber: /vezels|voedingsvezel|fiber|fibre/i,
+        fat: /vet|vetten|fat|fata/i,
+        saturatedFat: /verzadigde\s+vetten|verzadigd|verz\.?\s*vet|saturated|saturates|sat\.?\s*fat/i,
+        carbs: /koolhydraten|carbohydrate|carbs|carbo|kh/i,
+        sugar: /suikers|sugars|of\s+which\s+sugars/i,
+        fiber: /vezels|voedingsvezel|fiber|fibre|dietary\s+fiber/i,
         protein: /eiwitten|eiwit|protein|proteine|prote[iï]nen/i,
-        salt: /\bzout\b|\bsalt\b|\bsel\b/i
+        salt: /zout|salt|sel|sodium/i
       };
       return rules[kind] && rules[kind].test(l);
     }
 
+    function labelPattern() {
+      return /(waarvan\s+verzadigde?\s*(?:vetten|vetzuren)?|waarvan\s+verzadigd|verz\.?\s*(?:vet|vetten|vetzuren)|verzadigde?\s*(?:vetten|vetzuren)?|saturated\s*(?:fat|fats)?|saturates|sat\.?\s*fat|vetten?|fat|fata|koolhydraten|carbohydrates?|carbs?|carbo|kh|waarvan\s+suikers?|suikers?|sugars?|of\s+which\s+sugars|voedingsvezels?|vezels?|fibers?|fibre|dietary\s+fiber|eiwitten?|eiwit|proteins?|prote[iï]nen?|zout|salt|sel|sodium)/i;
+    }
+
     function cutAtNextNutritionLabel(segment, currentKind) {
       const labels = [
-        'energie', 'energy', 'kcal', 'vet', 'vetten', 'fat', 'fata', 'verzadigd', 'saturated',
-        'koolhydraten', 'carbohydrates', 'carbs', 'suikers', 'sugars', 'vezels', 'fiber', 'fibre',
-        'eiwitten', 'eiwit', 'protein', 'proteinen', 'proteïnen', 'zout', 'salt', 'sel'
+        'energie', 'energy', 'kcal', 'vet', 'vetten', 'fat', 'fata', 'verz', 'verzadigd', 'verzadigde', 'saturated', 'saturates', 'sat fat',
+        'koolhydraten', 'carbohydrates', 'carbs', 'carbo', 'kh', 'suikers', 'sugars', 'of which sugars',
+        'voedingsvezel', 'vezels', 'fiber', 'fibre', 'dietary fiber', 'eiwitten', 'eiwit', 'protein', 'proteinen', 'proteïnen',
+        'zout', 'salt', 'sel', 'sodium'
       ];
       let cut = segment.length;
       const lower = segment.toLowerCase();
@@ -3845,23 +4009,30 @@ Regels:
       for (let i = 0; i < lines.length; i++) {
         const normalized = normalizeNutritionLine(lines[i]);
         if (!lineHasKind(normalized, kind)) continue;
+        // Voorkom dat de regel "verzadigde vetten" als normale vet-regel wordt gelezen.
+        if (kind === 'fat' && lineHasKind(normalized, 'saturatedFat')) continue;
+        // Voorkom dat de regel "suikers" als koolhydraten wordt gelezen.
+        if (kind === 'carbs' && lineHasKind(normalized, 'sugar')) continue;
 
         let segment = normalized;
-        const labelMatch = segment.match(/(verzadigde\s+vetten|verzadigd|saturated|vetten?|fat|fata|koolhydraten|carbohydrates?|carbs?|suikers?|sugars?|vezels?|voedingsvezel|fibers?|fibre|eiwitten?|eiwit|proteins?|prote[iï]nen?|zout|salt|sel)/i);
+        const labelMatch = segment.match(labelPattern());
         if (labelMatch) segment = segment.slice(labelMatch.index + labelMatch[0].length);
         segment = cutAtNextNutritionLabel(segment, kind);
 
+        // Bij tabellen met kolommen "per 100g" en "per 75g" pakken we altijd de eerste waarde na het label.
         let n = firstGramNumber(segment);
 
-        // Tabel-layout: label links, waarde rechts op volgende OCR-regel.
+        // Tabel-layout: label links, waarde(n) rechts op volgende OCR-regel.
+        // Voorbeeld: "Vetten" gevolgd door "13.33g 10g" => neem 13.33g.
         if (n == null && lines[i + 1]) {
           const next = normalizeNutritionLine(lines[i + 1]);
-          if (/^\d+(?:\.\d+)?\s*g\s*$/.test(next)) n = firstGramNumber(next);
+          const nextLooksLikeValueOnly = /^[\s\d.,]+(?:g|mg)(?:\s+[\d.,]+\s*(?:g|mg))*\s*$/i.test(next);
+          if (nextLooksLikeValueOnly) n = firstGramNumber(next);
         }
         if (n == null) continue;
 
         // Voorzichtig decimaal herstellen als OCR komma verloor: 52g verzadigd bij 12g vet => 5.2g
-        if ((kind === 'salt') && n > 5 && n < 100 && Number.isInteger(n)) n = n / 100;
+        if (kind === 'salt' && n > 5 && n < 100 && Number.isInteger(n)) n = n / 100;
         return n;
       }
       return '';
@@ -4398,6 +4569,252 @@ Regels:
       if (changed) saveProducts();
     }
 
+
+    function recipeProducts() {
+      return state.products.slice().sort((a, b) => a.name.localeCompare(b.name, 'nl'));
+    }
+
+    function renderRecipeList() {
+      if (!els.recipeList) return;
+      const recipes = state.products.filter(product => product.isRecipe).sort((a, b) => a.name.localeCompare(b.name, 'nl'));
+      if (!recipes.length) {
+        els.recipeList.innerHTML = '<div class="empty">Nog geen recepten. Maak je eerste batch/recept aan.</div>';
+        return;
+      }
+      els.recipeList.innerHTML = recipes.map(recipe => {
+        const meta = [`${pretty(recipe.kcal, 0)} kcal/100g`, `P ${pretty(recipe.protein)}g`, `C ${pretty(recipe.carbs)}g`, `F ${pretty(recipe.fat)}g`, `Vezels ${pretty(recipe.fiber)}g`].join(' · ');
+        const weight = recipe.totalWeight ? `Totaal batch: ${pretty(recipe.totalWeight, 0)}g` : 'Batchgewicht onbekend';
+        return `
+          <div class="recipe-item">
+            <div>
+              <div class="recipe-name">${escapeHtml(recipe.name)}</div>
+              <div class="recipe-meta">${meta}<br>${weight}</div>
+            </div>
+            <button class="secondary-btn" type="button" data-log-recipe="${escapeHtml(recipe.id)}">Log recept</button>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function openRecipeModal() {
+      $('#recipe-form').reset();
+      clearErrors(['recipeName', 'recipeTotalWeight', 'recipePortionGrams']);
+      if (els.recipeIngredientList) els.recipeIngredientList.innerHTML = '';
+      addRecipeIngredientRow();
+      updateRecipePreview();
+      els.recipeModal.classList.add('open');
+      setTimeout(() => $('#recipe-name').focus(), 0);
+    }
+
+    function closeRecipeModal() {
+      els.recipeModal.classList.remove('open');
+      clearErrors(['recipeName', 'recipeTotalWeight', 'recipePortionGrams']);
+    }
+
+    function buildRecipeProductSelect(selectedId = '') {
+      const options = ['<option value="">Kies product...</option>'];
+      recipeProducts().forEach(product => {
+        options.push(`<option value="${escapeHtml(product.id)}" ${product.id === selectedId ? 'selected' : ''}>${escapeHtml(product.name)} (${pretty(product.kcal, 0)} kcal/100g)</option>`);
+      });
+      return options.join('');
+    }
+
+    function buildRecipeUnitSelect(product, selectedValue = 'gram') {
+      const options = [`<option value="gram" ${selectedValue === 'gram' ? 'selected' : ''}>gram</option>`];
+      if (product) {
+        normalizeServings(product).forEach((serving, index) => {
+          options.push(`<option value="serving-${index}" ${selectedValue === `serving-${index}` ? 'selected' : ''}>${escapeHtml(serving.name)} (${pretty(serving.grams, 1)}g)</option>`);
+        });
+      }
+      return options.join('');
+    }
+
+    function addRecipeIngredientRow(prefill = {}) {
+      if (!els.recipeIngredientList) return;
+      const rowId = uid();
+      const product = state.products.find(p => p.id === prefill.productId);
+      const row = document.createElement('div');
+      row.className = 'recipe-ingredient-row';
+      row.dataset.recipeRow = rowId;
+      row.innerHTML = `
+        <div class="recipe-ingredient-grid">
+          <label>Product
+            <select data-recipe-product="${rowId}">${buildRecipeProductSelect(prefill.productId || '')}</select>
+          </label>
+          <label>Hoeveelheid
+            <input type="text" inputmode="decimal" data-recipe-amount="${rowId}" placeholder="bijv. 150" value="${prefill.amount ? pretty(prefill.amount, 2) : ''}" />
+          </label>
+          <label>Eenheid
+            <select data-recipe-unit="${rowId}">${buildRecipeUnitSelect(product, prefill.unit || 'gram')}</select>
+          </label>
+          <button class="danger-btn" type="button" data-remove-recipe-row="${rowId}">Verwijder</button>
+        </div>
+        <div class="recipe-row-note" data-recipe-row-note="${rowId}">Kies product en hoeveelheid.</div>
+      `;
+      els.recipeIngredientList.appendChild(row);
+      updateRecipePreview();
+    }
+
+    function getRecipeRowProduct(rowId) {
+      const select = document.querySelector(`[data-recipe-product="${CSS.escape(rowId)}"]`);
+      return select ? state.products.find(product => product.id === select.value) : null;
+    }
+
+    function updateRecipeRowUnits(rowId) {
+      const product = getRecipeRowProduct(rowId);
+      const unitSelect = document.querySelector(`[data-recipe-unit="${CSS.escape(rowId)}"]`);
+      if (!unitSelect) return;
+      unitSelect.innerHTML = buildRecipeUnitSelect(product, 'gram');
+      updateRecipePreview();
+    }
+
+    function getRecipeRowCalculation(row) {
+      const rowId = row.dataset.recipeRow;
+      const product = getRecipeRowProduct(rowId);
+      const amountInput = document.querySelector(`[data-recipe-amount="${CSS.escape(rowId)}"]`);
+      const unitSelect = document.querySelector(`[data-recipe-unit="${CSS.escape(rowId)}"]`);
+      const note = document.querySelector(`[data-recipe-row-note="${CSS.escape(rowId)}"]`);
+      if (!product || !amountInput || !unitSelect) {
+        if (note) note.textContent = 'Kies product en hoeveelheid.';
+        return null;
+      }
+      const parsed = parsePositiveNumber(amountInput.value, 'Hoeveelheid');
+      if (!parsed.ok) {
+        if (note) note.textContent = parsed.message;
+        return null;
+      }
+      let grams = parsed.value;
+      let unitLabel = 'gram';
+      let unitGrams = 1;
+      if (unitSelect.value.startsWith('serving-')) {
+        const index = Number(unitSelect.value.replace('serving-', ''));
+        const serving = normalizeServings(product)[index];
+        if (!serving) {
+          if (note) note.textContent = 'Kies een geldige eenheid.';
+          return null;
+        }
+        unitLabel = serving.name;
+        unitGrams = serving.grams;
+        grams = parsed.value * serving.grams;
+      }
+      grams = round(grams, 1);
+      const values = calculateEntry(product, grams);
+      const extra = {
+        sugar: product.sugar ? round((product.sugar || 0) * (grams / 100), 1) : 0,
+        saturatedFat: product.saturatedFat ? round((product.saturatedFat || 0) * (grams / 100), 1) : 0,
+        salt: product.salt ? round((product.salt || 0) * (grams / 100), 2) : 0
+      };
+      if (note) note.textContent = `${pretty(grams, 1)}g totaal · ${pretty(values.kcal, 0)} kcal · P ${pretty(values.protein)}g · C ${pretty(values.carbs)}g · F ${pretty(values.fat)}g · Vezels ${pretty(values.fiber)}g`;
+      return { product, amount: round(parsed.value, 2), unitLabel, unitGrams, grams, ...values, ...extra };
+    }
+
+    function calculateRecipeFromForm() {
+      const rows = Array.from(document.querySelectorAll('[data-recipe-row]'));
+      const ingredients = rows.map(getRecipeRowCalculation).filter(Boolean);
+      const totals = ingredients.reduce((acc, item) => {
+        acc.grams += item.grams;
+        acc.kcal += item.kcal;
+        acc.protein += item.protein;
+        acc.carbs += item.carbs;
+        acc.fat += item.fat;
+        acc.fiber += item.fiber;
+        acc.sugar += item.sugar || 0;
+        acc.saturatedFat += item.saturatedFat || 0;
+        acc.salt += item.salt || 0;
+        return acc;
+      }, { grams: 0, kcal: 0, protein: 0, carbs: 0, fat: 0, fiber: 0, sugar: 0, saturatedFat: 0, salt: 0 });
+      return { ingredients, totals };
+    }
+
+    function updateRecipePreview() {
+      if (!els.recipePreview) return;
+      const { ingredients, totals } = calculateRecipeFromForm();
+      const totalWeightRaw = $('#recipe-total-weight') ? $('#recipe-total-weight').value : '';
+      const totalWeightParsed = totalWeightRaw.trim() ? parsePositiveNumber(totalWeightRaw, 'Totaal gewicht') : null;
+      const totalWeight = totalWeightParsed && totalWeightParsed.ok ? totalWeightParsed.value : totals.grams;
+      if (!ingredients.length || !totalWeight) {
+        els.recipePreview.textContent = 'Voeg ingrediënten toe om de berekening te zien.';
+        return;
+      }
+      const factor = 100 / totalWeight;
+      const per100 = {
+        kcal: totals.kcal * factor,
+        protein: totals.protein * factor,
+        carbs: totals.carbs * factor,
+        fat: totals.fat * factor,
+        fiber: totals.fiber * factor
+      };
+      els.recipePreview.textContent = `Totaal ingrediënten: ${pretty(totals.grams, 1)}g · ${pretty(totals.kcal, 0)} kcal
+Rekenen met eindgewicht: ${pretty(totalWeight, 1)}g
+Per 100g: ${pretty(per100.kcal, 0)} kcal · P ${pretty(per100.protein)}g · C ${pretty(per100.carbs)}g · F ${pretty(per100.fat)}g · Vezels ${pretty(per100.fiber)}g`;
+    }
+
+    function saveRecipe(event) {
+      event.preventDefault();
+      clearErrors(['recipeName', 'recipeTotalWeight', 'recipePortionGrams']);
+      const name = $('#recipe-name').value.trim();
+      let valid = true;
+      if (!name) { setFieldError('recipeName', 'Naam recept is verplicht.'); valid = false; }
+      const { ingredients, totals } = calculateRecipeFromForm();
+      if (!ingredients.length) { showToast('Voeg minimaal één geldig ingrediënt toe.'); valid = false; }
+      const totalWeightRaw = $('#recipe-total-weight').value.trim();
+      let totalWeight = totals.grams;
+      if (totalWeightRaw) {
+        const parsed = parsePositiveNumber(totalWeightRaw, 'Totaal gewicht');
+        if (!parsed.ok) { setFieldError('recipeTotalWeight', parsed.message); valid = false; }
+        else totalWeight = parsed.value;
+      }
+      const portionRaw = $('#recipe-portion-grams').value.trim();
+      let portionGrams = null;
+      if (portionRaw) {
+        const parsed = parsePositiveNumber(portionRaw, 'Gram per portie');
+        if (!parsed.ok) { setFieldError('recipePortionGrams', parsed.message); valid = false; }
+        else portionGrams = parsed.value;
+      }
+      if (!valid || !totalWeight) return;
+
+      const factor = 100 / totalWeight;
+      const servings = [];
+      if (portionGrams) servings.push({ name: 'portie', grams: round(portionGrams, 1) });
+      servings.push({ name: 'batch', grams: round(totalWeight, 1) });
+      const recipeProduct = {
+        id: uid(),
+        barcode: '',
+        name,
+        isRecipe: true,
+        totalWeight: round(totalWeight, 1),
+        totalRecipeKcal: round(totals.kcal, 1),
+        ingredients: ingredients.map(item => ({
+          productId: item.product.id,
+          productName: item.product.name,
+          amount: item.amount,
+          unitLabel: item.unitLabel,
+          unitGrams: item.unitGrams,
+          grams: item.grams,
+          kcal: item.kcal,
+          protein: item.protein,
+          carbs: item.carbs,
+          fat: item.fat,
+          fiber: item.fiber
+        })),
+        kcal: round(totals.kcal * factor, 1),
+        protein: round(totals.protein * factor, 1),
+        carbs: round(totals.carbs * factor, 1),
+        fat: round(totals.fat * factor, 1),
+        fiber: round(totals.fiber * factor, 1),
+        sugar: round((totals.sugar || 0) * factor, 1),
+        saturatedFat: round((totals.saturatedFat || 0) * factor, 1),
+        salt: round((totals.salt || 0) * factor, 2),
+        servings,
+        createdAt: new Date().toISOString()
+      };
+      state.products.push(recipeProduct);
+      saveProducts();
+      closeRecipeModal();
+      renderAll();
+      showToast('Recept opgeslagen als product. Je kunt het nu per gram loggen.');
+    }
+
     function bindEvents() {
       $('#prev-day').addEventListener('click', () => changeDay(-1));
       $('#next-day').addEventListener('click', () => changeDay(1));
@@ -4405,6 +4822,13 @@ Regels:
       $('#open-product-modal').addEventListener('click', () => openProductModal());
       $('#open-product-modal-from-log').addEventListener('click', () => openProductModal());
       $('#new-product-from-edit').addEventListener('click', () => openProductModal());
+      $('#open-recipe-modal').addEventListener('click', openRecipeModal);
+      $('#close-recipe-modal').addEventListener('click', closeRecipeModal);
+      $('#recipe-form').addEventListener('submit', saveRecipe);
+      $('#add-recipe-ingredient').addEventListener('click', () => addRecipeIngredientRow());
+      $('#reset-recipe-form').addEventListener('click', openRecipeModal);
+      $('#recipe-total-weight').addEventListener('input', updateRecipePreview);
+      $('#recipe-portion-grams').addEventListener('input', updateRecipePreview);
       $('#close-log-modal').addEventListener('click', closeLogModal);
       $('#close-meal-detail-modal').addEventListener('click', closeMealDetail);
       $('#close-copy-modal').addEventListener('click', closeCopyModal);
@@ -4493,6 +4917,29 @@ Regels:
           if (file) importProductsOnlyFromFile(file);
         });
       }
+      if (els.recipeList) { els.recipeList.addEventListener('click', (event) => {
+        const btn = event.target.closest('[data-log-recipe]');
+        if (!btn) return;
+        openLogModal('breakfast');
+        selectLogProduct(btn.dataset.logRecipe, { focusAmount: true });
+      }); }
+      if (els.recipeIngredientList) { els.recipeIngredientList.addEventListener('change', (event) => {
+        const productSelect = event.target.closest('[data-recipe-product]');
+        if (productSelect) { updateRecipeRowUnits(productSelect.dataset.recipeProduct); return; }
+        const unitSelect = event.target.closest('[data-recipe-unit]');
+        if (unitSelect) updateRecipePreview();
+      });
+      els.recipeIngredientList.addEventListener('input', (event) => {
+        if (event.target.closest('[data-recipe-amount]')) updateRecipePreview();
+      });
+      els.recipeIngredientList.addEventListener('click', (event) => {
+        const removeBtn = event.target.closest('[data-remove-recipe-row]');
+        if (!removeBtn) return;
+        const row = document.querySelector(`[data-recipe-row="${CSS.escape(removeBtn.dataset.removeRecipeRow)}"]`);
+        if (row) row.remove();
+        if (!document.querySelector('[data-recipe-row]')) addRecipeIngredientRow();
+        updateRecipePreview();
+      }); }
       if (els.editProductSearch) els.editProductSearch.addEventListener('input', renderEditProductList);
       if (els.editProductList) {
         els.editProductList.addEventListener('click', (event) => {
@@ -4644,6 +5091,9 @@ Regels:
       els.askAiModal.addEventListener('click', (event) => {
         if (event.target === els.askAiModal) closeAskAiModal();
       });
+      els.recipeModal.addEventListener('click', (event) => {
+        if (event.target === els.recipeModal) closeRecipeModal();
+      });
       els.productModal.addEventListener('click', (event) => {
         if (event.target === els.productModal) closeProductModal();
       });
@@ -4653,6 +5103,7 @@ Regels:
       document.addEventListener('keydown', (event) => {
         if (event.key !== 'Escape') return;
         if (els.scannerModal.classList.contains('open')) stopBarcodeScanner();
+        else if (els.recipeModal && els.recipeModal.classList.contains('open')) closeRecipeModal();
         else if (els.productModal.classList.contains('open')) closeProductModal();
         else if (els.askAiModal.classList.contains('open')) closeAskAiModal();
         else if (els.logModal.classList.contains('open')) closeLogModal();
