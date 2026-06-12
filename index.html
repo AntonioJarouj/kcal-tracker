@@ -3178,14 +3178,46 @@
       if (elsReplace.results) elsReplace.results.classList.remove('open');
     }
 
+    function resolveReplacementProductFromSearch(logId) {
+      const elsReplace = getReplacementProductElements(logId);
+      const hiddenId = elsReplace.hidden ? String(elsReplace.hidden.value || '').trim() : '';
+      let product = hiddenId ? state.products.find(item => item.id === hiddenId) : null;
+      if (product) return product;
+
+      const raw = elsReplace.search ? String(elsReplace.search.value || '').trim() : '';
+      if (!raw) return null;
+      const barcode = normalizeBarcode(raw);
+      if (barcode) {
+        product = findProductByBarcode(barcode);
+        if (product) {
+          selectReplacementProduct(logId, product.id);
+          return product;
+        }
+      }
+      const clean = raw
+        .replace(/\([^)]*kcal\/100g[^)]*\)/gi, '')
+        .trim()
+        .toLowerCase();
+      product = state.products.find(item => String(item.name || '').trim().toLowerCase() === clean);
+      if (!product) product = state.products.find(item => String(item.name || '').toLowerCase().startsWith(clean));
+      if (product) {
+        selectReplacementProduct(logId, product.id);
+        return product;
+      }
+      return null;
+    }
+
     function replaceLogEntryProduct(logId) {
       const elsReplace = getReplacementProductElements(logId);
       const errorEl = document.getElementById(`meal-detail-error-${logId}`);
       if (errorEl) errorEl.textContent = '';
-      const newProductId = elsReplace.hidden ? elsReplace.hidden.value : '';
-      const product = state.products.find(item => item.id === newProductId);
+      const product = resolveReplacementProductFromSearch(logId);
       if (!product) {
-        if (errorEl) errorEl.textContent = 'Kies een geldig product om te vervangen.';
+        if (errorEl) errorEl.textContent = 'Zoek en klik eerst een product, of scan een barcode die al in je producten staat.';
+        if (elsReplace.search) {
+          elsReplace.search.focus();
+          renderReplacementProductResults(logId);
+        }
         return;
       }
 
@@ -4115,6 +4147,9 @@ Regels:
         const text = result && result.data ? result.data.text : '';
         const parsed = parseNutritionLabelText(text);
         fillProductFormFromData(parsed, 'voedingslabel OCR');
+        if (!parsed.kcal && !parsed.fat && !parsed.carbs && !parsed.protein) {
+          setAutoFillStatus('OCR gelezen, maar voedingswaarden niet goed herkend. Probeer een rechtere/scherpere foto van alleen de tabel.');
+        }
       } catch (error) {
         setAutoFillStatus('OCR is niet gelukt. Probeer een scherpere foto met goed licht of vul handmatig in.');
       } finally {
@@ -4247,6 +4282,12 @@ Regels:
           selectReplacementProduct(logId, product.id, { focusButton: true });
           showToast(`Vervangproduct gevonden: ${product.name}`);
           return;
+        }
+        const elsReplace = getReplacementProductElements(logId);
+        if (elsReplace.search) {
+          elsReplace.search.value = barcode;
+          if (elsReplace.hidden) elsReplace.hidden.value = '';
+          renderReplacementProductResults(logId);
         }
         showToast('Barcode niet gevonden in je producten. Maak het product eerst aan of zoek handmatig.');
         return;
@@ -4863,18 +4904,32 @@ Per 100g: ${pretty(per100.kcal, 0)} kcal · P ${pretty(per100.protein)}g · C ${
       $('#scan-product-barcode').addEventListener('click', () => openBarcodeScanner('product-form'));
       $('#scan-log-barcode').addEventListener('click', () => openBarcodeScanner('log-form'));
       $('#lookup-openfoodfacts').addEventListener('click', () => lookupOpenFoodFactsByBarcode());
-      $('#scan-nutrition-label').addEventListener('click', () => els.nutritionLabelCameraFile && els.nutritionLabelCameraFile.click());
-      $('#upload-nutrition-label').addEventListener('click', () => els.nutritionLabelFile && els.nutritionLabelFile.click());
+      const scanNutritionBtn = $('#scan-nutrition-label');
+      const uploadNutritionBtn = $('#upload-nutrition-label');
+      if (scanNutritionBtn) {
+        scanNutritionBtn.addEventListener('click', () => {
+          setAutoFillStatus('Kies of maak een duidelijke foto van alleen de voedingswaardetabel.');
+          if (els.nutritionLabelCameraFile) els.nutritionLabelCameraFile.click();
+        });
+      }
+      if (uploadNutritionBtn) {
+        uploadNutritionBtn.addEventListener('click', () => {
+          setAutoFillStatus('Upload een scherpe foto of screenshot van de voedingswaardetabel.');
+          if (els.nutritionLabelFile) els.nutritionLabelFile.click();
+        });
+      }
       if (els.nutritionLabelCameraFile) {
         els.nutritionLabelCameraFile.addEventListener('change', event => {
           const file = event.target.files && event.target.files[0];
           if (file) scanNutritionLabelFile(file);
         });
       }
-      els.nutritionLabelFile.addEventListener('change', event => {
-        const file = event.target.files && event.target.files[0];
-        if (file) scanNutritionLabelFile(file);
-      });
+      if (els.nutritionLabelFile) {
+        els.nutritionLabelFile.addEventListener('change', event => {
+          const file = event.target.files && event.target.files[0];
+          if (file) scanNutritionLabelFile(file);
+        });
+      }
       $('#reset-product-form').addEventListener('click', () => { editingProductId = null; $('#product-form').reset(); $('#product-modal-title').textContent = 'Nieuw product toevoegen'; setProductSubmitLabel('Product opslaan'); clearErrors(['barcode', 'productName', 'productKcal', 'productProtein', 'productCarbs', 'productFat', 'productSaturatedFat', 'productFiber', 'productSugar', 'productSalt', 'servingName1', 'servingGrams1', 'servingName2', 'servingGrams2']); });
       $('#product-form').addEventListener('submit', addProduct);
       $('#log-form').addEventListener('submit', addLogEntry);
@@ -5063,6 +5118,13 @@ Per 100g: ${pretty(per100.kcal, 0)} kcal · P ${pretty(per100.protein)}g · C ${
         const logId = input.dataset.replaceProductSearch;
         const elsReplace = getReplacementProductElements(logId);
         if (elsReplace.hidden) elsReplace.hidden.value = '';
+        const barcode = normalizeBarcode(input.value);
+        const byBarcode = barcode ? findProductByBarcode(barcode) : null;
+        if (byBarcode) {
+          selectReplacementProduct(logId, byBarcode.id, { focusButton: true });
+          showToast(`Product gevonden via barcode: ${byBarcode.name}`);
+          return;
+        }
         renderReplacementProductResults(logId);
       });
       els.mealDetailList.addEventListener('focusin', (event) => {
