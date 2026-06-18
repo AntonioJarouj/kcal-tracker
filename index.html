@@ -1467,7 +1467,7 @@
     }
     .recipe-ingredient-grid {
       display: grid;
-      grid-template-columns: 1.35fr .7fr .95fr auto;
+      grid-template-columns: minmax(0, 1.5fr) auto .65fr .85fr auto;
       gap: 10px;
       align-items: end;
     }
@@ -1494,6 +1494,50 @@
       white-space: pre-line;
     }
     .recipe-row-note { color: var(--muted-2); font-size: 12px; line-height: 1.4; }
+    .recipe-product-search-wrap { position: relative; }
+    .recipe-product-search {
+      width: 100%;
+      border: 1px solid var(--border);
+      background: rgba(0,0,0,.22);
+      color: var(--text);
+      border-radius: 13px;
+      min-height: 42px;
+      padding: 0 12px;
+      outline: none;
+    }
+    .recipe-product-search:focus { border-color: rgba(239,204,122,.55); background: rgba(0,0,0,.28); }
+    .recipe-product-results {
+      position: absolute;
+      left: 0;
+      right: 0;
+      top: calc(100% + 8px);
+      z-index: 170;
+      display: none;
+      max-height: 260px;
+      overflow: auto;
+      border: 1px solid var(--border-strong);
+      border-radius: 16px;
+      background: #171820;
+      box-shadow: 0 18px 70px rgba(0,0,0,.55);
+      padding: 8px;
+    }
+    .recipe-product-results.open { display: grid; gap: 6px; }
+    .recipe-product-result-btn {
+      width: 100%;
+      border: 1px solid transparent;
+      background: rgba(255,255,255,.035);
+      color: var(--text);
+      text-align: left;
+      border-radius: 13px;
+      padding: 10px 12px;
+      display: grid;
+      gap: 4px;
+    }
+    .recipe-product-result-btn:hover { background: rgba(239,204,122,.09); border-color: rgba(239,204,122,.22); }
+    .recipe-product-result-name { font-weight: 850; }
+    .recipe-product-result-meta { color: var(--muted-2); font-size: 12px; line-height: 1.35; }
+    .recipe-scan-btn { min-height: 42px; white-space: nowrap; }
+
     @media (max-width: 640px) {
       .recipe-item { grid-template-columns: 1fr; }
       .recipe-ingredient-grid { grid-template-columns: 1fr; }
@@ -2285,6 +2329,7 @@
     let selectedMealLogIds = new Set();
     let expandedMealEditIds = new Set();
     let editingProductId = null;
+    let editingRecipeId = null;
     let selectedAskAiMeal = null;
     let parsedAiItems = [];
 
@@ -4501,6 +4546,18 @@ Regels:
       const target = scannerState.target;
       stopBarcodeScanner();
 
+      if (target && String(target).startsWith('recipe-ingredient:')) {
+        const rowId = String(target).split(':')[1];
+        const product = findProductByBarcode(barcode);
+        if (product) {
+          selectRecipeIngredientProduct(rowId, product.id);
+          showToast(`Ingrediënt gekozen: ${product.name}`);
+        } else {
+          showToast('Barcode niet gevonden in je producten. Maak het product eerst aan en voeg het daarna toe aan het recept.');
+        }
+        return;
+      }
+
       if (target === 'product-form') {
         $('#barcode').value = barcode;
         setFieldError('barcode', '');
@@ -4868,17 +4925,43 @@ Regels:
               <div class="recipe-name">${escapeHtml(recipe.name)}</div>
               <div class="recipe-meta">${meta}<br>${weight}</div>
             </div>
-            <button class="secondary-btn" type="button" data-log-recipe="${escapeHtml(recipe.id)}">Log recept</button>
+            <div class="product-edit-actions">
+              <button class="secondary-btn" type="button" data-edit-recipe="${escapeHtml(recipe.id)}">Bewerk</button>
+              <button class="primary-btn" type="button" data-log-recipe="${escapeHtml(recipe.id)}">Log</button>
+            </div>
           </div>
         `;
       }).join('');
     }
 
-    function openRecipeModal() {
+    function openRecipeModal(recipeId = null) {
       $('#recipe-form').reset();
       clearErrors(['recipeName', 'recipeTotalWeight', 'recipePortionGrams']);
       if (els.recipeIngredientList) els.recipeIngredientList.innerHTML = '';
-      addRecipeIngredientRow();
+      editingRecipeId = null;
+      const title = $('#recipe-modal-title');
+      const submitBtn = document.querySelector('#recipe-form button[type="submit"]');
+      if (recipeId) {
+        const recipe = state.products.find(product => product.id === recipeId && product.isRecipe);
+        if (!recipe) return;
+        editingRecipeId = recipe.id;
+        if (title) title.textContent = 'Recept bewerken';
+        if (submitBtn) submitBtn.textContent = 'Wijzigingen opslaan';
+        $('#recipe-name').value = recipe.name || '';
+        $('#recipe-total-weight').value = recipe.totalWeight ? String(recipe.totalWeight).replace('.', ',') : '';
+        const portion = normalizeServings(recipe).find(serving => serving.name === 'portie');
+        $('#recipe-portion-grams').value = portion ? String(portion.grams).replace('.', ',') : '';
+        (recipe.ingredients || []).forEach(item => addRecipeIngredientRow({
+          productId: item.productId,
+          amount: item.amount,
+          unit: item.unitLabel === 'gram' ? 'gram' : 'serving-by-name|' + item.unitLabel + '|' + item.unitGrams
+        }));
+        if (!(recipe.ingredients || []).length) addRecipeIngredientRow();
+      } else {
+        if (title) title.textContent = 'Nieuw recept maken';
+        if (submitBtn) submitBtn.textContent = 'Recept opslaan als product';
+        addRecipeIngredientRow();
+      }
       updateRecipePreview();
       els.recipeModal.classList.add('open');
       setTimeout(() => $('#recipe-name').focus(), 0);
@@ -4886,6 +4969,11 @@ Regels:
 
     function closeRecipeModal() {
       els.recipeModal.classList.remove('open');
+      editingRecipeId = null;
+      const title = $('#recipe-modal-title');
+      const submitBtn = document.querySelector('#recipe-form button[type="submit"]');
+      if (title) title.textContent = 'Nieuw recept maken';
+      if (submitBtn) submitBtn.textContent = 'Recept opslaan als product';
       clearErrors(['recipeName', 'recipeTotalWeight', 'recipePortionGrams']);
     }
 
@@ -4898,10 +4986,14 @@ Regels:
     }
 
     function buildRecipeUnitSelect(product, selectedValue = 'gram') {
+      const selectedParts = String(selectedValue || '').split('|');
+      const selectedName = selectedParts[0] === 'serving-by-name' ? selectedParts[1] : null;
+      const selectedGrams = selectedParts[0] === 'serving-by-name' ? Number(selectedParts[2]) : null;
       const options = [`<option value="gram" ${selectedValue === 'gram' ? 'selected' : ''}>gram</option>`];
       if (product) {
         normalizeServings(product).forEach((serving, index) => {
-          options.push(`<option value="serving-${index}" ${selectedValue === `serving-${index}` ? 'selected' : ''}>${escapeHtml(serving.name)} (${pretty(serving.grams, 1)}g)</option>`);
+          const selected = selectedValue === `serving-${index}` || (selectedName && String(serving.name) === String(selectedName) && Number(serving.grams) === Number(selectedGrams));
+          options.push(`<option value="serving-${index}" ${selected ? 'selected' : ''}>${escapeHtml(serving.name)} (${pretty(serving.grams, 1)}g)</option>`);
         });
       }
       return options.join('');
@@ -4917,8 +5009,13 @@ Regels:
       row.innerHTML = `
         <div class="recipe-ingredient-grid">
           <label>Product
-            <select data-recipe-product="${rowId}">${buildRecipeProductSelect(prefill.productId || '')}</select>
+            <div class="recipe-product-search-wrap">
+              <input class="recipe-product-search" type="search" autocomplete="off" data-recipe-product-search="${rowId}" placeholder="Zoek product of barcode..." value="${product ? escapeHtml(productDisplayLabel(product)) : ''}" />
+              <input type="hidden" data-recipe-product="${rowId}" value="${escapeHtml(prefill.productId || '')}" />
+              <div class="recipe-product-results" data-recipe-product-results="${rowId}"></div>
+            </div>
           </label>
+          <button class="secondary-btn recipe-scan-btn" type="button" data-scan-recipe-row="${rowId}">Scan barcode</button>
           <label>Hoeveelheid
             <input type="text" inputmode="decimal" data-recipe-amount="${rowId}" placeholder="bijv. 150" value="${prefill.amount ? pretty(prefill.amount, 2) : ''}" />
           </label>
@@ -4930,6 +5027,56 @@ Regels:
         <div class="recipe-row-note" data-recipe-row-note="${rowId}">Kies product en hoeveelheid.</div>
       `;
       els.recipeIngredientList.appendChild(row);
+      updateRecipePreview();
+    }
+
+
+    function hideRecipeProductResults(rowId = null) {
+      const selector = rowId ? `[data-recipe-product-results="${CSS.escape(rowId)}"]` : '[data-recipe-product-results]';
+      document.querySelectorAll(selector).forEach(el => el.classList.remove('open'));
+    }
+
+    function renderRecipeProductResults(rowId) {
+      const input = document.querySelector(`[data-recipe-product-search="${CSS.escape(rowId)}"]`);
+      const results = document.querySelector(`[data-recipe-product-results="${CSS.escape(rowId)}"]`);
+      if (!input || !results) return;
+      const query = String(input.value || '').trim().toLowerCase();
+      let products = recipeProducts();
+      if (query) {
+        products = products.map(product => {
+          const haystack = productSearchText(product);
+          const barcode = normalizeBarcode(product.barcode);
+          let score = 0;
+          if ((product.name || '').toLowerCase() === query) score += 100;
+          if ((product.name || '').toLowerCase().startsWith(query)) score += 60;
+          if (haystack.includes(query)) score += 20;
+          if (barcode && barcode.includes(normalizeBarcode(query))) score += 80;
+          return { product, score };
+        }).filter(item => item.score > 0).sort((a,b) => b.score - a.score || a.product.name.localeCompare(b.product.name, 'nl')).map(item => item.product);
+      }
+      products = products.slice(0, query ? 12 : 8);
+      if (!products.length) {
+        results.innerHTML = '<div class="product-results-empty">Geen product gevonden. Maak het product eerst aan of scan een barcode die al in je database staat.</div>';
+        results.classList.add('open');
+        return;
+      }
+      results.innerHTML = products.map(product => {
+        const meta = [`${pretty(product.kcal,0)} kcal/100g`, `P ${pretty(product.protein)}g`, `C ${pretty(product.carbs)}g`, `F ${pretty(product.fat)}g`, product.barcode ? `Barcode ${escapeHtml(product.barcode)}` : ''].filter(Boolean).join(' · ');
+        return `<button class="recipe-product-result-btn" type="button" data-select-recipe-product="${escapeHtml(product.id)}" data-recipe-row-target="${escapeHtml(rowId)}"><span class="recipe-product-result-name">${escapeHtml(product.name)}</span><span class="recipe-product-result-meta">${meta}</span></button>`;
+      }).join('');
+      results.classList.add('open');
+    }
+
+    function selectRecipeIngredientProduct(rowId, productId) {
+      const product = state.products.find(item => item.id === productId);
+      const hidden = document.querySelector(`[data-recipe-product="${CSS.escape(rowId)}"]`);
+      const input = document.querySelector(`[data-recipe-product-search="${CSS.escape(rowId)}"]`);
+      const unitSelect = document.querySelector(`[data-recipe-unit="${CSS.escape(rowId)}"]`);
+      if (!product || !hidden || !input) return;
+      hidden.value = product.id;
+      input.value = productDisplayLabel(product);
+      if (unitSelect) unitSelect.innerHTML = buildRecipeUnitSelect(product, 'gram');
+      hideRecipeProductResults(rowId);
       updateRecipePreview();
     }
 
@@ -5055,8 +5202,7 @@ Per 100g: ${pretty(per100.kcal, 0)} kcal · P ${pretty(per100.protein)}g · C ${
       const servings = [];
       if (portionGrams) servings.push({ name: 'portie', grams: round(portionGrams, 1) });
       servings.push({ name: 'batch', grams: round(totalWeight, 1) });
-      const recipeProduct = {
-        id: uid(),
+      const baseRecipeProduct = {
         barcode: '',
         name,
         isRecipe: true,
@@ -5083,14 +5229,21 @@ Per 100g: ${pretty(per100.kcal, 0)} kcal · P ${pretty(per100.protein)}g · C ${
         sugar: round((totals.sugar || 0) * factor, 1),
         saturatedFat: round((totals.saturatedFat || 0) * factor, 1),
         salt: round((totals.salt || 0) * factor, 2),
-        servings,
-        createdAt: new Date().toISOString()
+        servings
       };
-      state.products.push(recipeProduct);
+      if (editingRecipeId) {
+        const index = state.products.findIndex(product => product.id === editingRecipeId && product.isRecipe);
+        if (index === -1) { showToast('Recept niet gevonden.'); return; }
+        state.products[index] = { ...state.products[index], ...baseRecipeProduct, updatedAt: new Date().toISOString() };
+        showToast('Recept bijgewerkt. Nieuwe logs gebruiken de nieuwe berekening.');
+      } else {
+        state.products.push({ id: uid(), ...baseRecipeProduct, createdAt: new Date().toISOString() });
+        showToast('Recept opgeslagen als product. Je kunt het nu per gram loggen.');
+      }
       saveProducts();
+      editingRecipeId = null;
       closeRecipeModal();
       renderAll();
-      showToast('Recept opgeslagen als product. Je kunt het nu per gram loggen.');
     }
 
     function bindEvents() {
@@ -5216,21 +5369,40 @@ Per 100g: ${pretty(per100.kcal, 0)} kcal · P ${pretty(per100.protein)}g · C ${
         });
       }
       if (els.recipeList) { els.recipeList.addEventListener('click', (event) => {
+        const editBtn = event.target.closest('[data-edit-recipe]');
+        if (editBtn) { openRecipeModal(editBtn.dataset.editRecipe); return; }
         const btn = event.target.closest('[data-log-recipe]');
         if (!btn) return;
         openLogModal('breakfast');
         selectLogProduct(btn.dataset.logRecipe, { focusAmount: true });
       }); }
       if (els.recipeIngredientList) { els.recipeIngredientList.addEventListener('change', (event) => {
-        const productSelect = event.target.closest('[data-recipe-product]');
-        if (productSelect) { updateRecipeRowUnits(productSelect.dataset.recipeProduct); return; }
         const unitSelect = event.target.closest('[data-recipe-unit]');
         if (unitSelect) updateRecipePreview();
       });
       els.recipeIngredientList.addEventListener('input', (event) => {
+        const productSearch = event.target.closest('[data-recipe-product-search]');
+        if (productSearch) {
+          const rowId = productSearch.dataset.recipeProductSearch;
+          const hidden = document.querySelector(`[data-recipe-product="${CSS.escape(rowId)}"]`);
+          if (hidden) hidden.value = '';
+          const unitSelect = document.querySelector(`[data-recipe-unit="${CSS.escape(rowId)}"]`);
+          if (unitSelect) unitSelect.innerHTML = buildRecipeUnitSelect(null, 'gram');
+          renderRecipeProductResults(rowId);
+          updateRecipePreview();
+          return;
+        }
         if (event.target.closest('[data-recipe-amount]')) updateRecipePreview();
       });
+      els.recipeIngredientList.addEventListener('focusin', (event) => {
+        const productSearch = event.target.closest('[data-recipe-product-search]');
+        if (productSearch) renderRecipeProductResults(productSearch.dataset.recipeProductSearch);
+      });
       els.recipeIngredientList.addEventListener('click', (event) => {
+        const selectBtn = event.target.closest('[data-select-recipe-product]');
+        if (selectBtn) { selectRecipeIngredientProduct(selectBtn.dataset.recipeRowTarget, selectBtn.dataset.selectRecipeProduct); return; }
+        const scanBtn = event.target.closest('[data-scan-recipe-row]');
+        if (scanBtn) { openBarcodeScanner('recipe-ingredient:' + scanBtn.dataset.scanRecipeRow); return; }
         const removeBtn = event.target.closest('[data-remove-recipe-row]');
         if (!removeBtn) return;
         const row = document.querySelector(`[data-recipe-row="${CSS.escape(removeBtn.dataset.removeRecipeRow)}"]`);
@@ -5260,6 +5432,7 @@ Per 100g: ${pretty(per100.kcal, 0)} kcal · P ${pretty(per100.protein)}g · C ${
       });
       document.addEventListener('click', (event) => {
         if (!event.target.closest('.product-search-wrap')) hideProductResults();
+        if (!event.target.closest('.recipe-product-search-wrap')) hideRecipeProductResults();
         if (!event.target.closest('.replace-search-wrap')) {
           document.querySelectorAll('.replace-product-results.open').forEach(el => el.classList.remove('open'));
         }
