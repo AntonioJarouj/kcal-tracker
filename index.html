@@ -1500,6 +1500,70 @@
       .recipe-ingredient-grid .danger-btn { width: 100%; }
     }
 
+
+    /* --- doelcalculator --- */
+    .goal-mode-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+      margin-bottom: 14px;
+    }
+    .goal-mode-btn {
+      border: 1px solid var(--border);
+      background: rgba(255,255,255,.045);
+      color: var(--text);
+      border-radius: 14px;
+      min-height: 44px;
+      font-weight: 850;
+    }
+    .goal-mode-btn.active {
+      border-color: rgba(239,204,122,.48);
+      background: rgba(239,204,122,.12);
+      color: var(--accent);
+    }
+    .goal-calculator-panel {
+      border: 1px solid rgba(239,204,122,.18);
+      background: rgba(239,204,122,.055);
+      border-radius: 16px;
+      padding: 14px;
+      margin-bottom: 14px;
+    }
+    .goal-calculator-panel.is-hidden { display: none; }
+    .radio-row {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 8px;
+    }
+    .radio-pill {
+      border: 1px solid var(--border);
+      background: rgba(0,0,0,.18);
+      border-radius: 13px;
+      min-height: 42px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 7px;
+      padding: 0 10px;
+      color: var(--muted);
+      font-weight: 800;
+      font-size: 13px;
+    }
+    .radio-pill input { width: auto; min-height: auto; }
+    .goal-result-box {
+      margin-top: 12px;
+      border: 1px solid var(--border);
+      background: rgba(0,0,0,.20);
+      border-radius: 14px;
+      padding: 12px;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.45;
+    }
+    .goal-result-box strong { color: var(--accent); }
+    @media (max-width: 640px) {
+      .goal-mode-grid, .radio-row { grid-template-columns: 1fr; }
+    }
+
   </style>
 </head>
 <body>
@@ -1689,8 +1753,97 @@
         <div class="accordion-body">
           <form id="goals-form" novalidate>
             <div class="split-note" style="margin-bottom: 14px;">
-              Vul je kcal-doel en macroverdeling in. De app rekent de gramdoelen automatisch uit.
+              Kies zelf je kcal en macroverdeling, of laat de app een startdoel berekenen met REE, PAL en je doel.
             </div>
+
+            <div class="goal-mode-grid" aria-label="Doelmodus">
+              <button class="goal-mode-btn active" type="button" id="goal-mode-manual">Zelf invullen</button>
+              <button class="goal-mode-btn" type="button" id="goal-mode-calculator">Bereken startdoel</button>
+            </div>
+
+            <div class="goal-calculator-panel is-hidden" id="goal-calculator-panel">
+              <div class="split-note" style="margin-bottom: 14px;">
+                Formule: REE = 11,936 × gewicht + 587,728 × lengte in meter − 8,129 × leeftijd + 191,027 × geslacht + 29,279. Bij geslacht gebruikt de app man = 1 en vrouw = 0.
+              </div>
+              <div class="form-grid">
+                <div class="field" data-field="calcWeight">
+                  <label for="calc-weight">Gewicht kg</label>
+                  <input id="calc-weight" type="text" inputmode="decimal" placeholder="bijv. 88,3" />
+                  <div class="error" id="error-calcWeight"></div>
+                </div>
+                <div class="field" data-field="calcHeight">
+                  <label for="calc-height">Lengte cm</label>
+                  <input id="calc-height" type="text" inputmode="decimal" placeholder="bijv. 183" />
+                  <div class="error" id="error-calcHeight"></div>
+                </div>
+                <div class="field" data-field="calcAge">
+                  <label for="calc-age">Leeftijd</label>
+                  <input id="calc-age" type="text" inputmode="decimal" placeholder="bijv. 22" />
+                  <div class="error" id="error-calcAge"></div>
+                </div>
+                <div class="field" data-field="calcSex">
+                  <label for="calc-sex">Geslacht</label>
+                  <select id="calc-sex">
+                    <option value="1">Man</option>
+                    <option value="0">Vrouw</option>
+                  </select>
+                  <div class="error" id="error-calcSex"></div>
+                </div>
+                <div class="field form-full" data-field="calcGoal">
+                  <label>Doel</label>
+                  <div class="radio-row">
+                    <label class="radio-pill"><input type="radio" name="calcGoal" value="cut" checked /> Cutten</label>
+                    <label class="radio-pill"><input type="radio" name="calcGoal" value="maintain" /> Maintainen</label>
+                    <label class="radio-pill"><input type="radio" name="calcGoal" value="bulk" /> Lean bulken</label>
+                  </div>
+                  <div class="error" id="error-calcGoal"></div>
+                </div>
+                <div class="field" data-field="calcJob">
+                  <label for="calc-job">Dagelijkse activiteit</label>
+                  <select id="calc-job">
+                    <option value="sedentary">Veel zitten</option>
+                    <option value="light">Licht actief</option>
+                    <option value="active">Actieve job/studie</option>
+                    <option value="veryActive">Zwaar actief werk</option>
+                  </select>
+                  <div class="error" id="error-calcJob"></div>
+                </div>
+                <div class="field" data-field="calcSteps">
+                  <label for="calc-steps">Gemiddelde stappen/dag</label>
+                  <select id="calc-steps">
+                    <option value="low">0–5k</option>
+                    <option value="mid">5–8k</option>
+                    <option value="high" selected>8–12k</option>
+                    <option value="veryHigh">12k+</option>
+                  </select>
+                  <div class="error" id="error-calcSteps"></div>
+                </div>
+                <div class="field" data-field="calcStrength">
+                  <label for="calc-strength">Krachttraining/week</label>
+                  <select id="calc-strength">
+                    <option value="0">0x</option>
+                    <option value="2">1–2x</option>
+                    <option value="4">3–4x</option>
+                    <option value="6" selected>5–6x</option>
+                    <option value="7">7x</option>
+                  </select>
+                  <div class="error" id="error-calcStrength"></div>
+                </div>
+                <div class="field" data-field="calcCardio">
+                  <label for="calc-cardio">Cardio/week</label>
+                  <select id="calc-cardio">
+                    <option value="0">0x</option>
+                    <option value="2" selected>1–2x</option>
+                    <option value="4">3–4x</option>
+                    <option value="6">5x+</option>
+                  </select>
+                  <div class="error" id="error-calcCardio"></div>
+                </div>
+              </div>
+              <div class="goal-result-box" id="goal-calculator-result">Vul je gegevens in en klik op berekenen.</div>
+              <button class="secondary-btn" id="calculate-goal-start" type="button" style="margin-top: 12px; width: 100%;">Bereken en vul doelen in</button>
+            </div>
+
             <div class="form-grid">
               <div class="field form-full" data-field="goalKcal">
                 <label for="goal-kcal">Kcal per dag</label>
@@ -2509,6 +2662,90 @@
       }
 
       return { valid, product, mealType, amount: amountParsed.value, unit, grams };
+    }
+
+
+    function setGoalMode(mode) {
+      const panel = document.getElementById('goal-calculator-panel');
+      const manualBtn = document.getElementById('goal-mode-manual');
+      const calcBtn = document.getElementById('goal-mode-calculator');
+      const isCalc = mode === 'calculator';
+      if (panel) panel.classList.toggle('is-hidden', !isCalc);
+      if (manualBtn) manualBtn.classList.toggle('active', !isCalc);
+      if (calcBtn) calcBtn.classList.toggle('active', isCalc);
+    }
+
+    function getCheckedGoalType() {
+      const checked = document.querySelector('input[name="calcGoal"]:checked');
+      return checked ? checked.value : 'cut';
+    }
+
+    function palFromGoalQuestions() {
+      const job = document.getElementById('calc-job') ? document.getElementById('calc-job').value : 'sedentary';
+      const steps = document.getElementById('calc-steps') ? document.getElementById('calc-steps').value : 'mid';
+      const strength = document.getElementById('calc-strength') ? document.getElementById('calc-strength').value : '0';
+      const cardio = document.getElementById('calc-cardio') ? document.getElementById('calc-cardio').value : '0';
+
+      let pal = 1.2;
+      const jobAdd = { sedentary: 0, light: 0.12, active: 0.25, veryActive: 0.40 };
+      const stepsAdd = { low: 0, mid: 0.08, high: 0.16, veryHigh: 0.28 };
+      const strengthAdd = { '0': 0, '2': 0.06, '4': 0.12, '6': 0.18, '7': 0.22 };
+      const cardioAdd = { '0': 0, '2': 0.04, '4': 0.08, '6': 0.12 };
+      pal += jobAdd[job] || 0;
+      pal += stepsAdd[steps] || 0;
+      pal += strengthAdd[strength] || 0;
+      pal += cardioAdd[cardio] || 0;
+      return Math.min(Math.max(round(pal, 2), 1.2), 2.25);
+    }
+
+    function goalMultiplier(goalType) {
+      if (goalType === 'cut') return 0.85;
+      if (goalType === 'bulk') return 1.08;
+      return 1;
+    }
+
+    function macroPresetForGoal(goalType) {
+      if (goalType === 'cut') return { carbsPct: 35, proteinPct: 35, fatPct: 30, fiber: 30 };
+      if (goalType === 'bulk') return { carbsPct: 45, proteinPct: 25, fatPct: 30, fiber: 30 };
+      return { carbsPct: 40, proteinPct: 30, fatPct: 30, fiber: 30 };
+    }
+
+    function calculateAndFillStartGoal() {
+      clearErrors(['calcWeight', 'calcHeight', 'calcAge', 'calcSex']);
+      const weightParsed = parsePositiveNumber(document.getElementById('calc-weight').value, 'Gewicht');
+      const heightParsed = parsePositiveNumber(document.getElementById('calc-height').value, 'Lengte');
+      const ageParsed = parsePositiveNumber(document.getElementById('calc-age').value, 'Leeftijd');
+      let valid = true;
+      if (!weightParsed.ok) { setFieldError('calcWeight', weightParsed.message); valid = false; }
+      if (!heightParsed.ok) { setFieldError('calcHeight', heightParsed.message); valid = false; }
+      if (!ageParsed.ok) { setFieldError('calcAge', ageParsed.message); valid = false; }
+      if (!valid) return;
+
+      const weight = weightParsed.value;
+      const heightMeters = heightParsed.value > 3 ? heightParsed.value / 100 : heightParsed.value;
+      const age = ageParsed.value;
+      const sex = Number(document.getElementById('calc-sex').value || 0);
+      const ree = (11.936 * weight) + (587.728 * heightMeters) - (8.129 * age) + (191.027 * sex) + 29.279;
+      const pal = palFromGoalQuestions();
+      const tdee = ree * pal;
+      const goalType = getCheckedGoalType();
+      const targetKcal = Math.round(tdee * goalMultiplier(goalType) / 10) * 10;
+      const preset = macroPresetForGoal(goalType);
+      const goals = calculateMacroGoals(targetKcal, preset.carbsPct, preset.proteinPct, preset.fatPct, preset.fiber);
+
+      document.getElementById('goal-kcal').value = goals.kcal;
+      document.getElementById('goal-carbs-pct').value = goals.carbsPct;
+      document.getElementById('goal-protein-pct').value = goals.proteinPct;
+      document.getElementById('goal-fat-pct').value = goals.fatPct;
+      document.getElementById('goal-fiber').value = goals.fiber;
+      renderGoalPreview();
+
+      const goalLabel = goalType === 'cut' ? 'cutten' : (goalType === 'bulk' ? 'lean bulken' : 'maintainen');
+      const resultBox = document.getElementById('goal-calculator-result');
+      if (resultBox) {
+        resultBox.innerHTML = `<strong>Startdoel: ${pretty(targetKcal, 0)} kcal/dag</strong><br>REE: ${pretty(ree, 0)} kcal · PAL: ${pretty(pal, 2)} · onderhoud: ${pretty(tdee, 0)} kcal · doel: ${goalLabel}.<br>Macro startverdeling: ${pretty(goals.carbsPct, 0)}% koolhydraten, ${pretty(goals.proteinPct, 0)}% eiwit, ${pretty(goals.fatPct, 0)}% vet.`;
+      }
+      showToast('Startdoel ingevuld. Controleer en klik op Doelen opslaan.');
     }
 
     function validateGoalsForm() {
@@ -4934,6 +5171,12 @@ Per 100g: ${pretty(per100.kcal, 0)} kcal · P ${pretty(per100.protein)}g · C ${
       $('#product-form').addEventListener('submit', addProduct);
       $('#log-form').addEventListener('submit', addLogEntry);
       $('#goals-form').addEventListener('submit', updateGoals);
+      const goalManualBtn = document.getElementById('goal-mode-manual');
+      const goalCalcBtn = document.getElementById('goal-mode-calculator');
+      const calcGoalBtn = document.getElementById('calculate-goal-start');
+      if (goalManualBtn) goalManualBtn.addEventListener('click', () => setGoalMode('manual'));
+      if (goalCalcBtn) goalCalcBtn.addEventListener('click', () => setGoalMode('calculator'));
+      if (calcGoalBtn) calcGoalBtn.addEventListener('click', calculateAndFillStartGoal);
       ['goal-kcal', 'goal-carbs-pct', 'goal-protein-pct', 'goal-fat-pct', 'goal-fiber'].forEach(id => {
         document.getElementById(id).addEventListener('input', renderGoalPreview);
       });
