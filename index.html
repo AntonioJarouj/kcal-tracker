@@ -1608,6 +1608,89 @@
       .goal-mode-grid, .radio-row { grid-template-columns: 1fr; }
     }
 
+
+    /* --- Producten vergelijken --- */
+    .compare-search-wrap {
+      position: relative;
+      width: 100%;
+    }
+    .compare-search-input {
+      width: 100%;
+      min-height: 44px;
+      border: 1px solid var(--border);
+      background: rgba(0,0,0,.22);
+      color: var(--text);
+      border-radius: 13px;
+      padding: 0 12px;
+      outline: none;
+    }
+    .compare-search-input:focus { border-color: rgba(239,204,122,.55); background: rgba(0,0,0,.28); }
+    .compare-results {
+      display: none;
+      max-height: 300px;
+      overflow: auto;
+      border: 1px solid var(--border-strong);
+      border-radius: 16px;
+      background: #171820;
+      box-shadow: 0 18px 70px rgba(0,0,0,.45);
+      padding: 8px;
+      margin-top: 8px;
+    }
+    .compare-results.open { display: grid; gap: 6px; }
+    .compare-result-btn {
+      width: 100%;
+      border: 1px solid transparent;
+      background: rgba(255,255,255,.035);
+      color: var(--text);
+      text-align: left;
+      border-radius: 13px;
+      padding: 11px 12px;
+      display: grid;
+      gap: 4px;
+    }
+    .compare-result-btn:hover,
+    .compare-result-btn:focus {
+      background: rgba(239,204,122,.09);
+      border-color: rgba(239,204,122,.22);
+      outline: none;
+    }
+    .compare-result-name { font-weight: 850; }
+    .compare-result-meta { color: var(--muted-2); font-size: 12px; line-height: 1.35; }
+    .compare-list { display: grid; gap: 10px; }
+    .compare-card {
+      border: 1px solid var(--border);
+      background: rgba(255,255,255,.045);
+      border-radius: 16px;
+      padding: 12px;
+      display: grid;
+      gap: 10px;
+    }
+    .compare-card-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 10px;
+    }
+    .compare-card-title { font-weight: 900; letter-spacing: -.02em; }
+    .compare-card-sub { color: var(--muted-2); font-size: 12px; margin-top: 3px; }
+    .compare-macro-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 8px;
+    }
+    .compare-macro {
+      border: 1px solid var(--border);
+      background: rgba(0,0,0,.14);
+      border-radius: 12px;
+      padding: 9px;
+      min-width: 0;
+    }
+    .compare-macro-value { font-weight: 900; color: var(--accent); font-size: 15px; white-space: nowrap; }
+    .compare-macro-label { color: var(--muted-2); font-size: 11px; margin-top: 2px; }
+    @media (max-width: 560px) {
+      .compare-macro-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    }
+
   </style>
 </head>
 <body>
@@ -1783,6 +1866,26 @@
           </div>
           <input id="edit-product-search" class="product-edit-search" type="search" placeholder="Zoek product op naam of barcode..." autocomplete="off" />
           <div class="product-edit-list" id="edit-product-list"></div>
+        </div>
+      </details>
+
+
+
+      <details class="accordion-card" id="compare-card">
+        <summary>
+          <div>
+            <div class="accordion-title">Producten vergelijken</div>
+            <div class="accordion-sub">Vergelijk kcal en macro’s per 100g</div>
+          </div>
+          <div class="accordion-chevron">⌄</div>
+        </summary>
+        <div class="accordion-body stack">
+          <div class="split-note">Zoek producten en voeg ze toe aan de vergelijking. Handig om bijvoorbeeld brood, kwark, yoghurt, snacks of noten naast elkaar te zetten.</div>
+          <div class="compare-search-wrap">
+            <input id="compare-product-search" class="compare-search-input" type="search" placeholder="Zoek product of barcode om te vergelijken..." autocomplete="off" />
+            <div id="compare-product-results" class="compare-results" role="listbox" aria-label="Producten vergelijken resultaten"></div>
+          </div>
+          <div id="compare-product-list" class="compare-list"></div>
         </div>
       </details>
 
@@ -2332,6 +2435,7 @@
     let editingRecipeId = null;
     let selectedAskAiMeal = null;
     let parsedAiItems = [];
+    let comparedProductIds = [];
 
     const $ = (selector) => document.querySelector(selector);
     const $$ = (selector) => Array.from(document.querySelectorAll(selector));
@@ -2384,6 +2488,9 @@
       nutritionLabelFile: $('#nutrition-label-file'),
       editProductSearch: $('#edit-product-search'),
       editProductList: $('#edit-product-list'),
+      compareProductSearch: $('#compare-product-search'),
+      compareProductResults: $('#compare-product-results'),
+      compareProductList: $('#compare-product-list'),
       toast: $('#toast'),
       importFile: $('#import-file'),
       importProductsFile: $('#import-products-file'),
@@ -3078,6 +3185,97 @@
             <div class="product-edit-actions">
               <button class="secondary-btn" type="button" data-edit-product="${escapeHtml(product.id)}">Bewerk</button>
               <button class="danger-btn" type="button" data-delete-product="${escapeHtml(product.id)}">Verwijder</button>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+
+    function renderProductCompareResults() {
+      if (!els.compareProductResults || !els.compareProductSearch) return;
+      const query = (els.compareProductSearch.value || '').trim().toLowerCase();
+      if (!query) {
+        els.compareProductResults.innerHTML = '<div class="product-results-empty">Typ een productnaam of barcode om te vergelijken.</div>';
+        els.compareProductResults.classList.remove('open');
+        return;
+      }
+      let products = state.products
+        .map(product => {
+          const haystack = productSearchText(product);
+          const name = String(product.name || '').toLowerCase();
+          const barcode = normalizeBarcode(query);
+          let score = 0;
+          if (name === query) score += 100;
+          if (name.startsWith(query)) score += 70;
+          if (haystack.includes(query)) score += 30;
+          if (barcode && normalizeBarcode(product.barcode) === barcode) score += 120;
+          return { product, score };
+        })
+        .filter(item => item.score > 0)
+        .sort((a, b) => b.score - a.score || a.product.name.localeCompare(b.product.name, 'nl'))
+        .slice(0, 12)
+        .map(item => item.product);
+
+      if (!products.length) {
+        els.compareProductResults.innerHTML = '<div class="product-results-empty">Geen product gevonden.</div>';
+        els.compareProductResults.classList.add('open');
+        return;
+      }
+
+      els.compareProductResults.innerHTML = products.map(product => {
+        const already = comparedProductIds.includes(product.id);
+        const meta = [`${pretty(product.kcal, 0)} kcal/100g`, `P ${pretty(product.protein)}g`, `C ${pretty(product.carbs)}g`, `F ${pretty(product.fat)}g`, `Vezels ${pretty(product.fiber)}g`].join(' · ');
+        return `
+          <button class="compare-result-btn" type="button" data-compare-add="${escapeHtml(product.id)}" ${already ? 'disabled' : ''}>
+            <span class="compare-result-name">${escapeHtml(product.name)}${already ? ' ✓' : ''}</span>
+            <span class="compare-result-meta">${meta}</span>
+          </button>
+        `;
+      }).join('');
+      els.compareProductResults.classList.add('open');
+    }
+
+    function addProductToCompare(productId) {
+      const product = state.products.find(item => item.id === productId);
+      if (!product) return;
+      if (!comparedProductIds.includes(product.id)) comparedProductIds.push(product.id);
+      if (els.compareProductSearch) els.compareProductSearch.value = '';
+      if (els.compareProductResults) els.compareProductResults.classList.remove('open');
+      renderProductCompare();
+    }
+
+    function removeProductFromCompare(productId) {
+      comparedProductIds = comparedProductIds.filter(id => id !== productId);
+      renderProductCompare();
+    }
+
+    function renderProductCompare() {
+      if (!els.compareProductList) return;
+      const products = comparedProductIds.map(id => state.products.find(product => product.id === id)).filter(Boolean);
+      if (!products.length) {
+        els.compareProductList.innerHTML = '<div class="empty">Nog geen producten gekozen. Zoek hierboven om producten te vergelijken.</div>';
+        return;
+      }
+      els.compareProductList.innerHTML = products.map(product => {
+        return `
+          <div class="compare-card">
+            <div class="compare-card-head">
+              <div>
+                <div class="compare-card-title">${escapeHtml(product.name)}</div>
+                <div class="compare-card-sub">Per 100g${product.barcode ? ` · Barcode ${escapeHtml(product.barcode)}` : ''}</div>
+              </div>
+              <button class="icon-btn" type="button" data-compare-remove="${escapeHtml(product.id)}" aria-label="Verwijder uit vergelijking">×</button>
+            </div>
+            <div class="compare-macro-grid">
+              <div class="compare-macro"><div class="compare-macro-value">${pretty(product.kcal, 0)}</div><div class="compare-macro-label">kcal</div></div>
+              <div class="compare-macro"><div class="compare-macro-value">${pretty(product.protein, 1)}g</div><div class="compare-macro-label">eiwit</div></div>
+              <div class="compare-macro"><div class="compare-macro-value">${pretty(product.carbs, 1)}g</div><div class="compare-macro-label">koolhydraten</div></div>
+              <div class="compare-macro"><div class="compare-macro-value">${pretty(product.fat, 1)}g</div><div class="compare-macro-label">vet</div></div>
+              <div class="compare-macro"><div class="compare-macro-value">${pretty(product.fiber, 1)}g</div><div class="compare-macro-label">vezels</div></div>
+              <div class="compare-macro"><div class="compare-macro-value">${pretty(product.sugar || 0, 1)}g</div><div class="compare-macro-label">suikers</div></div>
+              <div class="compare-macro"><div class="compare-macro-value">${pretty(product.saturatedFat || 0, 1)}g</div><div class="compare-macro-label">verz. vet</div></div>
+              <div class="compare-macro"><div class="compare-macro-value">${pretty(product.salt || 0, 2)}g</div><div class="compare-macro-label">zout</div></div>
             </div>
           </div>
         `;
@@ -4079,7 +4277,7 @@ Regels:
       clearErrors(['logProductId', 'mealType', 'grams', 'logUnit']);
       updateLogPreview();
       els.logModal.classList.add('open');
-      setTimeout(() => { els.logProductSearch.focus(); renderProductSearchResults(); }, 0);
+      hideProductResults();
     }
 
     function closeLogModal() {
@@ -5419,6 +5617,22 @@ Per 100g: ${pretty(per100.kcal, 0)} kcal · P ${pretty(per100.protein)}g · C ${
           if (deleteBtn) { deleteProduct(deleteBtn.dataset.deleteProduct); renderEditProductList(); }
         });
       }
+      if (els.compareProductSearch) {
+        els.compareProductSearch.addEventListener('input', renderProductCompareResults);
+        els.compareProductSearch.addEventListener('focus', () => { if (els.compareProductSearch.value.trim()) renderProductCompareResults(); });
+      }
+      if (els.compareProductResults) {
+        els.compareProductResults.addEventListener('click', (event) => {
+          const btn = event.target.closest('[data-compare-add]');
+          if (btn) addProductToCompare(btn.dataset.compareAdd);
+        });
+      }
+      if (els.compareProductList) {
+        els.compareProductList.addEventListener('click', (event) => {
+          const btn = event.target.closest('[data-compare-remove]');
+          if (btn) removeProductFromCompare(btn.dataset.compareRemove);
+        });
+      }
       els.productSearch.addEventListener('input', renderProductList);
       els.logProductSearch.addEventListener('input', () => {
         clearLogProductSelection();
@@ -5432,6 +5646,7 @@ Per 100g: ${pretty(per100.kcal, 0)} kcal · P ${pretty(per100.protein)}g · C ${
       });
       document.addEventListener('click', (event) => {
         if (!event.target.closest('.product-search-wrap')) hideProductResults();
+        if (!event.target.closest('.compare-search-wrap') && els.compareProductResults) els.compareProductResults.classList.remove('open');
         if (!event.target.closest('.recipe-product-search-wrap')) hideRecipeProductResults();
         if (!event.target.closest('.replace-search-wrap')) {
           document.querySelectorAll('.replace-product-results.open').forEach(el => el.classList.remove('open'));
