@@ -1875,12 +1875,17 @@
         <summary>
           <div>
             <div class="accordion-title">Producten vergelijken</div>
-            <div class="accordion-sub">Vergelijk kcal en macro’s per 100g</div>
+            <div class="accordion-sub">Vergelijk kcal en macro’s per zelfgekozen hoeveelheid</div>
           </div>
           <div class="accordion-chevron">⌄</div>
         </summary>
         <div class="accordion-body stack">
-          <div class="split-note">Zoek producten en voeg ze toe aan de vergelijking. Handig om bijvoorbeeld brood, kwark, yoghurt, snacks of noten naast elkaar te zetten.</div>
+          <div class="split-note">Zoek producten en voeg ze toe aan de vergelijking. Kies zelf of je wilt vergelijken per 100g, 30g, 75g, 250g of elke andere hoeveelheid.</div>
+          <div class="field" data-field="compareGrams">
+            <label for="compare-grams">Vergelijk per hoeveel gram?</label>
+            <input id="compare-grams" name="compareGrams" type="text" inputmode="decimal" value="100" placeholder="bijv. 100, 75 of 30" />
+            <div class="error" id="error-compareGrams"></div>
+          </div>
           <div class="compare-search-wrap">
             <input id="compare-product-search" class="compare-search-input" type="search" placeholder="Zoek product of barcode om te vergelijken..." autocomplete="off" />
             <div id="compare-product-results" class="compare-results" role="listbox" aria-label="Producten vergelijken resultaten"></div>
@@ -2436,6 +2441,7 @@
     let selectedAskAiMeal = null;
     let parsedAiItems = [];
     let comparedProductIds = [];
+    let compareGrams = 100;
 
     const $ = (selector) => document.querySelector(selector);
     const $$ = (selector) => Array.from(document.querySelectorAll(selector));
@@ -2489,6 +2495,7 @@
       editProductSearch: $('#edit-product-search'),
       editProductList: $('#edit-product-list'),
       compareProductSearch: $('#compare-product-search'),
+      compareGrams: $('#compare-grams'),
       compareProductResults: $('#compare-product-results'),
       compareProductList: $('#compare-product-list'),
       toast: $('#toast'),
@@ -3250,32 +3257,56 @@
       renderProductCompare();
     }
 
+    function getCompareGrams() {
+      const raw = els.compareGrams ? String(els.compareGrams.value || '').trim() : '100';
+      const parsed = parsePositiveNumber(raw, 'Vergelijk gram');
+      if (!parsed.ok) {
+        setFieldError('compareGrams', parsed.message);
+        return 100;
+      }
+      setFieldError('compareGrams', '');
+      return round(parsed.value, 1);
+    }
+
+    function scaleProductValue(product, key, grams) {
+      return round((Number(product[key]) || 0) * (grams / 100), key === 'salt' ? 3 : 1);
+    }
+
     function renderProductCompare() {
       if (!els.compareProductList) return;
+      const grams = getCompareGrams();
       const products = comparedProductIds.map(id => state.products.find(product => product.id === id)).filter(Boolean);
       if (!products.length) {
         els.compareProductList.innerHTML = '<div class="empty">Nog geen producten gekozen. Zoek hierboven om producten te vergelijken.</div>';
         return;
       }
       els.compareProductList.innerHTML = products.map(product => {
+        const kcal = scaleProductValue(product, 'kcal', grams);
+        const protein = scaleProductValue(product, 'protein', grams);
+        const carbs = scaleProductValue(product, 'carbs', grams);
+        const fat = scaleProductValue(product, 'fat', grams);
+        const fiber = scaleProductValue(product, 'fiber', grams);
+        const sugar = scaleProductValue(product, 'sugar', grams);
+        const saturatedFat = scaleProductValue(product, 'saturatedFat', grams);
+        const salt = scaleProductValue(product, 'salt', grams);
         return `
           <div class="compare-card">
             <div class="compare-card-head">
               <div>
                 <div class="compare-card-title">${escapeHtml(product.name)}</div>
-                <div class="compare-card-sub">Per 100g${product.barcode ? ` · Barcode ${escapeHtml(product.barcode)}` : ''}</div>
+                <div class="compare-card-sub">Per ${pretty(grams, 1)}g${product.barcode ? ` · Barcode ${escapeHtml(product.barcode)}` : ''}</div>
               </div>
               <button class="icon-btn" type="button" data-compare-remove="${escapeHtml(product.id)}" aria-label="Verwijder uit vergelijking">×</button>
             </div>
             <div class="compare-macro-grid">
-              <div class="compare-macro"><div class="compare-macro-value">${pretty(product.kcal, 0)}</div><div class="compare-macro-label">kcal</div></div>
-              <div class="compare-macro"><div class="compare-macro-value">${pretty(product.protein, 1)}g</div><div class="compare-macro-label">eiwit</div></div>
-              <div class="compare-macro"><div class="compare-macro-value">${pretty(product.carbs, 1)}g</div><div class="compare-macro-label">koolhydraten</div></div>
-              <div class="compare-macro"><div class="compare-macro-value">${pretty(product.fat, 1)}g</div><div class="compare-macro-label">vet</div></div>
-              <div class="compare-macro"><div class="compare-macro-value">${pretty(product.fiber, 1)}g</div><div class="compare-macro-label">vezels</div></div>
-              <div class="compare-macro"><div class="compare-macro-value">${pretty(product.sugar || 0, 1)}g</div><div class="compare-macro-label">suikers</div></div>
-              <div class="compare-macro"><div class="compare-macro-value">${pretty(product.saturatedFat || 0, 1)}g</div><div class="compare-macro-label">verz. vet</div></div>
-              <div class="compare-macro"><div class="compare-macro-value">${pretty(product.salt || 0, 2)}g</div><div class="compare-macro-label">zout</div></div>
+              <div class="compare-macro"><div class="compare-macro-value">${pretty(kcal, 0)}</div><div class="compare-macro-label">kcal</div></div>
+              <div class="compare-macro"><div class="compare-macro-value">${pretty(protein, 1)}g</div><div class="compare-macro-label">eiwit</div></div>
+              <div class="compare-macro"><div class="compare-macro-value">${pretty(carbs, 1)}g</div><div class="compare-macro-label">koolhydraten</div></div>
+              <div class="compare-macro"><div class="compare-macro-value">${pretty(fat, 1)}g</div><div class="compare-macro-label">vet</div></div>
+              <div class="compare-macro"><div class="compare-macro-value">${pretty(fiber, 1)}g</div><div class="compare-macro-label">vezels</div></div>
+              <div class="compare-macro"><div class="compare-macro-value">${pretty(sugar, 1)}g</div><div class="compare-macro-label">suikers</div></div>
+              <div class="compare-macro"><div class="compare-macro-value">${pretty(saturatedFat, 1)}g</div><div class="compare-macro-label">verz. vet</div></div>
+              <div class="compare-macro"><div class="compare-macro-value">${pretty(salt, 2)}g</div><div class="compare-macro-label">zout</div></div>
             </div>
           </div>
         `;
@@ -5620,6 +5651,9 @@ Per 100g: ${pretty(per100.kcal, 0)} kcal · P ${pretty(per100.protein)}g · C ${
       if (els.compareProductSearch) {
         els.compareProductSearch.addEventListener('input', renderProductCompareResults);
         els.compareProductSearch.addEventListener('focus', () => { if (els.compareProductSearch.value.trim()) renderProductCompareResults(); });
+      }
+      if (els.compareGrams) {
+        els.compareGrams.addEventListener('input', renderProductCompare);
       }
       if (els.compareProductResults) {
         els.compareProductResults.addEventListener('click', (event) => {
