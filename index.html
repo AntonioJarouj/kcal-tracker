@@ -1691,6 +1691,48 @@
       .compare-macro-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     }
 
+
+    /* --- Weekoverzicht en gewicht tracker --- */
+    .insight-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
+    .insight-card {
+      border: 1px solid var(--border);
+      background: rgba(255,255,255,.045);
+      border-radius: 16px;
+      padding: 12px;
+      min-width: 0;
+    }
+    .insight-value { font-size: 21px; font-weight: 900; color: var(--accent); letter-spacing: -.04em; white-space: nowrap; }
+    .insight-label { margin-top: 4px; font-size: 12px; color: var(--muted-2); }
+    .insight-note { color: var(--muted); font-size: 13px; line-height: 1.45; }
+    .weight-row { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto; gap: 10px; align-items: end; }
+    .weight-history { display: grid; gap: 8px; }
+    .weight-history-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      border: 1px solid var(--border);
+      background: rgba(255,255,255,.035);
+      border-radius: 14px;
+      padding: 10px 12px;
+    }
+    .weight-history-date { color: var(--muted); font-size: 13px; }
+    .weight-history-value { font-weight: 850; color: var(--text); }
+    .weight-delete-btn {
+      border: 1px solid rgba(255,124,124,.24);
+      background: rgba(255,124,124,.10);
+      color: var(--danger);
+      border-radius: 999px;
+      min-height: 30px;
+      padding: 0 10px;
+      font-weight: 800;
+    }
+    @media (max-width: 640px) {
+      .insight-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .weight-row { grid-template-columns: 1fr; }
+      .weight-row .primary-btn { width: 100%; }
+    }
+
   </style>
 </head>
 <body>
@@ -1823,6 +1865,63 @@
               <button class="secondary-btn" type="button" data-water-add="750">+750 ml</button>
               <button class="danger-btn" type="button" data-water-add="-250">-250 ml</button>
             </div>
+          </div>
+        </div>
+      </article>
+
+      <article class="card" id="week-card">
+        <div class="card-pad">
+          <div class="section-head">
+            <div>
+              <div class="eyebrow">Progressie</div>
+              <h2>Weekgemiddelde</h2>
+            </div>
+          </div>
+          <div class="stack">
+            <div class="insight-note" id="week-range-label">Laatste 7 dagen op basis van je daglogs.</div>
+            <div class="insight-grid">
+              <div class="insight-card"><div class="insight-value" id="week-avg-kcal">0</div><div class="insight-label">gem. kcal</div></div>
+              <div class="insight-card"><div class="insight-value" id="week-avg-protein">0g</div><div class="insight-label">gem. eiwit</div></div>
+              <div class="insight-card"><div class="insight-value" id="week-avg-carbs">0g</div><div class="insight-label">gem. koolhydraten</div></div>
+              <div class="insight-card"><div class="insight-value" id="week-avg-fat">0g</div><div class="insight-label">gem. vet</div></div>
+              <div class="insight-card"><div class="insight-value" id="week-avg-fiber">0g</div><div class="insight-label">gem. vezels</div></div>
+              <div class="insight-card"><div class="insight-value" id="week-avg-diff">0</div><div class="insight-label">kcal t.o.v. doel</div></div>
+              <div class="insight-card"><div class="insight-value" id="week-days-logged">0/7</div><div class="insight-label">dagen gelogd</div></div>
+              <div class="insight-card"><div class="insight-value" id="week-days-over">0</div><div class="insight-label">dagen boven doel</div></div>
+            </div>
+          </div>
+        </div>
+      </article>
+
+      <article class="card" id="weight-card">
+        <div class="card-pad">
+          <div class="section-head">
+            <div>
+              <div class="eyebrow">Lichaamswaardes</div>
+              <h2>Gewicht tracker</h2>
+            </div>
+          </div>
+          <div class="stack">
+            <div class="insight-grid">
+              <div class="insight-card"><div class="insight-value" id="weight-current">—</div><div class="insight-label">laatste gewicht</div></div>
+              <div class="insight-card"><div class="insight-value" id="weight-avg7">—</div><div class="insight-label">7-daags gemiddelde</div></div>
+              <div class="insight-card"><div class="insight-value" id="weight-trend">—</div><div class="insight-label">trend</div></div>
+              <div class="insight-card"><div class="insight-value" id="weight-entries-count">0</div><div class="insight-label">wegingen</div></div>
+            </div>
+            <form id="weight-form" class="weight-row" novalidate>
+              <div class="field" data-field="weightDate">
+                <label for="weight-date">Datum</label>
+                <input id="weight-date" name="weightDate" type="date" />
+                <div class="error" id="error-weightDate"></div>
+              </div>
+              <div class="field" data-field="weightValue">
+                <label for="weight-value">Gewicht kg</label>
+                <input id="weight-value" name="weightValue" type="text" inputmode="decimal" placeholder="bijv. 88.3" />
+                <div class="error" id="error-weightValue"></div>
+              </div>
+              <button class="primary-btn" type="submit">Opslaan</button>
+            </form>
+            <div class="weight-history" id="weight-history"></div>
           </div>
         </div>
       </article>
@@ -2402,7 +2501,8 @@
       products: 'kcal_tracker_products_v2',
       logs: 'kcal_tracker_logs_v2',
       goals: 'kcal_tracker_goals_v2',
-      water: 'kcal_tracker_water_v1'
+      water: 'kcal_tracker_water_v1',
+      weights: 'kcal_tracker_weights_v1'
     };
 
     const DEFAULT_GOALS = { kcal: 2750, protein: 227, carbs: 275, fat: 83, fiber: 30, proteinPct: 33, carbsPct: 40, fatPct: 27 };
@@ -2419,7 +2519,8 @@
       products: [],
       logs: {},
       goals: { ...DEFAULT_GOALS },
-      water: {}
+      water: {},
+      weights: {}
     };
 
     const scannerState = {
@@ -2506,6 +2607,10 @@
       waterGoalLabel: $('#water-goal-label'),
       waterProgressFill: $('#water-progress-fill'),
       waterStatus: $('#water-status'),
+      weekRangeLabel: $('#week-range-label'),
+      weightDate: $('#weight-date'),
+      weightValue: $('#weight-value'),
+      weightHistory: $('#weight-history'),
       waterBottles: $('#water-bottles')
     };
 
@@ -2615,6 +2720,7 @@
         
         state.logs = JSON.parse(localStorage.getItem(STORAGE_KEYS.logs)) || {};
         state.water = JSON.parse(localStorage.getItem(STORAGE_KEYS.water)) || {};
+        state.weights = JSON.parse(localStorage.getItem(STORAGE_KEYS.weights)) || {};
         // Ensure backward compatibility for log entries
         Object.keys(state.logs).forEach(dateKey => {
           state.logs[dateKey] = state.logs[dateKey].map(entry => ({
@@ -2641,6 +2747,7 @@
     function saveLogs() { localStorage.setItem(STORAGE_KEYS.logs, JSON.stringify(state.logs)); }
     function saveGoals() { localStorage.setItem(STORAGE_KEYS.goals, JSON.stringify(state.goals)); }
     function saveWater() { localStorage.setItem(STORAGE_KEYS.water, JSON.stringify(state.water)); }
+    function saveWeights() { localStorage.setItem(STORAGE_KEYS.weights, JSON.stringify(state.weights)); }
 
     function getDayLogs() {
       return state.logs[state.currentDate] || [];
@@ -2980,6 +3087,8 @@
       state.water[state.currentDate] = next;
       saveWater();
       renderWaterTracker();
+      renderWeekOverview();
+      renderWeightTracker();
       showToast(next === 0 ? 'Water gereset.' : `Water: ${pretty(next / 1000, 2)} L`);
     }
 
@@ -2989,6 +3098,8 @@
       state.water[state.currentDate] = 0;
       saveWater();
       renderWaterTracker();
+      renderWeekOverview();
+      renderWeightTracker();
       showToast('Water gereset.');
     }
 
@@ -2996,6 +3107,8 @@
       renderDate();
       renderDashboard();
       renderWaterTracker();
+      renderWeekOverview();
+      renderWeightTracker();
       renderProductSelect();
       renderUnitOptions();
       renderProductList();
@@ -3009,6 +3122,7 @@
 
     function renderDate() {
       els.dateDisplay.textContent = formatDate(state.currentDate);
+      if (els.weightDate && document.activeElement !== els.weightDate) els.weightDate.value = state.currentDate;
     }
 
     function renderDashboard() {
@@ -3118,6 +3232,124 @@
         `;
       }).join('');
       els.logProductResults.classList.add('open');
+    }
+
+
+    function getDateKeysEndingAt(dateKey, days = 7) {
+      const keys = [];
+      const base = new Date(dateKey + 'T12:00:00');
+      for (let i = days - 1; i >= 0; i--) {
+        const d = new Date(base);
+        d.setDate(base.getDate() - i);
+        keys.push(toDateKey(d));
+      }
+      return keys;
+    }
+
+    function totalsForDateKey(dateKey) {
+      return (state.logs[dateKey] || []).reduce((acc, entry) => {
+        acc.kcal += Number(entry.kcal) || 0;
+        acc.protein += Number(entry.protein) || 0;
+        acc.carbs += Number(entry.carbs) || 0;
+        acc.fat += Number(entry.fat) || 0;
+        acc.fiber += Number(entry.fiber) || 0;
+        return acc;
+      }, { kcal: 0, protein: 0, carbs: 0, fat: 0, fiber: 0 });
+    }
+
+    function renderWeekOverview() {
+      const keys = getDateKeysEndingAt(state.currentDate, 7);
+      const sums = { kcal: 0, protein: 0, carbs: 0, fat: 0, fiber: 0 };
+      let loggedDays = 0;
+      let daysOver = 0;
+      keys.forEach(key => {
+        const logs = state.logs[key] || [];
+        const totals = totalsForDateKey(key);
+        if (logs.length) loggedDays += 1;
+        if (totals.kcal > state.goals.kcal) daysOver += 1;
+        Object.keys(sums).forEach(k => sums[k] += totals[k]);
+      });
+      const divisor = keys.length || 7;
+      const start = formatDate(keys[0]).replace(/\s\d{4}$/, '');
+      const end = formatDate(keys[keys.length - 1]);
+      if (els.weekRangeLabel) els.weekRangeLabel.textContent = `Laatste 7 dagen: ${start} t/m ${end}.`;
+      const set = (id, value) => { const el = document.getElementById(id); if (el) el.textContent = value; };
+      const avgKcal = sums.kcal / divisor;
+      set('week-avg-kcal', pretty(avgKcal, 0));
+      set('week-avg-protein', `${pretty(sums.protein / divisor, 1)}g`);
+      set('week-avg-carbs', `${pretty(sums.carbs / divisor, 1)}g`);
+      set('week-avg-fat', `${pretty(sums.fat / divisor, 1)}g`);
+      set('week-avg-fiber', `${pretty(sums.fiber / divisor, 1)}g`);
+      const diff = round(avgKcal - state.goals.kcal, 0);
+      set('week-avg-diff', diff > 0 ? `+${pretty(diff, 0)}` : pretty(diff, 0));
+      set('week-days-logged', `${loggedDays}/7`);
+      set('week-days-over', String(daysOver));
+    }
+
+    function getSortedWeightEntries() {
+      return Object.entries(state.weights || {})
+        .map(([date, weight]) => ({ date, weight: Number(weight) }))
+        .filter(item => /^\d{4}-\d{2}-\d{2}$/.test(item.date) && Number.isFinite(item.weight) && item.weight > 0)
+        .sort((a, b) => a.date.localeCompare(b.date));
+    }
+
+    function renderWeightTracker() {
+      if (!els.weightHistory) return;
+      if (els.weightDate && !els.weightDate.value) els.weightDate.value = state.currentDate;
+      const entries = getSortedWeightEntries();
+      const set = (id, value) => { const el = document.getElementById(id); if (el) el.textContent = value; };
+      const latest = entries[entries.length - 1];
+      const lastSeven = entries.slice(-7);
+      const avg7 = lastSeven.length ? lastSeven.reduce((sum, item) => sum + item.weight, 0) / lastSeven.length : null;
+      let trendText = '—';
+      if (entries.length >= 2) {
+        const previous = entries[Math.max(0, entries.length - 8)];
+        const diff = latest.weight - previous.weight;
+        trendText = `${diff >= 0 ? '+' : ''}${pretty(diff, 1)} kg`;
+      }
+      set('weight-current', latest ? `${pretty(latest.weight, 1)} kg` : '—');
+      set('weight-avg7', avg7 ? `${pretty(avg7, 1)} kg` : '—');
+      set('weight-trend', trendText);
+      set('weight-entries-count', String(entries.length));
+
+      const recent = entries.slice(-7).reverse();
+      if (!recent.length) {
+        els.weightHistory.innerHTML = '<div class="empty">Nog geen wegingen. Vul je gewicht in om je trend te volgen.</div>';
+        return;
+      }
+      els.weightHistory.innerHTML = recent.map(item => `
+        <div class="weight-history-item">
+          <div>
+            <div class="weight-history-value">${pretty(item.weight, 1)} kg</div>
+            <div class="weight-history-date">${formatDate(item.date)}</div>
+          </div>
+          <button class="weight-delete-btn" type="button" data-delete-weight="${item.date}">×</button>
+        </div>
+      `).join('');
+    }
+
+    function saveWeightEntry(event) {
+      event.preventDefault();
+      clearErrors(['weightDate', 'weightValue']);
+      const date = String(els.weightDate.value || '').trim();
+      const parsed = parsePositiveNumber(els.weightValue.value, 'Gewicht');
+      let valid = true;
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) { setFieldError('weightDate', 'Kies een geldige datum.'); valid = false; }
+      if (!parsed.ok) { setFieldError('weightValue', parsed.message); valid = false; }
+      if (!valid) return;
+      state.weights[date] = round(parsed.value, 1);
+      saveWeights();
+      els.weightValue.value = '';
+      renderWeightTracker();
+      showToast('Gewicht opgeslagen.');
+    }
+
+    function deleteWeightEntry(dateKey) {
+      if (!state.weights || state.weights[dateKey] == null) return;
+      delete state.weights[dateKey];
+      saveWeights();
+      renderWeightTracker();
+      showToast('Weging verwijderd.');
     }
 
     function renderProductSelect() {
@@ -4857,11 +5089,12 @@ Regels:
     function exportData() {
       const payload = {
         exportedAt: new Date().toISOString(),
-        version: 5,
+        version: 6,
         products: state.products,
         logs: state.logs,
         goals: state.goals,
-        water: state.water
+        water: state.water,
+        weights: state.weights
       };
       const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
       const url = URL.createObjectURL(blob);
@@ -4903,12 +5136,14 @@ Regels:
           });
           
           state.water = (payload.water && typeof payload.water === 'object') ? payload.water : {};
+          state.weights = (payload.weights && typeof payload.weights === 'object') ? payload.weights : {};
           state.goals = { ...DEFAULT_GOALS, ...payload.goals };
           state.goals = calculateMacroGoals(state.goals.kcal, state.goals.carbsPct ?? DEFAULT_GOALS.carbsPct, state.goals.proteinPct ?? DEFAULT_GOALS.proteinPct, state.goals.fatPct ?? DEFAULT_GOALS.fatPct, state.goals.fiber);
           saveProducts();
           saveLogs();
           saveGoals();
           saveWater();
+          saveWeights();
           renderAll();
           showToast('Data geïmporteerd.');
         } catch (error) {
@@ -5583,6 +5818,15 @@ Per 100g: ${pretty(per100.kcal, 0)} kcal · P ${pretty(per100.protein)}g · C ${
       });
       const waterResetBtn = document.getElementById('water-reset');
       if (waterResetBtn) waterResetBtn.addEventListener('click', resetWater);
+      const weightForm = document.getElementById('weight-form');
+      if (weightForm) weightForm.addEventListener('submit', saveWeightEntry);
+      if (els.weightDate) els.weightDate.value = state.currentDate;
+      if (els.weightHistory) {
+        els.weightHistory.addEventListener('click', (event) => {
+          const btn = event.target.closest('[data-delete-weight]');
+          if (btn) deleteWeightEntry(btn.dataset.deleteWeight);
+        });
+      }
       $('#export-data').addEventListener('click', exportData);
       $('#import-data').addEventListener('click', () => els.importFile.click());
       els.importFile.addEventListener('change', (event) => {
