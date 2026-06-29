@@ -322,6 +322,7 @@
     #meal-detail-modal { z-index: 60; }
     #copy-modal { z-index: 95; }
     #log-modal { z-index: 80; }
+    #ask-ai-modal { z-index: 135; }
     #product-modal { z-index: 100; }
     #scanner-modal { z-index: 120; }
     .modal {
@@ -1731,6 +1732,29 @@
       .insight-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
       .weight-row { grid-template-columns: 1fr; }
       .weight-row .primary-btn { width: 100%; }
+    }
+
+
+
+    /* --- AI confidence display inside meal detail logs --- */
+    .ai-log-note {
+      margin-top: 8px;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.4;
+    }
+    .ai-confidence-pill {
+      display: inline-flex;
+      align-items: center;
+      border: 1px solid rgba(183,144,255,.32);
+      background: rgba(183,144,255,.10);
+      color: var(--accent-2);
+      border-radius: 999px;
+      padding: 2px 8px;
+      font-size: 11px;
+      font-weight: 850;
+      margin-right: 6px;
+      white-space: nowrap;
     }
 
   </style>
@@ -3683,6 +3707,7 @@
                   <span>F ${pretty(entry.fat)}g</span>
                   <span>Vezels ${pretty(entry.fiber)}g</span>
                 </div>
+                ${entry.isAiEstimate ? `<div class="ai-log-note">${entry.aiConfidence ? `<span class="ai-confidence-pill">AI confidence: ${escapeHtml(entry.aiConfidence)}</span>` : '<span class="ai-confidence-pill">AI schatting</span>'}${entry.aiNote ? escapeHtml(entry.aiNote) : 'Controleer portie, olie en saus handmatig.'}</div>` : ''}
               </div>
               <div class="meal-detail-kcal">${pretty(entry.kcal, 0)} kcal</div>
               <button class="edit-entry-btn" type="button" data-toggle-entry-edit="${escapeHtml(entry.id)}" aria-label="Bewerk ${escapeHtml(entry.productName)}">✎</button>
@@ -4172,6 +4197,8 @@ Regels:
     function parseAiResponse(rawValue) {
       const jsonText = extractJsonText(rawValue);
       const parsed = JSON.parse(jsonText);
+      const overallConfidence = Array.isArray(parsed) ? '' : String(parsed.confidence || '').trim();
+      const overallWarning = Array.isArray(parsed) ? '' : String(parsed.warning || parsed.note || '').trim();
       let items = Array.isArray(parsed) ? parsed : parsed.items;
 
       // Extra fallback: als een AI alleen een totaal teruggeeft, maak er toch één logbaar item van.
@@ -4184,7 +4211,8 @@ Regels:
           carbs: parsed.total.carbs || parsed.total.carbohydrates_g || parsed.total.carbohydrates || 0,
           fat: parsed.total.fat || parsed.total.fat_g || 0,
           fiber: parsed.total.fiber || parsed.total.fiber_g || 0,
-          note: parsed.warning || parsed.note || ''
+          note: parsed.warning || parsed.note || '',
+          confidence: overallConfidence
         }];
       }
 
@@ -4199,7 +4227,8 @@ Regels:
         carbs: round(normalizeAiNumber(pickAiValue(item, ['carbs', 'carbs_g', 'carbohydrates', 'carbohydrates_g', 'koolhydraten'])), 1),
         fat: round(normalizeAiNumber(pickAiValue(item, ['fat', 'fat_g', 'fats', 'vet', 'vetten'])), 1),
         fiber: round(normalizeAiNumber(pickAiValue(item, ['fiber', 'fiber_g', 'fibre', 'fibre_g', 'vezels'])), 1),
-        note: String(pickAiValue(item, ['note', 'notes', 'warning', 'reason']) || '').trim()
+        note: String(pickAiValue(item, ['note', 'notes', 'warning', 'reason']) || overallWarning || '').trim(),
+        confidence: String(pickAiValue(item, ['confidence']) || overallConfidence || '').trim()
       })).filter(item => item.name && (item.kcal > 0 || item.grams > 0));
     }
 
@@ -4236,7 +4265,7 @@ Regels:
             <label style="display:flex;align-items:center;gap:8px;color:var(--muted);font-size:13px;font-weight:800;">
               <input type="checkbox" data-ai-include="${index}" checked /> meenemen
             </label>
-            <div class="ai-preview-title">${escapeHtml(item.name)}</div>
+            <div class="ai-preview-title">${escapeHtml(item.name)}${item.confidence ? ` <span class="ai-confidence-pill">${escapeHtml(item.confidence)}</span>` : ''}</div>
           </div>
           <div class="ai-preview-grid">
             <label>Naam<input type="text" data-ai-field="name" data-ai-index="${index}" value="${escapeHtml(item.name)}" /></label>
@@ -4269,7 +4298,9 @@ Regels:
           protein: round(normalizeAiNumber(getField('protein')), 1),
           carbs: round(normalizeAiNumber(getField('carbs')), 1),
           fat: round(normalizeAiNumber(getField('fat')), 1),
-          fiber: round(normalizeAiNumber(getField('fiber')), 1)
+          fiber: round(normalizeAiNumber(getField('fiber')), 1),
+          note: parsedAiItems[index] && parsedAiItems[index].note ? parsedAiItems[index].note : '',
+          confidence: parsedAiItems[index] && parsedAiItems[index].confidence ? parsedAiItems[index].confidence : ''
         };
       }).filter(item => item.include && item.name && item.kcal > 0);
     }
@@ -4303,6 +4334,8 @@ Regels:
           saturatedFat: 0,
           salt: 0,
           isAiEstimate: true,
+          aiConfidence: item.confidence || '',
+          aiNote: item.note || '',
           createdAt: now
         });
       });
