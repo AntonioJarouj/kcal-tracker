@@ -323,6 +323,7 @@
     #copy-modal { z-index: 95; }
     #log-modal { z-index: 80; }
     #ask-ai-modal { z-index: 135; }
+    #label-ai-modal { z-index: 140; }
     #product-modal { z-index: 100; }
     #scanner-modal { z-index: 120; }
     .modal {
@@ -2378,6 +2379,38 @@
     </div>
   </div>
 
+
+  <div class="modal-backdrop" id="label-ai-modal" role="dialog" aria-modal="true" aria-labelledby="label-ai-modal-title">
+    <div class="modal log-modal">
+      <div class="modal-head">
+        <div>
+          <div class="eyebrow">AI voedingslabel</div>
+          <h2 id="label-ai-modal-title">Product automatisch invullen</h2>
+          <div class="selected-meal-pill">Voedingswaarden per 100g</div>
+        </div>
+        <button class="icon-btn" id="close-label-ai-modal" type="button" aria-label="Sluiten">×</button>
+      </div>
+      <div class="modal-body stack">
+        <div class="split-note">
+          Upload je foto van het voedingslabel bij de AI. Vraag om alleen geldige JSON terug te geven. Plak daarna de JSON hier; de app vult productnaam, kcal en macro’s automatisch in.
+        </div>
+        <div class="actions-row">
+          <a class="primary-btn" id="open-label-ai" href="https://chatgpt.com/g/g-6a3ab7fb2ff48191a270d5bc5c2b8aac-nutrition-photo-analyzer" target="_blank" rel="noopener" style="display:inline-flex;align-items:center;text-decoration:none;">Ga naar de AI</a>
+          <button class="secondary-btn" id="clear-label-ai-json" type="button">JSON leegmaken</button>
+        </div>
+        <div class="split-note">
+          De app accepteert meerdere vormen, bijvoorbeeld <strong>per_100g</strong>, <strong>nutrition_per_100g</strong> of losse velden zoals <strong>kcal</strong>, <strong>fat</strong>, <strong>carbs</strong>, <strong>protein</strong>. Komma’s en slimme quotes worden automatisch gecorrigeerd.
+        </div>
+        <div>
+          <label class="tiny" for="label-ai-json-input">Plak hier de JSON van de AI</label>
+          <textarea id="label-ai-json-input" class="ai-json-area" spellcheck="false" placeholder='{ "product_name": "...", "per_100g": { "kcal": 326, "fat": 11, "saturatedFat": 1.1, "carbs": 43.2, "sugar": 6.9, "fiber": 7.4, "protein": 9.9, "salt": 1.03 } }'></textarea>
+          <div class="ai-import-error" id="label-ai-import-error"></div>
+        </div>
+        <button class="primary-btn" id="apply-label-ai-json" type="button" style="width:100%;">Vul productvelden met AI JSON</button>
+      </div>
+    </div>
+  </div>
+
   <div class="modal-backdrop" id="product-modal" role="dialog" aria-modal="true" aria-labelledby="product-modal-title">
     <div class="modal">
       <div class="modal-head">
@@ -2402,6 +2435,7 @@
               <button class="secondary-btn" id="lookup-openfoodfacts" type="button">Vul via barcode</button>
               <button class="secondary-btn" id="scan-nutrition-label" type="button">Maak foto voedingslabel</button>
               <button class="secondary-btn" id="upload-nutrition-label" type="button">Upload voedingslabel</button>
+              <button class="secondary-btn" id="ask-ai-nutrition-label" type="button">Vraag AI label</button>
               <input id="nutrition-label-camera-file" type="file" accept="image/*" capture="environment" hidden />
               <input id="nutrition-label-file" type="file" accept="image/*" hidden />
             </div>
@@ -2599,6 +2633,9 @@
       copyDate: $('#copy-date'),
       copyMeal: $('#copy-meal'),
       askAiModal: $('#ask-ai-modal'),
+      labelAiModal: $('#label-ai-modal'),
+      labelAiJsonInput: $('#label-ai-json-input'),
+      labelAiImportError: $('#label-ai-import-error'),
       askAiMealName: $('#ask-ai-meal-name'),
       aiPromptPreview: $('#ai-prompt-preview'),
       aiJsonInput: $('#ai-json-input'),
@@ -4613,6 +4650,99 @@ Regels:
       }
     }
 
+
+    function openLabelAiModal() {
+      if (els.labelAiImportError) els.labelAiImportError.textContent = '';
+      if (els.labelAiJsonInput) els.labelAiJsonInput.value = '';
+      if (els.labelAiModal) els.labelAiModal.classList.add('open');
+      setTimeout(() => els.labelAiJsonInput && els.labelAiJsonInput.focus(), 0);
+    }
+
+    function closeLabelAiModal() {
+      if (els.labelAiModal) els.labelAiModal.classList.remove('open');
+      if (els.labelAiImportError) els.labelAiImportError.textContent = '';
+    }
+
+    function setLabelAiError(message) {
+      if (els.labelAiImportError) els.labelAiImportError.textContent = message || '';
+    }
+
+    function cleanJsonLikeText(value) {
+      let text = String(value || '').trim();
+      text = text
+        .replace(/[\u201c\u201d\u201e\u201f]/g, '"')
+        .replace(/[\u2018\u2019\u201a\u201b]/g, "'")
+        .replace(/\u00a0/g, ' ')
+        .trim();
+      text = text.replace(/^```(?:json)?/i, '').replace(/```$/i, '').trim();
+      const firstObject = text.indexOf('{');
+      const lastObject = text.lastIndexOf('}');
+      if (firstObject !== -1 && lastObject !== -1 && lastObject > firstObject) return text.slice(firstObject, lastObject + 1);
+      return text;
+    }
+
+    function readAnyNumber(obj, keys) {
+      for (const key of keys) {
+        if (!obj || obj[key] == null || obj[key] === '') continue;
+        const raw = String(obj[key]).trim().replace(',', '.').replace(/[^0-9.\-]/g, '');
+        const n = Number(raw);
+        if (Number.isFinite(n) && n >= 0) return n;
+      }
+      return '';
+    }
+
+    function normalizeAiLabelData(rawValue) {
+      const parsed = JSON.parse(cleanJsonLikeText(rawValue));
+      const root = parsed.product || parsed.data || parsed;
+      const per100 = root.per_100g || root.per100g || root.nutrition_per_100g || root.nutrition || root.nutrients || root.macros || root;
+      const productName = root.product_name || root.productName || root.name || root.title || parsed.meal_name || '';
+      const barcode = root.barcode || root.ean || root.code || '';
+      const data = {
+        barcode,
+        name: productName,
+        kcal: readAnyNumber(per100, ['kcal', 'calories', 'calories_kcal', 'energy_kcal', 'energyKcal']),
+        fat: readAnyNumber(per100, ['fat', 'fat_g', 'fats', 'vet', 'vetten']),
+        saturatedFat: readAnyNumber(per100, ['saturatedFat', 'saturated_fat', 'saturated_fat_g', 'saturates', 'verzadigd', 'verzadigde_vetten', 'verzadigde_vetzuren']),
+        carbs: readAnyNumber(per100, ['carbs', 'carbs_g', 'carbohydrates', 'carbohydrates_g', 'koolhydraten']),
+        sugar: readAnyNumber(per100, ['sugar', 'sugars', 'sugars_g', 'suikers']),
+        fiber: readAnyNumber(per100, ['fiber', 'fiber_g', 'fibre', 'fibre_g', 'vezels', 'voedingsvezels']),
+        protein: readAnyNumber(per100, ['protein', 'protein_g', 'proteins', 'eiwit', 'eiwitten']),
+        salt: readAnyNumber(per100, ['salt', 'salt_g', 'zout'])
+      };
+      const serving = root.serving || root.portion || root.portie || null;
+      data.servings = [];
+      if (serving && (serving.grams || serving.grams_g || serving.weight_g)) {
+        data.servings.push({ name: serving.name || 'portie', grams: readAnyNumber(serving, ['grams', 'grams_g', 'weight_g']) });
+      }
+      if (Array.isArray(root.servings)) {
+        root.servings.forEach(s => {
+          const grams = readAnyNumber(s, ['grams', 'grams_g', 'weight_g']);
+          if (grams) data.servings.push({ name: s.name || s.label || 'portie', grams });
+        });
+      }
+      if (data.salt > 5) data.salt = data.salt / 100;
+      return data;
+    }
+
+    function applyLabelAiJson() {
+      const raw = els.labelAiJsonInput ? els.labelAiJsonInput.value : '';
+      if (!raw.trim()) {
+        setLabelAiError('Plak eerst de JSON van de AI.');
+        return;
+      }
+      try {
+        const data = normalizeAiLabelData(raw);
+        if (!data.kcal && !data.fat && !data.carbs && !data.protein) {
+          throw new Error('Geen voedingswaarden gevonden');
+        }
+        fillProductFormFromData(data, 'AI voedingslabel');
+        closeLabelAiModal();
+        showToast('Productvelden ingevuld via AI label. Controleer ze nog even.');
+      } catch (error) {
+        setLabelAiError('JSON niet herkend. Vraag de AI om product_name en per_100g met kcal, fat, saturatedFat, carbs, sugar, fiber, protein en salt.');
+      }
+    }
+
     function openProductModal(productId = null) {
       clearErrors(['barcode', 'productName', 'productKcal', 'productFat', 'productSaturatedFat', 'productCarbs', 'productSugar', 'productFiber', 'productProtein', 'productSalt', 'servingName1', 'servingGrams1', 'servingName2', 'servingGrams2']);
       setAutoFillStatus('Tip: scan eerst de barcode. Wordt het product niet gevonden, maak of upload dan een foto van de voedingswaarde-tabel.');
@@ -5815,6 +5945,14 @@ Per 100g: ${pretty(per100.kcal, 0)} kcal · P ${pretty(per100.protein)}g · C ${
       $('#scan-product-barcode').addEventListener('click', () => openBarcodeScanner('product-form'));
       $('#scan-log-barcode').addEventListener('click', () => openBarcodeScanner('log-form'));
       $('#lookup-openfoodfacts').addEventListener('click', () => lookupOpenFoodFactsByBarcode());
+      const askAiNutritionBtn = $('#ask-ai-nutrition-label');
+      if (askAiNutritionBtn) askAiNutritionBtn.addEventListener('click', openLabelAiModal);
+      const closeLabelAiBtn = $('#close-label-ai-modal');
+      if (closeLabelAiBtn) closeLabelAiBtn.addEventListener('click', closeLabelAiModal);
+      const clearLabelAiBtn = $('#clear-label-ai-json');
+      if (clearLabelAiBtn) clearLabelAiBtn.addEventListener('click', () => { if (els.labelAiJsonInput) els.labelAiJsonInput.value = ''; setLabelAiError(''); });
+      const applyLabelAiBtn = $('#apply-label-ai-json');
+      if (applyLabelAiBtn) applyLabelAiBtn.addEventListener('click', applyLabelAiJson);
       const scanNutritionBtn = $('#scan-nutrition-label');
       const uploadNutritionBtn = $('#upload-nutrition-label');
       if (scanNutritionBtn) {
@@ -6125,6 +6263,11 @@ Per 100g: ${pretty(per100.kcal, 0)} kcal · P ${pretty(per100.protein)}g · C ${
       els.productModal.addEventListener('click', (event) => {
         if (event.target === els.productModal) closeProductModal();
       });
+      if (els.labelAiModal) {
+        els.labelAiModal.addEventListener('click', (event) => {
+          if (event.target === els.labelAiModal) closeLabelAiModal();
+        });
+      }
       els.scannerModal.addEventListener('click', (event) => {
         if (event.target === els.scannerModal) stopBarcodeScanner();
       });
@@ -6132,6 +6275,7 @@ Per 100g: ${pretty(per100.kcal, 0)} kcal · P ${pretty(per100.protein)}g · C ${
         if (event.key !== 'Escape') return;
         if (els.scannerModal.classList.contains('open')) stopBarcodeScanner();
         else if (els.recipeModal && els.recipeModal.classList.contains('open')) closeRecipeModal();
+        else if (els.labelAiModal && els.labelAiModal.classList.contains('open')) closeLabelAiModal();
         else if (els.productModal.classList.contains('open')) closeProductModal();
         else if (els.askAiModal.classList.contains('open')) closeAskAiModal();
         else if (els.logModal.classList.contains('open')) closeLogModal();
