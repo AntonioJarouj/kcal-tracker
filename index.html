@@ -26,6 +26,7 @@
       --carbs: #78b8ff;
       --fat: #ff8aa5;
       --fiber: #b790ff;
+      --salt: #7fe3e8;
       --shadow: 0 22px 80px rgba(0,0,0,.35);
       --radius: 18px;
       --radius-sm: 12px;
@@ -168,6 +169,7 @@
     .dot.carbs { background: var(--carbs); }
     .dot.fat { background: var(--fat); }
     .dot.fiber { background: var(--fiber); }
+    .dot.salt { background: var(--salt); }
     .macro-value { font-size: 21px; font-weight: 800; letter-spacing: -.03em; }
     .macro-target { font-size: 12px; color: var(--muted-2); margin-top: 2px; }
     .mini-track { height: 6px; border-radius: 99px; background: rgba(255,255,255,.08); margin-top: 12px; overflow: hidden; }
@@ -176,6 +178,7 @@
     .mini-fill.carbs { background: var(--carbs); }
     .mini-fill.fat { background: var(--fat); }
     .mini-fill.fiber { background: var(--fiber); }
+    .mini-fill.salt { background: var(--salt); }
 
     .actions-row { display: flex; gap: 10px; flex-wrap: wrap; }
     .primary-btn, .secondary-btn, .danger-btn {
@@ -702,7 +705,7 @@
     .hidden-helpers { display: none !important; }
 
     @media (min-width: 700px) {
-      .macro-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+      .macro-grid { grid-template-columns: repeat(5, minmax(0, 1fr)); }
     }
     @media (max-width: 640px) {
       .topbar-inner { flex-direction: row; align-items: center; }
@@ -1843,6 +1846,12 @@
             <div class="macro-value" id="fiber-value">0g</div>
             <div class="macro-target" id="fiber-target">van 0g</div>
             <div class="mini-track"><div class="mini-fill fiber" id="fiber-fill"></div></div>
+          </div>
+          <div class="macro-card">
+            <div class="macro-top"><span class="tiny">Zout</span><span class="dot salt"></span></div>
+            <div class="macro-value" id="salt-value">0g</div>
+            <div class="macro-target">totaal vandaag</div>
+            <div class="mini-track"><div class="mini-fill salt" id="salt-fill"></div></div>
           </div>
         </div>
       </article>
@@ -3207,6 +3216,15 @@
       renderMacro('carbs', totals.carbs, state.goals.carbs);
       renderMacro('fat', totals.fat, state.goals.fat);
       renderMacro('fiber', totals.fiber, state.goals.fiber);
+      renderSalt(totals.salt);
+    }
+
+    function renderSalt(value) {
+      const valueEl = document.getElementById('salt-value');
+      const fillEl = document.getElementById('salt-fill');
+      if (valueEl) valueEl.textContent = `${pretty(value, 2)}g`;
+      // Visual scale only: the card remains useful without forcing a salt goal.
+      if (fillEl) fillEl.style.width = `${Math.min((Number(value || 0) / 6) * 100, 100)}%`;
     }
 
     function renderMacro(key, value, goal) {
