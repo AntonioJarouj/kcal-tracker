@@ -1761,6 +1761,95 @@
       white-space: nowrap;
     }
 
+
+    /* --- Rustdagen / automatisch lager kcal-doel --- */
+    .day-type-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      width: fit-content;
+      margin: -6px 0 16px;
+      padding: 7px 11px;
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      background: rgba(255,255,255,.045);
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 800;
+    }
+    .day-type-badge.rest-day {
+      border-color: rgba(183,144,255,.30);
+      background: rgba(183,144,255,.09);
+      color: var(--accent-2);
+    }
+    .rest-day-settings {
+      margin-top: 14px;
+      padding: 14px;
+      border: 1px solid rgba(183,144,255,.22);
+      background: rgba(183,144,255,.055);
+      border-radius: 16px;
+    }
+    .rest-day-title {
+      font-size: 14px;
+      font-weight: 900;
+      margin-bottom: 4px;
+    }
+    .rest-day-sub {
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.45;
+      margin-bottom: 12px;
+    }
+    .rest-day-grid {
+      display: grid;
+      grid-template-columns: repeat(7, minmax(0, 1fr));
+      gap: 7px;
+      margin-bottom: 12px;
+    }
+    .rest-day-option {
+      min-height: 40px;
+      border: 1px solid var(--border);
+      background: rgba(0,0,0,.16);
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      padding: 0 7px;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 850;
+      cursor: pointer;
+      user-select: none;
+    }
+    .rest-day-option:has(input:checked) {
+      border-color: rgba(183,144,255,.48);
+      background: rgba(183,144,255,.14);
+      color: var(--accent-2);
+    }
+    .rest-day-option input {
+      width: auto !important;
+      min-height: auto !important;
+      accent-color: var(--accent-2);
+      margin: 0;
+    }
+    .rest-day-reduction-row {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(150px, .7fr);
+      gap: 12px;
+      align-items: end;
+    }
+    .rest-day-preview {
+      margin-top: 10px;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.45;
+    }
+    @media (max-width: 640px) {
+      .rest-day-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+      .rest-day-reduction-row { grid-template-columns: 1fr; }
+    }
+
   </style>
 </head>
 <body>
@@ -1792,6 +1881,8 @@
           </div>
           <button class="text-link-btn" type="button" onclick="document.getElementById('settings-card').open = true; document.getElementById('settings-card').scrollIntoView({behavior:'smooth', block:'start'});">Instellingen</button>
         </div>
+
+        <div class="day-type-badge" id="day-type-badge">Trainingsdag</div>
 
         <div class="summary-top">
           <div class="summary-side left">
@@ -2156,6 +2247,30 @@
                 <div class="error" id="error-goalFiber"></div>
               </div>
             </div>
+
+            <div class="rest-day-settings">
+              <div class="rest-day-title">Rustdagen</div>
+              <div class="rest-day-sub">Kies je vaste rustdagen. Op die dagen verlaagt de app je normale kcal-doel automatisch met het ingestelde aantal kcal. Je trainingsdagdoel hierboven blijft ongewijzigd.</div>
+              <div class="rest-day-grid" aria-label="Rustdagen kiezen">
+                <label class="rest-day-option"><input type="checkbox" name="restDay" value="1" /> Ma</label>
+                <label class="rest-day-option"><input type="checkbox" name="restDay" value="2" /> Di</label>
+                <label class="rest-day-option"><input type="checkbox" name="restDay" value="3" /> Wo</label>
+                <label class="rest-day-option"><input type="checkbox" name="restDay" value="4" /> Do</label>
+                <label class="rest-day-option"><input type="checkbox" name="restDay" value="5" /> Vr</label>
+                <label class="rest-day-option"><input type="checkbox" name="restDay" value="6" /> Za</label>
+                <label class="rest-day-option"><input type="checkbox" name="restDay" value="0" /> Zo</label>
+              </div>
+              <div class="rest-day-reduction-row">
+                <div class="split-note" style="margin:0;">Voorbeeld: normaal 2750 kcal en 200 kcal minder = <strong>2550 kcal</strong> op een rustdag.</div>
+                <div class="field" data-field="restDayReduction">
+                  <label for="rest-day-reduction">Minder kcal op rustdag</label>
+                  <input id="rest-day-reduction" name="restDayReduction" type="text" inputmode="decimal" value="200" placeholder="bijv. 200" />
+                  <div class="error" id="error-restDayReduction"></div>
+                </div>
+              </div>
+              <div class="rest-day-preview" id="rest-day-preview">Geen rustdagen geselecteerd.</div>
+            </div>
+
             <div class="split-note" id="macro-gram-preview" style="margin-top: 14px;">
               Vul je kcal en percentages in om de gramdoelen te zien.
             </div>
@@ -2572,7 +2687,7 @@
       weights: 'kcal_tracker_weights_v1'
     };
 
-    const DEFAULT_GOALS = { kcal: 2750, protein: 227, carbs: 275, fat: 83, fiber: 30, proteinPct: 33, carbsPct: 40, fatPct: 27 };
+    const DEFAULT_GOALS = { kcal: 2750, protein: 227, carbs: 275, fat: 83, fiber: 30, proteinPct: 33, carbsPct: 40, fatPct: 27, restDays: [], restDayReduction: 200 };
     const MEAL_TYPES = [
       { key: 'breakfast', label: 'Ontbijt' },
       { key: 'lunch', label: 'Lunch' },
@@ -2779,6 +2894,41 @@
       return MEAL_TYPES.find(meal => meal.key === key) || MEAL_TYPES[3];
     }
 
+    function normalizeRestDays(value) {
+      if (!Array.isArray(value)) return [];
+      return [...new Set(value.map(Number).filter(day => Number.isInteger(day) && day >= 0 && day <= 6))];
+    }
+
+    function getRestDayReduction() {
+      const value = Number(state.goals && state.goals.restDayReduction);
+      return Number.isFinite(value) && value >= 0 ? value : 200;
+    }
+
+    function isRestDay(dateKey = state.currentDate) {
+      const days = normalizeRestDays(state.goals && state.goals.restDays);
+      const day = new Date(`${dateKey}T12:00:00`).getDay();
+      return days.includes(day);
+    }
+
+    function getEffectiveGoalsForDate(dateKey = state.currentDate) {
+      const restDay = isRestDay(dateKey);
+      const reduction = restDay ? getRestDayReduction() : 0;
+      const kcal = Math.max(0, Number(state.goals.kcal || 0) - reduction);
+      const calculated = calculateMacroGoals(
+        kcal,
+        state.goals.carbsPct ?? DEFAULT_GOALS.carbsPct,
+        state.goals.proteinPct ?? DEFAULT_GOALS.proteinPct,
+        state.goals.fatPct ?? DEFAULT_GOALS.fatPct,
+        state.goals.fiber ?? DEFAULT_GOALS.fiber
+      );
+      return {
+        ...calculated,
+        restDays: normalizeRestDays(state.goals.restDays),
+        restDayReduction: getRestDayReduction(),
+        isRestDay: restDay
+      };
+    }
+
     function loadState() {
       try {
         state.products = (JSON.parse(localStorage.getItem(STORAGE_KEYS.products)) || []).map(product => ({
@@ -2801,13 +2951,17 @@
           }));
         });
         
-        state.goals = { ...DEFAULT_GOALS, ...(JSON.parse(localStorage.getItem(STORAGE_KEYS.goals)) || {}) };
-        if (state.goals.carbsPct == null || state.goals.proteinPct == null || state.goals.fatPct == null) {
-          state.goals.carbsPct = DEFAULT_GOALS.carbsPct;
-          state.goals.proteinPct = DEFAULT_GOALS.proteinPct;
-          state.goals.fatPct = DEFAULT_GOALS.fatPct;
+        const loadedGoals = { ...DEFAULT_GOALS, ...(JSON.parse(localStorage.getItem(STORAGE_KEYS.goals)) || {}) };
+        if (loadedGoals.carbsPct == null || loadedGoals.proteinPct == null || loadedGoals.fatPct == null) {
+          loadedGoals.carbsPct = DEFAULT_GOALS.carbsPct;
+          loadedGoals.proteinPct = DEFAULT_GOALS.proteinPct;
+          loadedGoals.fatPct = DEFAULT_GOALS.fatPct;
         }
-        state.goals = calculateMacroGoals(state.goals.kcal, state.goals.carbsPct, state.goals.proteinPct, state.goals.fatPct, state.goals.fiber);
+        state.goals = {
+          ...calculateMacroGoals(loadedGoals.kcal, loadedGoals.carbsPct, loadedGoals.proteinPct, loadedGoals.fatPct, loadedGoals.fiber),
+          restDays: normalizeRestDays(loadedGoals.restDays),
+          restDayReduction: Number.isFinite(Number(loadedGoals.restDayReduction)) ? Math.max(0, Number(loadedGoals.restDayReduction)) : DEFAULT_GOALS.restDayReduction
+        };
       } catch (error) {
         showToast('Kon opgeslagen data niet laden.');
       }
@@ -3085,7 +3239,7 @@
     }
 
     function validateGoalsForm() {
-      const fields = ['goalKcal', 'goalCarbsPct', 'goalProteinPct', 'goalFatPct', 'goalFiber'];
+      const fields = ['goalKcal', 'goalCarbsPct', 'goalProteinPct', 'goalFatPct', 'goalFiber', 'restDayReduction'];
       clearErrors(fields);
       let valid = true;
 
@@ -3094,12 +3248,14 @@
       const proteinPctParsed = parsePositiveNumber($('#goal-protein-pct').value, 'Eiwit percentage', { allowZero: true });
       const fatPctParsed = parsePositiveNumber($('#goal-fat-pct').value, 'Vet percentage', { allowZero: true });
       const fiberParsed = parsePositiveNumber($('#goal-fiber').value, 'Vezels');
+      const restDayReductionParsed = parsePositiveNumber($('#rest-day-reduction').value, 'Rustdag vermindering', { allowZero: true });
 
       if (!kcalParsed.ok) { setFieldError('goalKcal', kcalParsed.message); valid = false; }
       if (!carbsPctParsed.ok) { setFieldError('goalCarbsPct', carbsPctParsed.message); valid = false; }
       if (!proteinPctParsed.ok) { setFieldError('goalProteinPct', proteinPctParsed.message); valid = false; }
       if (!fatPctParsed.ok) { setFieldError('goalFatPct', fatPctParsed.message); valid = false; }
       if (!fiberParsed.ok) { setFieldError('goalFiber', fiberParsed.message); valid = false; }
+      if (!restDayReductionParsed.ok) { setFieldError('restDayReduction', restDayReductionParsed.message); valid = false; }
 
       const carbsPct = carbsPctParsed.value || 0;
       const proteinPct = proteinPctParsed.value || 0;
@@ -3113,9 +3269,14 @@
 
       if (!valid) return { valid: false, data: null };
 
+      const restDays = Array.from(document.querySelectorAll('input[name="restDay"]:checked')).map(input => Number(input.value));
       return {
         valid: true,
-        data: calculateMacroGoals(kcalParsed.value, carbsPct, proteinPct, fatPct, fiberParsed.value)
+        data: {
+          ...calculateMacroGoals(kcalParsed.value, carbsPct, proteinPct, fatPct, fiberParsed.value),
+          restDays: normalizeRestDays(restDays),
+          restDayReduction: round(restDayReductionParsed.value, 0)
+        }
       };
     }
 
@@ -3197,9 +3358,10 @@
 
     function renderDashboard() {
       const totals = totalsForDay();
-      const kcalPct = Math.min((totals.kcal / state.goals.kcal) * 100, 100);
-      const over = totals.kcal > state.goals.kcal;
-      const remaining = round(state.goals.kcal - totals.kcal, 0);
+      const dailyGoals = getEffectiveGoalsForDate(state.currentDate);
+      const kcalPct = dailyGoals.kcal > 0 ? Math.min((totals.kcal / dailyGoals.kcal) * 100, 100) : 0;
+      const over = totals.kcal > dailyGoals.kcal;
+      const remaining = round(dailyGoals.kcal - totals.kcal, 0);
 
       els.kcalEaten.textContent = pretty(totals.kcal, 0);
       els.kcalRemaining.textContent = over ? `+${pretty(Math.abs(remaining), 0)}` : pretty(remaining, 0);
@@ -3210,12 +3372,19 @@
       els.kcalRing.style.strokeDashoffset = String(CIRCUMFERENCE * (1 - kcalPct / 100));
       els.kcalRing.style.stroke = over ? 'var(--danger)' : 'var(--accent)';
       const goalVisual = document.getElementById('goal-kcal-visual');
-      if (goalVisual) goalVisual.textContent = pretty(state.goals.kcal, 0);
+      if (goalVisual) goalVisual.textContent = pretty(dailyGoals.kcal, 0);
+      const dayTypeBadge = document.getElementById('day-type-badge');
+      if (dayTypeBadge) {
+        dayTypeBadge.classList.toggle('rest-day', dailyGoals.isRestDay);
+        dayTypeBadge.textContent = dailyGoals.isRestDay
+          ? `Rustdag · ${pretty(dailyGoals.restDayReduction, 0)} kcal minder · doel ${pretty(dailyGoals.kcal, 0)} kcal`
+          : `Trainingsdag · doel ${pretty(dailyGoals.kcal, 0)} kcal`;
+      }
 
-      renderMacro('protein', totals.protein, state.goals.protein);
-      renderMacro('carbs', totals.carbs, state.goals.carbs);
-      renderMacro('fat', totals.fat, state.goals.fat);
-      renderMacro('fiber', totals.fiber, state.goals.fiber);
+      renderMacro('protein', totals.protein, dailyGoals.protein);
+      renderMacro('carbs', totals.carbs, dailyGoals.carbs);
+      renderMacro('fat', totals.fat, dailyGoals.fat);
+      renderMacro('fiber', totals.fiber, dailyGoals.fiber);
       renderSalt(totals.salt);
     }
 
@@ -3341,11 +3510,14 @@
       const sums = { kcal: 0, protein: 0, carbs: 0, fat: 0, fiber: 0 };
       let loggedDays = 0;
       let daysOver = 0;
+      let goalKcalSum = 0;
       keys.forEach(key => {
         const logs = state.logs[key] || [];
         const totals = totalsForDateKey(key);
+        const dayGoals = getEffectiveGoalsForDate(key);
+        goalKcalSum += dayGoals.kcal;
         if (logs.length) loggedDays += 1;
-        if (totals.kcal > state.goals.kcal) daysOver += 1;
+        if (totals.kcal > dayGoals.kcal) daysOver += 1;
         Object.keys(sums).forEach(k => sums[k] += totals[k]);
       });
       const divisor = keys.length || 7;
@@ -3359,7 +3531,8 @@
       set('week-avg-carbs', `${pretty(sums.carbs / divisor, 1)}g`);
       set('week-avg-fat', `${pretty(sums.fat / divisor, 1)}g`);
       set('week-avg-fiber', `${pretty(sums.fiber / divisor, 1)}g`);
-      const diff = round(avgKcal - state.goals.kcal, 0);
+      const avgGoalKcal = goalKcalSum / divisor;
+      const diff = round(avgKcal - avgGoalKcal, 0);
       set('week-avg-diff', diff > 0 ? `+${pretty(diff, 0)}` : pretty(diff, 0));
       set('week-days-logged', `${loggedDays}/7`);
       set('week-days-over', String(daysOver));
@@ -4425,6 +4598,33 @@ Regels:
       $('#goal-protein-pct').value = state.goals.proteinPct ?? 33;
       $('#goal-fat-pct').value = state.goals.fatPct ?? 27;
       $('#goal-fiber').value = state.goals.fiber;
+      const restDays = normalizeRestDays(state.goals.restDays);
+      document.querySelectorAll('input[name="restDay"]').forEach(input => {
+        input.checked = restDays.includes(Number(input.value));
+      });
+      const reductionInput = document.getElementById('rest-day-reduction');
+      if (reductionInput) reductionInput.value = pretty(getRestDayReduction(), 0);
+      renderRestDayPreview();
+    }
+
+    function renderRestDayPreview() {
+      const preview = document.getElementById('rest-day-preview');
+      if (!preview) return;
+      const selected = Array.from(document.querySelectorAll('input[name="restDay"]:checked')).map(input => Number(input.value));
+      const reductionRaw = document.getElementById('rest-day-reduction') ? document.getElementById('rest-day-reduction').value : '200';
+      const parsedReduction = parsePositiveNumber(reductionRaw, 'Rustdag vermindering', { allowZero: true });
+      const kcalParsed = parsePositiveNumber(document.getElementById('goal-kcal').value, 'Kcal');
+      const labels = { 1: 'ma', 2: 'di', 3: 'wo', 4: 'do', 5: 'vr', 6: 'za', 0: 'zo' };
+      if (!selected.length) {
+        preview.textContent = 'Geen rustdagen geselecteerd. Elke dag gebruikt je normale kcal-doel.';
+        return;
+      }
+      if (!parsedReduction.ok || !kcalParsed.ok) {
+        preview.textContent = `Rustdagen: ${selected.map(day => labels[day]).join(', ')}. Vul een geldig kcal-doel en vermindering in.`;
+        return;
+      }
+      const restKcal = Math.max(0, kcalParsed.value - parsedReduction.value);
+      preview.textContent = `Rustdagen: ${selected.map(day => labels[day]).join(', ')} · normaal ${pretty(kcalParsed.value, 0)} kcal · rustdag ${pretty(restKcal, 0)} kcal (${pretty(parsedReduction.value, 0)} kcal minder).`;
     }
 
     function renderGoalPreview() {
@@ -4443,6 +4643,7 @@ Regels:
       const totalPct = round(carbsPct.value + proteinPct.value + fatPct.value, 1);
       const goals = calculateMacroGoals(kcal.value, carbsPct.value, proteinPct.value, fatPct.value, fiber.value);
       els.macroGramPreview.textContent = `Preview: ${pretty(goals.carbs, 1)}g koolhydraten, ${pretty(goals.protein, 1)}g eiwit, ${pretty(goals.fat, 1)}g vet. Totaal percentages: ${pretty(totalPct, 1)}%.`;
+      renderRestDayPreview();
     }
 
     function updateLogPreview() {
@@ -5294,7 +5495,7 @@ Regels:
     function exportData() {
       const payload = {
         exportedAt: new Date().toISOString(),
-        version: 6,
+        version: 7,
         products: state.products,
         logs: state.logs,
         goals: state.goals,
@@ -5342,8 +5543,12 @@ Regels:
           
           state.water = (payload.water && typeof payload.water === 'object') ? payload.water : {};
           state.weights = (payload.weights && typeof payload.weights === 'object') ? payload.weights : {};
-          state.goals = { ...DEFAULT_GOALS, ...payload.goals };
-          state.goals = calculateMacroGoals(state.goals.kcal, state.goals.carbsPct ?? DEFAULT_GOALS.carbsPct, state.goals.proteinPct ?? DEFAULT_GOALS.proteinPct, state.goals.fatPct ?? DEFAULT_GOALS.fatPct, state.goals.fiber);
+          const importedGoals = { ...DEFAULT_GOALS, ...payload.goals };
+          state.goals = {
+            ...calculateMacroGoals(importedGoals.kcal, importedGoals.carbsPct ?? DEFAULT_GOALS.carbsPct, importedGoals.proteinPct ?? DEFAULT_GOALS.proteinPct, importedGoals.fatPct ?? DEFAULT_GOALS.fatPct, importedGoals.fiber),
+            restDays: normalizeRestDays(importedGoals.restDays),
+            restDayReduction: Number.isFinite(Number(importedGoals.restDayReduction)) ? Math.max(0, Number(importedGoals.restDayReduction)) : DEFAULT_GOALS.restDayReduction
+          };
           saveProducts();
           saveLogs();
           saveGoals();
@@ -6007,8 +6212,12 @@ Per 100g: ${pretty(per100.kcal, 0)} kcal · P ${pretty(per100.protein)}g · C ${
       if (goalManualBtn) goalManualBtn.addEventListener('click', () => setGoalMode('manual'));
       if (goalCalcBtn) goalCalcBtn.addEventListener('click', () => setGoalMode('calculator'));
       if (calcGoalBtn) calcGoalBtn.addEventListener('click', calculateAndFillStartGoal);
-      ['goal-kcal', 'goal-carbs-pct', 'goal-protein-pct', 'goal-fat-pct', 'goal-fiber'].forEach(id => {
-        document.getElementById(id).addEventListener('input', renderGoalPreview);
+      ['goal-kcal', 'goal-carbs-pct', 'goal-protein-pct', 'goal-fat-pct', 'goal-fiber', 'rest-day-reduction'].forEach(id => {
+        const input = document.getElementById(id);
+        if (input) input.addEventListener('input', renderGoalPreview);
+      });
+      document.querySelectorAll('input[name="restDay"]').forEach(input => {
+        input.addEventListener('change', renderRestDayPreview);
       });
       $('#clear-log-form').addEventListener('click', () => {
         const currentMeal = els.logMeal.value || 'breakfast';
