@@ -4422,9 +4422,84 @@ Regels:
       return 0;
     }
 
+    function repairMalformedAiJson(jsonText) {
+      let text = String(jsonText || '').trim();
+
+      // Veel AI-antwoorden bevatten per ongeluk:
+      // "items": { ... }, { ... }, { ... }
+      // terwijl geldige JSON vereist:
+      // "items": [ { ... }, { ... }, { ... } ]
+      // Deze reparatie zet zulke losse item-objecten automatisch in een array.
+      const itemsMatch = /"items"\s*:\s*\{/.exec(text);
+      if (!itemsMatch) return text;
+
+      const colonIndex = text.indexOf(':', itemsMatch.index);
+      let pos = colonIndex + 1;
+      while (/\s/.test(text[pos] || '')) pos++;
+      if (text[pos] !== '{') return text;
+
+      const objectRanges = [];
+      let cursor = pos;
+
+      while (cursor < text.length && text[cursor] === '{') {
+        const start = cursor;
+        let depth = 0;
+        let inString = false;
+        let escaped = false;
+        let end = -1;
+
+        for (; cursor < text.length; cursor++) {
+          const ch = text[cursor];
+          if (inString) {
+            if (escaped) escaped = false;
+            else if (ch === '\\') escaped = true;
+            else if (ch === '"') inString = false;
+            continue;
+          }
+          if (ch === '"') { inString = true; continue; }
+          if (ch === '{') depth++;
+          if (ch === '}') {
+            depth--;
+            if (depth === 0) {
+              end = cursor + 1;
+              cursor = end;
+              break;
+            }
+          }
+        }
+
+        if (end === -1) return text;
+        objectRanges.push([start, end]);
+
+        let look = cursor;
+        while (/\s/.test(text[look] || '')) look++;
+        if (text[look] !== ',') break;
+        look++;
+        while (/\s/.test(text[look] || '')) look++;
+
+        // Alleen doorgaan als na de komma direct nog een item-object komt.
+        // Bij "total", "warning" enz. stoppen we.
+        if (text[look] !== '{') break;
+        cursor = look;
+      }
+
+      if (objectRanges.length < 2) return text;
+
+      const firstStart = objectRanges[0][0];
+      const lastEnd = objectRanges[objectRanges.length - 1][1];
+      const itemsBody = text.slice(firstStart, lastEnd);
+      return text.slice(0, firstStart) + '[' + itemsBody + ']' + text.slice(lastEnd);
+    }
+
     function parseAiResponse(rawValue) {
       const jsonText = extractJsonText(rawValue);
-      const parsed = JSON.parse(jsonText);
+      let parsed;
+      try {
+        parsed = JSON.parse(jsonText);
+      } catch (firstError) {
+        const repairedJsonText = repairMalformedAiJson(jsonText);
+        parsed = JSON.parse(repairedJsonText);
+      }
       const overallConfidence = Array.isArray(parsed) ? '' : String(parsed.confidence || '').trim();
       const overallWarning = Array.isArray(parsed) ? '' : String(parsed.warning || parsed.note || '').trim();
       let items = Array.isArray(parsed) ? parsed : parsed.items;
@@ -4476,7 +4551,7 @@ Regels:
       } catch (error) {
         parsedAiItems = [];
         renderAiPreview();
-        setAiError('JSON niet herkend. Plak de AI-output opnieuw. De app ondersteunt nu ook keys zoals estimated_weight_g, calories_kcal, protein_g, carbohydrates_g, fat_g en fiber_g.');
+        setAiError('JSON niet herkend. De app probeert slimme quotes, codeblokken en foutieve items-arrays automatisch te repareren. Plak de volledige AI-output opnieuw als dit blijft gebeuren.');
       }
     }
 
